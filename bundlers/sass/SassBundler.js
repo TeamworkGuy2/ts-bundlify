@@ -1,15 +1,20 @@
-﻿import fs = require("fs");
-import path = require("path");
-import gutil = require("gulp-util");
-import sass = require("node-sass");
-import PathUtil = require("../../util/PathUtil");
-import LogUtil = require("../../util/LogUtil");
-
+"use strict";
+var fs = require("fs");
+var path = require("path");
+var gutil = require("gulp-util");
+var LogUtil = require("../../utils/LogUtil");
 /** Compile SASS/SCSS stylesheet files to CSS
  */
-module SassCssify {
-
-    export function compileBundle(bundleOpts: BundleOptions, paths: StylePaths) {
+var SassCssify;
+(function (SassCssify) {
+    /** Bundle SASS/SCSS files and compile to CSS
+     * require package.json:
+     *   "node-sass": "~3.11.2",
+     * @param sass
+     * @param bundleOpts
+     * @param paths
+     */
+    function compileBundle(sass, bundleOpts, paths) {
         if (bundleOpts.rebuild) {
             throw new Error("rebuilding SASS on source change is not yet supported");
         }
@@ -18,14 +23,13 @@ module SassCssify {
         var srcFile = paths.srcPaths[0];
         var dstFile = path.join((paths.dstDir || ""), paths.dstFileName);
         var dstFileMap = path.join((paths.dstDir || ""), paths.dstMapFile || (paths.dstFileName + ".map"));
-
-        var scssOpts: sass.Options = {
+        var scssOpts = {
             file: srcFile,
             sourceMap: true,
             outFile: dstFile,
             outputStyle: "expanded",
         };
-        sass.render(scssOpts, (err, res) => {
+        sass.render(scssOpts, function (err, res) {
             if (err) {
                 gutil.log("error compiling SCSS '" + srcFile + "': " + LogUtil.objToString(err, true, paths.projectRoot));
             }
@@ -36,7 +40,6 @@ module SassCssify {
             }
         });
     }
-
-}
-
-export = SassCssify;
+    SassCssify.compileBundle = compileBundle;
+})(SassCssify || (SassCssify = {}));
+module.exports = SassCssify;

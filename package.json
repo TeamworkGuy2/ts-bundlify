@@ -1,12 +1,8 @@
 {
   "name": "ts-bundlify",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "TypeScript-to-Javascript build process helpers for creating bundles using Gulp, Browserify, Traceur, Babel, and Node-Sass",
   "devDependencies": {
-    "babel-core": "~6.18.2",
-    "babel-preset-react": "~6.16.0",
-    "babel-preset-es2015": "~6.18.0",
-    "babelify": "~7.3.0",
     "browserify": "~13.1.1",
     "browser-pack": "~6.0.1",
     "chai": "~3.5.0",
@@ -16,13 +12,9 @@
     "gulp-util": "~3.0.7",
     "gulp-rename": "~1.2.2",
     "mocha": "~3.1.2",
-    "node-sass": "~3.11.2",
     "q": "~1.4.1",
     "through": "~2.3.8",
-    "traceur": "~0.0.111",
-    "typescript": "~1.8.9",
     "vinyl-source-stream": "~1.1.0",
-    "watchify": "~3.7.0"
   },
   "dependencies": {
   },

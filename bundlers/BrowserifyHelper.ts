@@ -2,14 +2,20 @@
 import stream = require("stream");
 import util = require("util");
 import Q = require("q");
-import LogUtil = require("../util/LogUtil");
+import LogUtil = require("../utils/LogUtil");
 import TypeScriptHelper = require("./TypeScriptHelper");
 
 /** Helpers for building JS bundles using 'browserify'
  */
 module BrowserifyHelper {
 
-    export interface BufferViewTransformFunc {
+    export interface BrowserifyTransform {
+        transform: (file: string, opts: { basedir?: string }) =>  NodeJS.ReadWriteStream;
+        options: any;
+    }
+
+
+    export interface BufferTransformFunc {
         (buf?: Buffer): void | string | Buffer;
     }
 
@@ -116,9 +122,9 @@ module BrowserifyHelper {
      * @param optionalTransforms
      */
     export function createStreamTransformer(optionalTransforms: {
-                prependInitial?: BufferViewTransformFunc;
-                prependEach?: BufferViewTransformFunc,
-                appendEach?: BufferViewTransformFunc,
+                prependInitial?: BufferTransformFunc;
+                prependEach?: BufferTransformFunc,
+                appendEach?: BufferTransformFunc,
             }): stream.Transform {
 
         function SimpleStreamView(opts?) {
@@ -128,7 +134,7 @@ module BrowserifyHelper {
         util.inherits(SimpleStreamView, stream.Transform);
 
         // override a private stream.Transform method
-        SimpleStreamView["_transform"] = function _transform(chunk: Buffer, encoding: string, cb) {
+        SimpleStreamView.prototype._transform = function _transform(chunk: Buffer, encoding: string, cb: () => void) {
             if (i === 0) {
                 chunk = runFuncResultToBuffer(chunk, false, optionalTransforms.prependInitial);
             }

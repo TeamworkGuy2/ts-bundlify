@@ -1,33 +1,24 @@
 "use strict";
 var crypto = require("crypto");
 var through = require("through");
-var traceur = require("traceur");
 /** Modified version of the 'es6ify' library.
  * Works with latest version of traceur and TypeScript
  */
 var Es6ifyLike;
 (function (Es6ifyLike) {
+    Es6ifyLike.traceurOverrides = {};
     var cache = {};
-    var Compiler = traceur.NodeCompiler;
     var traceurOptions = {
         modules: 'commonjs',
         sourceMaps: 'inline'
     };
-    Es6ifyLike.traceurOverrides = {};
-    /** Compile function, exposed to be used from other libraries, not needed when using es6ify as a transform.
-     * @param {string} file name of the file that is being compiled to ES5
-     * @param {string} src source of the file being compiled to ES5
-     * @return {string} compiled source
+    /** Configure a new es6ify compiler function
+     * @param filePattern a matcher against which files are tested to determine whether a file should be compiled
+     * @param willProcess optional callback which is called when a file is compiled or rejected, the first argument is the
+     * file's name, the second argument is true if the file is going to be compiled or false if the file is being skipped/rejected
+     * @param dataDone optional callback which is called when a file finishes being compiled
      */
-    function compileFile(file, src) {
-        var compiled = compile(file, src, Es6ifyLike.traceurOverrides);
-        if (compiled.error) {
-            throw new Error(compiled.error);
-        }
-        return compiled.source;
-    }
-    Es6ifyLike.compileFile = compileFile;
-    function es6ify(filePattern, willProcess, dataDone) {
+    function createCompiler(traceur, filePattern, willProcess, dataDone) {
         filePattern = filePattern || /\.js$/;
         return function es6ifyCompile(file) {
             if (!filePattern.test(file)) {
@@ -50,7 +41,7 @@ var Es6ifyLike;
                 if (!cached || cached.hash !== hash) {
                     try {
                         cache[file] = {
-                            compiled: compileFile(file, data),
+                            compiled: compileFile(traceur, file, data, Es6ifyLike.traceurOverrides),
                             hash: hash
                         };
                     }
@@ -67,7 +58,25 @@ var Es6ifyLike;
             }
         };
     }
-    Es6ifyLike.es6ify = es6ify;
+    Es6ifyLike.createCompiler = createCompiler;
+    /** Compile function, exposed to be used from other libraries, not needed when using es6ify as a transform.
+     * @param {string} file name of the file that is being compiled to ES5
+     * @param {string} src source of the file being compiled to ES5
+     * @return {string} compiled source
+     * @throws {Error} if the compilation fails
+     */
+    function compileFile(traceur, file, contents, traceurOverrides) {
+        var options = buildTraceurOptions(traceurOverrides);
+        try {
+            var compiler = new traceur.NodeCompiler(options);
+            var result = compiler.compile(contents, file, file);
+        }
+        catch (errors) {
+            throw new Error(errors[0]);
+        }
+        return result;
+    }
+    Es6ifyLike.compileFile = compileFile;
     function buildTraceurOptions(overrides) {
         var options = Object.assign({}, traceurOptions, overrides);
         if (typeof options.sourceMap !== 'undefined') {
@@ -86,23 +95,6 @@ var Es6ifyLike;
             .createHash('md5')
             .update(data)
             .digest('hex');
-    }
-    function compile(file, contents, traceurOverrides) {
-        var options = buildTraceurOptions(traceurOverrides);
-        try {
-            var compiler = new Compiler(options);
-            var result = compiler.compile(contents, file, file);
-        }
-        catch (errors) {
-            return {
-                source: null,
-                error: errors[0],
-            };
-        }
-        return {
-            source: result,
-            error: null,
-        };
     }
 })(Es6ifyLike || (Es6ifyLike = {}));
 module.exports = Es6ifyLike;

@@ -1,4 +1,5 @@
 ﻿import fs = require("fs");
+import process = require("process");
 import gutil = require("gulp-util");
 import StringUtil = require("./StringUtil");
 
@@ -22,8 +23,8 @@ module PathUtil {
     }
 
 
-    export function getSetOrDefaultProjectPath(projRoot?: string) {
-        projRoot = projRoot ? projRoot.replace(/\\/g, '/') : (projectRoot || (projectRoot = process.cwd().replace(/\\/g, '/')));
+    export function getSetOrDefaultProjectPath(projRoot?: string, projRootNormalized?: boolean) {
+        projRoot = projRoot ? (projRootNormalized ? projRoot : projRoot.replace(/\\/g, '/')) : (projectRoot || (projectRoot = process.cwd().replace(/\\/g, '/')));
         return projRoot;
     }
 
@@ -34,10 +35,10 @@ module PathUtil {
      * @param file the file name to relativize
      * @param [projRoot] the optional path used to relativize the 'file', default value is 'process.cwd()'
      */
-    export function toShortFileName(file: string, projRoot?: string) {
-        projRoot = getSetOrDefaultProjectPath(projRoot);
+    export function toShortFileName(file: string, projRoot?: string, projRootNormalized?: boolean) {
+        projRoot = getSetOrDefaultProjectPath(projRoot, projRootNormalized);
         var parts = file.replace(/\\/g, '/').split(projRoot);
-        return StringUtil.removeLeading(parts[parts.length - 1], '/');
+        return parts.length > 1 ? StringUtil.removeLeading(parts[parts.length - 1], '/') : file;
     }
 
 
@@ -45,12 +46,12 @@ module PathUtil {
      * @param regex the regular expression to modify
      * @param show an object containing a boolean property 'showRegexTests' which is dynamically checked each time the RegExp's test() function is called to determine whether or not to print a message
      */
-    export function createRegexInspector(regex: RegExp, show: { showRegexTests: boolean; }) {
+    export function createRegexInspector(regex: RegExp, show: { showRegexTests: boolean; }, cb: (input: string, passed: boolean) => void) {
         var origTest = regex.test;
         regex.test = function testInspector(str: string) {
             var res = origTest.call(regex, str);
             if (show.showRegexTests) {
-                gutil.log((res ? "building: " : "ignore: ") + toShortFileName(str));
+                cb(str, res);
             }
             return res;
         };

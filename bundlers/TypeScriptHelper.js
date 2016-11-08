@@ -44,7 +44,7 @@ var TypeScriptHelper;
     /** Read the 'prelude.js' source string used by browser-pack, insert the TypeScript static helpers (required for 'extends', annotations, and other TypeScript features) into it, and return it
      * @param [includeUsageComment=false] whether to include a comment in the source string explaining why the TypeScript static helpers are inserted
      */
-    function insertTypeScriptHelpers(includeUsageComment) {
+    function createPreludeStringWithTypeScriptHelpers(includeUsageComment) {
         return BundlifyHelper.getPreludeJsSource().then(function (preludeSrc) {
             var comment = "/* TypeScript static helpers - inserted once, here.  Run TypeScript compiler with '--noEmitHelpers' option to prevent duplicate helpers being inserted into each bundled TypeScript file */";
             var customPrelude = (includeUsageComment != false ? comment : "") +
@@ -55,6 +55,6 @@ var TypeScriptHelper;
             };
         });
     }
-    TypeScriptHelper.insertTypeScriptHelpers = insertTypeScriptHelpers;
+    TypeScriptHelper.createPreludeStringWithTypeScriptHelpers = createPreludeStringWithTypeScriptHelpers;
 })(TypeScriptHelper || (TypeScriptHelper = {}));
 module.exports = TypeScriptHelper;

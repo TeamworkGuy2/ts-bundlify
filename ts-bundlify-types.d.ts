@@ -1,29 +1,31 @@
-﻿/// <reference path="../definitions/node/node.d.ts" />
-/// <reference path="../definitions/chai/chai.d.ts" />
+﻿/// <reference path="../definitions/babelify/babelify.d.ts" />
+/// <reference path="../definitions/browserify/browserify.d.ts" />
+/// <reference path="../definitions/browser-pack/browser-pack.d.ts" />
 /// <reference path="../definitions/exorcist/exorcist.d.ts" />
 /// <reference path="../definitions/gulp/gulp.d.ts" />
 /// <reference path="../definitions/gulp-concat/gulp-concat.d.ts" />
 /// <reference path="../definitions/gulp-rename/gulp-rename.d.ts" />
 /// <reference path="../definitions/gulp-util/gulp-util.d.ts" />
-/// <reference path="../definitions/mocha/mocha.d.ts" />
+/// <reference path="../definitions/node/node.d.ts" />
 /// <reference path="../definitions/node-sass/node-sass.d.ts" />
-/// <reference path="../definitions/react/react.d.ts" />
-/// <reference path="../definitions/react/react-dom.d.ts" />
+/// <reference path="../definitions/q/Q.d.ts" />
 /// <reference path="../definitions/through/through.d.ts" />
 /// <reference path="../definitions/vinyl-source-stream/vinyl-source-stream.d.ts" />
-/// <reference path="../definitions/q/Q.d.ts" />
-/// <reference path="../definitions/babelify/babelify.d.ts" />
-/// <reference path="../definitions/browser-pack/browser-pack.d.ts" />
 /// <reference path="../definitions/watchify/watchify.d.ts" />
+
 
 declare module "traceur" {
 
-    export class NodeCompiler {
+    export class NodeCompiler implements TraceurCompiler {
         constructor(opts?: any);
 
         compile(contents: string, file: string, opts: any): any;
     }
 
+}
+
+interface TraceurCompiler {
+    compile(contents: string, file: string, opts: any): any;
 }
 
 
@@ -37,7 +39,10 @@ interface BundleOptions {
     /** Whether to print verbose bundle compilation information */
     verbose: boolean;
     /** Whether to include TypeScript static helper code in the compiled bundle */
-    includeTypeScriptHelpers?: boolean;
+    typescript?: {
+        includeHelpers?: boolean;
+        includeHelpersComment?: boolean;
+    }
 }
 
 

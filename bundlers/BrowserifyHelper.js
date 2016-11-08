@@ -96,7 +96,7 @@ var BrowserifyHelper;
         }
         util.inherits(SimpleStreamView, stream.Transform);
         // override a private stream.Transform method
-        SimpleStreamView["_transform"] = function _transform(chunk, encoding, cb) {
+        SimpleStreamView.prototype._transform = function _transform(chunk, encoding, cb) {
             if (i === 0) {
                 chunk = runFuncResultToBuffer(chunk, false, optionalTransforms.prependInitial);
             }

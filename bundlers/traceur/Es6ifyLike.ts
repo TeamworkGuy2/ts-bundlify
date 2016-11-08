@@ -1,16 +1,15 @@
 ﻿import crypto = require("crypto");
 import path = require("path");
 import through = require("through");
-import traceur = require("traceur");
+import Traceur = require("traceur");
 
 /** Modified version of the 'es6ify' library.
  * Works with latest version of traceur and TypeScript
  */
 module Es6ifyLike {
+    export var traceurOverrides = <{ [id: string]: any; } & any>{};
 
     var cache: { [file: string]: { compiled: string; hash: string; } } = {};
-
-    var Compiler = traceur.NodeCompiler;
 
     var traceurOptions = {
         modules: 'commonjs',
@@ -18,28 +17,15 @@ module Es6ifyLike {
     };
 
 
-    export var traceurOverrides = <{ [id: string]: any; } & any>{};
-
-
-    /** Compile function, exposed to be used from other libraries, not needed when using es6ify as a transform.
-     * @param {string} file name of the file that is being compiled to ES5
-     * @param {string} src source of the file being compiled to ES5
-     * @return {string} compiled source
+    /** Configure a new es6ify compiler function
+     * @param filePattern a matcher against which files are tested to determine whether a file should be compiled
+     * @param willProcess optional callback which is called when a file is compiled or rejected, the first argument is the
+     * file's name, the second argument is true if the file is going to be compiled or false if the file is being skipped/rejected
+     * @param dataDone optional callback which is called when a file finishes being compiled
      */
-    export function compileFile(file: string, src: string): string {
-        var compiled = compile(file, src, traceurOverrides);
-
-        if (compiled.error) {
-            throw new Error(compiled.error);
-        }
-
-        return compiled.source;
-    }
-
-
-    export function es6ify(filePattern?: { test(str: string): boolean; } | RegExp,
+    export function createCompiler(traceur: typeof Traceur, filePattern?: { test(str: string): boolean; } | RegExp,
             willProcess?: (file: string, willProcess: boolean) => void,
-            dataDone?: (file: string, data: string) => void) {
+            dataDone?: (file: string, data: string) => void): (file: string) => through.ThroughStream {
         filePattern = filePattern || /\.js$/;
 
         return function es6ifyCompile(file: string) {
@@ -63,7 +49,7 @@ module Es6ifyLike {
                 if (!cached || cached.hash !== hash) {
                     try {
                         cache[file] = {
-                            compiled: compileFile(file, data),
+                            compiled: compileFile(traceur, file, data, traceurOverrides),
                             hash: hash
                         };
                     } catch (ex) {
@@ -78,6 +64,25 @@ module Es6ifyLike {
                 if (dataDone) { dataDone(file, data); }
             }
         };
+    }
+
+
+    /** Compile function, exposed to be used from other libraries, not needed when using es6ify as a transform.
+     * @param {string} file name of the file that is being compiled to ES5
+     * @param {string} src source of the file being compiled to ES5
+     * @return {string} compiled source
+     * @throws {Error} if the compilation fails
+     */
+    export function compileFile(traceur: typeof Traceur, file: string, contents: string, traceurOverrides: any): string {
+        var options = buildTraceurOptions(traceurOverrides);
+        try {
+            var compiler = new traceur.NodeCompiler(options);
+            var result = compiler.compile(contents, file, file);
+        } catch (errors) {
+            throw new Error(errors[0]);
+        }
+
+        return result;
     }
 
 
@@ -104,25 +109,6 @@ module Es6ifyLike {
             .createHash('md5')
             .update(data)
             .digest('hex');
-    }
-
-
-    function compile(file: string, contents: string, traceurOverrides: any): { source: any; error: any; } {
-        var options = buildTraceurOptions(traceurOverrides);
-        try {
-            var compiler = new Compiler(options);
-            var result = compiler.compile(contents, file, file);
-        } catch (errors) {
-            return {
-                source: null,
-                error: errors[0],
-            };
-        }
-
-        return {
-            source: result,
-            error: null,
-        };
     }
 
 }
