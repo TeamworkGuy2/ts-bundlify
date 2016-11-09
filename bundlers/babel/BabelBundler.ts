@@ -1,4 +1,5 @@
-﻿import gulp = require("gulp");
+﻿import stream = require("stream");
+import gulp = require("gulp");
 import babelify = require("babelify");
 import PathUtil = require("../../utils/PathUtil");
 import BrowserifyHelper = require("../../bundlers/BrowserifyHelper");
@@ -10,25 +11,29 @@ import BrowserifyHelper = require("../../bundlers/BrowserifyHelper");
  *   "babel-preset-es2015": "~6.18.0",
  *   "babelify": "~7.3.0",
  */
-module BabelBabelify {
+module BabelBundler {
 
     /** Create a 'browserify' transform which compiles source files using babelify
      */
-    export function createTransformer(babelify: babelify.BabelifyConstructor) {
+    export function createTransformer(babelify: babelify.BabelifyConstructor, filePattern?: { test(str: string): boolean; } | RegExp, babelCompilerOpts?: any, transformOpts?: any) {
         var res: BrowserifyHelper.BrowserifyTransform = {
             transform: function babelifyTransform(tr, opts) {
+                if (filePattern != null && !filePattern.test(tr)) {
+                    return new stream.PassThrough();
+                }
+
                 console.log("babelify: '" + PathUtil.toShortFileName(tr) + "'");
 
-                var res = babelify(tr, opts);
-                return res;
+                var strm = babelify(tr, BrowserifyHelper.combineOpts(opts, babelCompilerOpts));
+                return strm;
             },
-            options: {
+            options: BrowserifyHelper.combineOpts({
                 presets: ["es2015"],
-            }
+            }, transformOpts)
         };
         return res;
     }
 
 }
 
-export = BabelBabelify;
+export = BabelBundler;

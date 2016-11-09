@@ -7,7 +7,7 @@ import LogUtil = require("../../utils/LogUtil");
 
 /** Compile SASS/SCSS stylesheet files to CSS
  */
-module SassCssify {
+module SassBundler {
 
     /** Bundle SASS/SCSS files and compile to CSS
      * require package.json:
@@ -46,4 +46,4 @@ module SassCssify {
 
 }
 
-export = SassCssify;
+export = SassBundler;

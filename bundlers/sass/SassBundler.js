@@ -5,8 +5,8 @@ var gutil = require("gulp-util");
 var LogUtil = require("../../utils/LogUtil");
 /** Compile SASS/SCSS stylesheet files to CSS
  */
-var SassCssify;
-(function (SassCssify) {
+var SassBundler;
+(function (SassBundler) {
     /** Bundle SASS/SCSS files and compile to CSS
      * require package.json:
      *   "node-sass": "~3.11.2",
@@ -40,6 +40,6 @@ var SassCssify;
             }
         });
     }
-    SassCssify.compileBundle = compileBundle;
-})(SassCssify || (SassCssify = {}));
-module.exports = SassCssify;
+    SassBundler.compileBundle = compileBundle;
+})(SassBundler || (SassBundler = {}));
+module.exports = SassBundler;

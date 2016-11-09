@@ -125,6 +125,29 @@ var BrowserifyHelper;
         return new SimpleStreamView();
     }
     BrowserifyHelper.createStreamTransformer = createStreamTransformer;
+    /** Given a set of 'options' type objects used by many constructors, create a shallow copy, left-to-right, of the non-null objects, or return the non-null object if only one non-null parameter is provided
+     * @param opts the 'options' objects
+     */
+    function combineOpts() {
+        var opts = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            opts[_i - 0] = arguments[_i];
+        }
+        var validOpts = [];
+        for (var i = 0, size = opts.length; i < size; i++) {
+            if (opts[i] != null) {
+                validOpts.push(opts[i]);
+            }
+        }
+        if (validOpts.length === 1) {
+            return validOpts[0];
+        }
+        else {
+            validOpts.unshift({});
+            return Object.assign.apply(null, validOpts);
+        }
+    }
+    BrowserifyHelper.combineOpts = combineOpts;
     /** Check if an object is a Node 'ReadableStream' based on duck typing
      */
     function isReadableStream(stream) {

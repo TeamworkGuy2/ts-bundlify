@@ -167,6 +167,26 @@ module BrowserifyHelper {
     }
 
 
+    /** Given a set of 'options' type objects used by many constructors, create a shallow copy, left-to-right, of the non-null objects, or return the non-null object if only one non-null parameter is provided
+     * @param opts the 'options' objects
+     */
+    export function combineOpts(...opts: any[]) {
+        var validOpts = [];
+        for (var i = 0, size = opts.length; i < size; i++) {
+            if (opts[i] != null) {
+                validOpts.push(opts[i]);
+            }
+        }
+        if (validOpts.length === 1) {
+            return validOpts[0];
+        }
+        else {
+            validOpts.unshift({});
+            return Object.assign.apply(null, validOpts);
+        }
+    }
+
+
     /** Check if an object is a Node 'ReadableStream' based on duck typing
      */
     function isReadableStream(stream: any): stream is NodeJS.ReadableStream {

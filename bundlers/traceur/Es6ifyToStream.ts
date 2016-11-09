@@ -6,7 +6,7 @@ import Traceur = require("traceur");
 /** Modified version of the 'es6ify' library.
  * Works with latest version of traceur and TypeScript
  */
-module Es6ifyLike {
+module Es6ifyToStream {
     export var traceurOverrides = <{ [id: string]: any; } & any>{};
 
     var cache: { [file: string]: { compiled: string; hash: string; } } = {};
@@ -24,18 +24,15 @@ module Es6ifyLike {
      * @param dataDone optional callback which is called when a file finishes being compiled
      */
     export function createCompiler(traceur: typeof Traceur, filePattern?: { test(str: string): boolean; } | RegExp,
-            willProcess?: (file: string, willProcess: boolean) => void,
             dataDone?: (file: string, data: string) => void): (file: string) => through.ThroughStream {
         filePattern = filePattern || /\.js$/;
 
         return function es6ifyCompile(file: string) {
             if (!filePattern.test(file)) {
-                if (willProcess) { willProcess(file, false); }
                 return through();
             }
 
             var data = '';
-            if (willProcess) { willProcess(file, true); }
             return through(write, end);
 
             function write(buf) {
@@ -90,13 +87,13 @@ module Es6ifyLike {
         var options = Object.assign({}, traceurOptions, overrides);
 
         if (typeof options.sourceMap !== 'undefined') {
-            console.warn('es6ify: DEPRECATED traceurOverrides.sourceMap has changed to traceurOverrides.sourceMaps (plural)');
+            console.warn('Es6ifyToStream: DEPRECATED traceurOverrides.sourceMap has changed to traceurOverrides.sourceMaps (plural)');
             options.sourceMaps = options.sourceMap;
             delete options.sourceMap;
         }
 
         if (options.sourceMaps === true) {
-            console.warn('es6ify: DEPRECATED "traceurOverrides.sourceMaps = true" is not a valid option, traceur sourceMaps options are [false|inline|file]');
+            console.warn('Es6ifyToStream: DEPRECATED "traceurOverrides.sourceMaps = true" is not a valid option, traceur sourceMaps options are [false|inline|file]');
             options.sourceMaps = 'inline';
         }
 
@@ -113,4 +110,4 @@ module Es6ifyLike {
 
 }
 
-export = Es6ifyLike;
+export = Es6ifyToStream;
