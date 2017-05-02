@@ -47,65 +47,68 @@ module BrowserifyHelper {
      * This method does roughly the equivalent of bundler.pipe(...).pipe(...).pipe..., as well as adding a bundler.on('update', ...) listener which re-runs the bundler piping process whenever bundle updates are detected.
      * The major reason to use this method instead of hand rolling the pipe() calls is the detailed error handling this method adds to each pipe() step.
      *
-     * @param dstFilePath the name of the stream destination to display in success/error messages
+     * @param rebuildOnSrcChange flag indicating whether bundle should watch filesystem for changes and rebuild on change
      * @param bundler the browserify object with a watchify plugin used to listener for 'update' events on to determine when to rebundle
      * @param getInitialStream a function which creates the initial stream (i.e. bundler.bundle(opts))
      * @param additionalStreamPipes further transformations (i.e. [ (prevSrc) => prevSrc.pipe(vinyleSourceStream(...), (prevSrc) => prevSrc.pipe(gulp.dest(...)) ])
      * @return a promise which completes when the first build completes and returns a message with the name of the compiled file and how long it took
      */
-    export function setupRebundleListener(dstFilePath: string, rebuildOnSrcChange: boolean, bundler: Browserify.BrowserifyObject,
-            getInitialStream: (bundler: Browserify.BrowserifyObject) => NodeJS.ReadableStream | Q.Promise<NodeJS.ReadableStream>,
-            additionalStreamPipes: [string, (prevStream: NodeJS.ReadableStream) => NodeJS.ReadableStream][]) {
+    export function setupRebundleListener(rebuildOnSrcChange: boolean, bundler: Browserify.BrowserifyObject,
+            getInitialStream: (bundler: Browserify.BrowserifyObject) => MultiBundleStreams,
+            additionalStreamPipes: [string, (prevStream: NodeJS.ReadableStream, streamOpts: BundleDst) => NodeJS.ReadableStream][]) {
 
         var firstBuildDfd = Q.defer<string>();
 
         function rebundle() {
-            var startTime: number;
-            var endTime: number;
+            var startTime: { [file: string]: number } = {};
+            var endTime: { [file: string]: number } = {};
 
-            function startCb(stream) {
-                startTime = <number>Date.now();
-                gutil.log("start building '" + dstFilePath + "'...");
+            function startCb(file: string) {
+                startTime[file] = <number>Date.now();
+                gutil.log("start building '" + file + "'...");
             }
 
-            function doneCb() {
-                endTime = <number>Date.now();
-                var msg = "finished building '" + dstFilePath + "', " + (endTime - startTime) + " ms";
+            function doneCb(file: string) {
+                endTime[file] = <number>Date.now();
+                var msg = "finished building '" + file + "', " + (endTime[file] - startTime[file]) + " ms";
                 gutil.log(msg);
                 firstBuildDfd.resolve(msg);
             }
 
-            function createErrorCb(srcName: string) {
+            function createErrorCb(srcName: string, dstFile: string) {
                 return function (err) {
-                    var msg = "error building '" + dstFilePath + "' at stream '" + srcName + "'";
+                    var msg = "error building '" + dstFile + "' at stream '" + srcName + "'";
                     console.error(msg, err);
                     firstBuildDfd.reject(msg + ": " + String(err));
                 };
             }
 
-            function startStream(stream: NodeJS.ReadableStream) {
-                stream.on("error", createErrorCb("initial-stream"));
+            function startStream(bundles: BundleStream<NodeJS.ReadableStream>[]) {
+                bundles.forEach((bundle) => {
+                    var resStream = bundle.stream;
+                    var dstFilePath = bundle.dstFileName;
+                    resStream.on("error", createErrorCb("initial-stream", dstFilePath));
 
-                var streams = additionalStreamPipes;
-                for (var i = 0, size = streams.length; i < size; i++) {
-                    var streamName = streams[i][0];
-                    var streamCreator = streams[i][1];
+                    for (var i = 0, size = additionalStreamPipes.length; i < size; i++) {
+                        var streamName = additionalStreamPipes[i][0];
+                        var streamCreator = additionalStreamPipes[i][1];
 
-                    stream = streamCreator(stream);
-                    stream.on("error", createErrorCb(streamName));
-                }
+                        resStream = streamCreator(resStream, bundle);
+                        resStream.on("error", createErrorCb(streamName, dstFilePath));
+                    }
 
-                startCb(stream);
+                    resStream.on("end", () => doneCb(dstFilePath));
 
-                stream.on("end", doneCb);
+                    startCb(dstFilePath);
+                });
             }
 
             var initialStream = getInitialStream(bundler);
-            if (isReadableStream(initialStream)) {
-                startStream(<NodeJS.ReadableStream>initialStream);
+            if (isPromise<BundleStream<NodeJS.ReadableStream>[]>(initialStream.bundleStreams)) {
+                initialStream.bundleStreams.done((streams) => startStream(streams), createErrorCb("creating initial-stream", "multi-stream-base"));
             }
             else {
-                initialStream.done(startStream, createErrorCb("creating initial-stream"));
+                startStream(<BundleStream<NodeJS.ReadableStream>[]>initialStream.bundleStreams);
             }
 
             return firstBuildDfd.promise;
@@ -187,10 +190,8 @@ module BrowserifyHelper {
     }
 
 
-    /** Check if an object is a Node 'ReadableStream' based on duck typing
-     */
-    function isReadableStream(stream: any): stream is NodeJS.ReadableStream {
-        return typeof stream["on"] === "function" && typeof stream["pipe"] === "function";
+    function isPromise<T>(p: any): p is Q.Promise<T> {
+        return Q.isPromiseAlike(p);
     }
 
 }

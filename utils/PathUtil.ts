@@ -1,6 +1,4 @@
-﻿import fs = require("fs");
-import process = require("process");
-import gutil = require("gulp-util");
+﻿import process = require("process");
 import StringUtil = require("./StringUtil");
 
 /** File system path utilities (some overlap with Node 'path' module).

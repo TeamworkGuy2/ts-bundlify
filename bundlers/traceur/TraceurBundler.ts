@@ -1,7 +1,7 @@
-﻿import PathUtil = require("../../utils/PathUtil");
+﻿import Traceur = require("traceur");
+import PathUtil = require("../../utils/PathUtil");
 import BrowserifyHelper = require("../../bundlers/BrowserifyHelper");
 import Es6ifyToStream = require("./Es6ifyToStream");
-import Traceur = require("traceur");
 
 /** Build a JS bundle using the Tracur compiler
  * require package.json:

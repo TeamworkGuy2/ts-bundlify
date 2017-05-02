@@ -2,7 +2,7 @@
 var path = require("path");
 var minimatch = require("minimatch");
 var convert = require("convert-source-map");
-var through = require("through");
+var through2 = require("through2");
 var UglifyToStream;
 (function (UglifyToStream) {
     function createStreamCompiler(uglify, file, opts, filePattern, dataDone) {
@@ -10,7 +10,7 @@ var UglifyToStream;
         var debug = ("_flags" in opts) ? opts._flags.debug : true;
         delete opts._flags;
         if (ignore(file, opts.ignore, filePattern)) {
-            return through();
+            return through2();
         }
         var buffer = '';
         var exts = []
@@ -18,9 +18,9 @@ var UglifyToStream;
             .concat(opts.x || [])
             .map(function (d) { return (d.charAt(0) === '.') ? d : ('.' + d); });
         if (/\.json$/.test(file) || (exts.length > 0 && exts.indexOf(path.extname(file)) === -1)) {
-            return through();
+            return through2();
         }
-        return through(function write(chunk) {
+        return through2(function write(chunk) {
             buffer += chunk;
         }, capture(function ready() {
             // match an inlined sourcemap with or without a charset definition

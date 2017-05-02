@@ -1,5 +1,4 @@
 ﻿import stream = require("stream");
-import gulp = require("gulp");
 import babelify = require("babelify");
 import PathUtil = require("../../utils/PathUtil");
 import BrowserifyHelper = require("../../bundlers/BrowserifyHelper");

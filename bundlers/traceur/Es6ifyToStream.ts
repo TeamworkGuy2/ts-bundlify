@@ -1,6 +1,6 @@
 ﻿import crypto = require("crypto");
 import path = require("path");
-import through = require("through");
+import through2 = require("through2");
 import Traceur = require("traceur");
 
 /** Modified version of the 'es6ify' library.
@@ -24,22 +24,19 @@ module Es6ifyToStream {
      * @param dataDone optional callback which is called when a file finishes being compiled
      */
     export function createCompiler(traceur: typeof Traceur, filePattern?: { test(str: string): boolean; } | RegExp,
-            dataDone?: (file: string, data: string) => void): (file: string) => through.ThroughStream {
+            dataDone?: (file: string, data: string) => void): (file: string) => NodeJS.ReadWriteStream {
         filePattern = filePattern || /\.js$/;
 
         return function es6ifyCompile(file: string) {
             if (!filePattern.test(file)) {
-                return through();
+                return through2();
             }
 
             var data = '';
-            return through(write, end);
 
-            function write(buf) {
+            return through2(function write(buf) {
                 data += buf;
-            }
-
-            function end() {
+            }, function end() {
                 var hash = getHash(data);
                 var cached = cache[file];
 
@@ -59,7 +56,7 @@ module Es6ifyToStream {
                 this.queue(null);
 
                 if (dataDone) { dataDone(file, data); }
-            }
+            });
         };
     }
 

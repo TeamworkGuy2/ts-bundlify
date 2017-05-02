@@ -32,52 +32,55 @@ var BrowserifyHelper;
      * This method does roughly the equivalent of bundler.pipe(...).pipe(...).pipe..., as well as adding a bundler.on('update', ...) listener which re-runs the bundler piping process whenever bundle updates are detected.
      * The major reason to use this method instead of hand rolling the pipe() calls is the detailed error handling this method adds to each pipe() step.
      *
-     * @param dstFilePath the name of the stream destination to display in success/error messages
+     * @param rebuildOnSrcChange flag indicating whether bundle should watch filesystem for changes and rebuild on change
      * @param bundler the browserify object with a watchify plugin used to listener for 'update' events on to determine when to rebundle
      * @param getInitialStream a function which creates the initial stream (i.e. bundler.bundle(opts))
      * @param additionalStreamPipes further transformations (i.e. [ (prevSrc) => prevSrc.pipe(vinyleSourceStream(...), (prevSrc) => prevSrc.pipe(gulp.dest(...)) ])
      * @return a promise which completes when the first build completes and returns a message with the name of the compiled file and how long it took
      */
-    function setupRebundleListener(dstFilePath, rebuildOnSrcChange, bundler, getInitialStream, additionalStreamPipes) {
+    function setupRebundleListener(rebuildOnSrcChange, bundler, getInitialStream, additionalStreamPipes) {
         var firstBuildDfd = Q.defer();
         function rebundle() {
-            var startTime;
-            var endTime;
-            function startCb(stream) {
-                startTime = Date.now();
-                gutil.log("start building '" + dstFilePath + "'...");
+            var startTime = {};
+            var endTime = {};
+            function startCb(file) {
+                startTime[file] = Date.now();
+                gutil.log("start building '" + file + "'...");
             }
-            function doneCb() {
-                endTime = Date.now();
-                var msg = "finished building '" + dstFilePath + "', " + (endTime - startTime) + " ms";
+            function doneCb(file) {
+                endTime[file] = Date.now();
+                var msg = "finished building '" + file + "', " + (endTime[file] - startTime[file]) + " ms";
                 gutil.log(msg);
                 firstBuildDfd.resolve(msg);
             }
-            function createErrorCb(srcName) {
+            function createErrorCb(srcName, dstFile) {
                 return function (err) {
-                    var msg = "error building '" + dstFilePath + "' at stream '" + srcName + "'";
+                    var msg = "error building '" + dstFile + "' at stream '" + srcName + "'";
                     console.error(msg, err);
                     firstBuildDfd.reject(msg + ": " + String(err));
                 };
             }
-            function startStream(stream) {
-                stream.on("error", createErrorCb("initial-stream"));
-                var streams = additionalStreamPipes;
-                for (var i = 0, size = streams.length; i < size; i++) {
-                    var streamName = streams[i][0];
-                    var streamCreator = streams[i][1];
-                    stream = streamCreator(stream);
-                    stream.on("error", createErrorCb(streamName));
-                }
-                startCb(stream);
-                stream.on("end", doneCb);
+            function startStream(bundles) {
+                bundles.forEach(function (bundle) {
+                    var resStream = bundle.stream;
+                    var dstFilePath = bundle.dstFileName;
+                    resStream.on("error", createErrorCb("initial-stream", dstFilePath));
+                    for (var i = 0, size = additionalStreamPipes.length; i < size; i++) {
+                        var streamName = additionalStreamPipes[i][0];
+                        var streamCreator = additionalStreamPipes[i][1];
+                        resStream = streamCreator(resStream, bundle);
+                        resStream.on("error", createErrorCb(streamName, dstFilePath));
+                    }
+                    resStream.on("end", function () { return doneCb(dstFilePath); });
+                    startCb(dstFilePath);
+                });
             }
             var initialStream = getInitialStream(bundler);
-            if (isReadableStream(initialStream)) {
-                startStream(initialStream);
+            if (isPromise(initialStream.bundleStreams)) {
+                initialStream.bundleStreams.done(function (streams) { return startStream(streams); }, createErrorCb("creating initial-stream", "multi-stream-base"));
             }
             else {
-                initialStream.done(startStream, createErrorCb("creating initial-stream"));
+                startStream(initialStream.bundleStreams);
             }
             return firstBuildDfd.promise;
         }
@@ -131,7 +134,7 @@ var BrowserifyHelper;
     function combineOpts() {
         var opts = [];
         for (var _i = 0; _i < arguments.length; _i++) {
-            opts[_i - 0] = arguments[_i];
+            opts[_i] = arguments[_i];
         }
         var validOpts = [];
         for (var i = 0, size = opts.length; i < size; i++) {
@@ -148,10 +151,8 @@ var BrowserifyHelper;
         }
     }
     BrowserifyHelper.combineOpts = combineOpts;
-    /** Check if an object is a Node 'ReadableStream' based on duck typing
-     */
-    function isReadableStream(stream) {
-        return typeof stream["on"] === "function" && typeof stream["pipe"] === "function";
+    function isPromise(p) {
+        return Q.isPromiseAlike(p);
     }
 })(BrowserifyHelper || (BrowserifyHelper = {}));
 module.exports = BrowserifyHelper;

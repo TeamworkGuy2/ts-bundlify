@@ -4,7 +4,7 @@ var BrowserifyHelper = require("../../bundlers/BrowserifyHelper");
 var UglifyToStream = require("./UglifyToStream");
 /** Build a JS bundle using the Uglify-js compiler
  * requires package.json:
- *   "uglify-js": "~2.7.4",
+ *   "uglify-js": "~2.8.0",
  */
 var UglifyBundler;
 (function (UglifyBundler) {

@@ -47,11 +47,13 @@ var TypeScriptHelper;
     function createPreludeStringWithTypeScriptHelpers(includeUsageComment) {
         return BundlifyHelper.getPreludeJsSource().then(function (preludeSrc) {
             var comment = "/* TypeScript static helpers - inserted once, here.  Run TypeScript compiler with '--noEmitHelpers' option to prevent duplicate helpers being inserted into each bundled TypeScript file */";
-            var customPrelude = (includeUsageComment != false ? comment : "") +
-                Object.keys(TypeScriptHelper.staticHelpers).map(function (s) { return TypeScriptHelper.staticHelpers[s]; }).join("\n") + "\n\n" +
-                preludeSrc;
+            var typeScriptHelpers = (includeUsageComment != false ? comment : "") +
+                Object.keys(TypeScriptHelper.staticHelpers).map(function (s) { return TypeScriptHelper.staticHelpers[s]; }).join("\n") + "\n\n";
+            var customPrelude = typeScriptHelpers + preludeSrc;
             return {
-                prelude: customPrelude
+                prelude: customPrelude,
+                typeScriptHelpers: typeScriptHelpers,
+                preludeSrc: preludeSrc,
             };
         });
     }

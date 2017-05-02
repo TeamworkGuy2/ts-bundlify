@@ -1,7 +1,6 @@
 ﻿import path = require("path");
 import gulp = require("gulp");
 import gconcat = require("gulp-concat");
-import gutil = require("gulp-util");
 import browserPack = require("browser-pack");
 import Q = require("q");
 
@@ -49,6 +48,11 @@ module BundlifyHelper {
         stream.end();
 
         return dfd.promise;
+    }
+
+
+    export function createBrowserPacker(opts?: BrowserPack.Options) {
+        return browserPack(opts);
     }
 
 }

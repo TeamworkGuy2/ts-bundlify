@@ -44,5 +44,9 @@ var BundlifyHelper;
         return dfd.promise;
     }
     BundlifyHelper.getPreludeJsSource = getPreludeJsSource;
+    function createBrowserPacker(opts) {
+        return browserPack(opts);
+    }
+    BundlifyHelper.createBrowserPacker = createBrowserPacker;
 })(BundlifyHelper || (BundlifyHelper = {}));
 module.exports = BundlifyHelper;

@@ -1,6 +1,6 @@
 "use strict";
 var crypto = require("crypto");
-var through = require("through");
+var through2 = require("through2");
 /** Modified version of the 'es6ify' library.
  * Works with latest version of traceur and TypeScript
  */
@@ -22,14 +22,12 @@ var Es6ifyToStream;
         filePattern = filePattern || /\.js$/;
         return function es6ifyCompile(file) {
             if (!filePattern.test(file)) {
-                return through();
+                return through2();
             }
             var data = '';
-            return through(write, end);
-            function write(buf) {
+            return through2(function write(buf) {
                 data += buf;
-            }
-            function end() {
+            }, function end() {
                 var hash = getHash(data);
                 var cached = cache[file];
                 if (!cached || cached.hash !== hash) {
@@ -49,7 +47,7 @@ var Es6ifyToStream;
                 if (dataDone) {
                     dataDone(file, data);
                 }
-            }
+            });
         };
     }
     Es6ifyToStream.createCompiler = createCompiler;
