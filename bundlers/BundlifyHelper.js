@@ -2,8 +2,6 @@
 var path = require("path");
 var gulp = require("gulp");
 var gconcat = require("gulp-concat");
-var browserPack = require("browser-pack");
-var Q = require("q");
 /** Helpers for creating bundles
  */
 var BundlifyHelper;
@@ -22,31 +20,5 @@ var BundlifyHelper;
             .pipe(gulp.dest(dstDir));
     }
     BundlifyHelper.concat = concat;
-    /** Get the 'prelude.js' source string from 'browser-pack'
-     */
-    function getPreludeJsSource() {
-        var dfd = Q.defer();
-        var stream = browserPack({ raw: true });
-        var str = "";
-        stream.on("data", function (buf) {
-            str += buf;
-        });
-        stream.on("end", function () {
-            var suffixIdx = str.indexOf("({:[function(require,module,exports){");
-            var preludeStr = str.substring(0, suffixIdx);
-            dfd.resolve(preludeStr);
-        });
-        stream.on("err", function (err) {
-            dfd.reject(new Error(err));
-        });
-        stream.write({ source: "" });
-        stream.end();
-        return dfd.promise;
-    }
-    BundlifyHelper.getPreludeJsSource = getPreludeJsSource;
-    function createBrowserPacker(opts) {
-        return browserPack(opts);
-    }
-    BundlifyHelper.createBrowserPacker = createBrowserPacker;
 })(BundlifyHelper || (BundlifyHelper = {}));
 module.exports = BundlifyHelper;

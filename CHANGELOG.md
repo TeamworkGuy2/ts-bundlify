@@ -4,15 +4,44 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.4.0](N/A) - 2017-05-02
+### [0.5.0](N/A) - 2017-05-06
 #### Added
-Multiple output bundle support; Browserify pipeline output customization
-* Added BrowserifyMultiPack (port of npm 'browser-pack' package) which supports filtering/redirecting an input stream into multiple output streams.
+* `BrowserMultiPack.getPreludeSrc()` to return customized version of prelude.js customized for easier readability
 
 #### Changed
-* Extensive BrowserifyHelper and BundleBuilder refactoring
-  * BrowserifyHelper.setupRebundleListener() has been refitted to support multiple streams instead of just one
-  * The BundleBuilder.buildOptions() return API setBundleStreamCreator() now expects a function that returns a MultiBundleStreams object and compileBundle() requires a CodePaths object instead of passing the options to the initial buildOptions() call
+* `BrowserifyHelper.setupRebundleListener()`
+  * parameter `getInitialStream` renamed `getSourceStreams` and is passed the browserify 'update' event when available (on rebuilds).
+  * return promise result changed to an object with info about the build process and default console message changed to print info about multiple bundles.
+* `BundleBuilder.buildOptions()` and `createBundleBuilder()` provide finer control over bundle specific build options include prelude source string and path.
+* `TypeScriptHelper.createPreludeStringWithTypeScriptHelpers()` now synchronous, uses BrowserMultiPack prelude string
+* `BrowserMultiPack.createPackStreams()`
+  * Better documentation
+  * Modified to support custom prelude source and path per bundle stream
+  * Stopped adding the 'standaloneModule' and 'hasExports' properties to the returned baseStream, these options are ready directly from the 'bundles.bundles' options
+  * Reduced number of Buffers created and number of stream.push() calls  during stream write and flush
+* `BrowserMultiPack.overrideBrowserifyPack()` removed 'getOpts' parameter in favor of per bundle customized options on the 'getMultiBundleOpts' parameter's return value
+
+#### Fixed
+* `UglifyToStream.createStreamCompiler()`'s returned stream not completing correctly
+* `Es6ifyToStream.createCompiler()`'s returned stream not completing correctly after 
+
+#### Removed
+* 'browser-pack' package dependency
+* `BundlifyHelper.getPreludeJsSource()` removed in favor of `BrowserMultiPack.getPreludeSrc()`
+* `BundlifyHelper.createBrowserPacker()` removed in favor of using `BrowserMultiPack`
+
+
+--------
+### [0.4.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/f1974d72cf2a7ce12cf0ed5a68685a136b80d543) - 2017-05-02
+#### Added
+Multiple output bundle support; Browserify pipeline output customization
+* Added `BrowserifyMultiPack` (port of npm 'browser-pack' package) which supports filtering/redirecting an input stream into multiple output streams.
+
+#### Changed
+* Extensive `BrowserifyHelper` and `BundleBuilder` refactoring
+  * `BrowserifyHelper.setupRebundleListener()` has been refitted to support multiple streams instead of just one
+  * The `BundleBuilder.buildOptions()` return API `setBundleStreamCreator()` now expects a function that returns a `MultiBundleStreams` object and `compileBundle()` requires a `CodePaths` object instead of passing the options to the initial `buildOptions()` call
+* `Es6ifyToStream` and `UglifyToStream` updated to use `through2` instead of `through` package
 
 
 --------

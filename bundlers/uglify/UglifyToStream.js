@@ -20,8 +20,9 @@ var UglifyToStream;
         if (/\.json$/.test(file) || (exts.length > 0 && exts.indexOf(path.extname(file)) === -1)) {
             return through2();
         }
-        return through2(function write(chunk) {
+        return through2(function write(chunk, enc, next) {
             buffer += chunk;
+            next();
         }, capture(function ready() {
             // match an inlined sourcemap with or without a charset definition
             var matched = buffer.match(/\/\/[#@] ?sourceMappingURL=data:application\/json(?:;charset=utf-8)?;base64,([a-zA-Z0-9+\/]+)={0,2}\n?$/);

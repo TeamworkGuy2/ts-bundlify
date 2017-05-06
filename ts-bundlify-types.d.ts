@@ -42,7 +42,22 @@ interface ModuleDepRow {
     indexDeps: { [name: string]: string | number };
     source: string;
     sourceFile: string;
-    sourceRoot: string
+    sourceRoot: string;
+    entry?: string | number;
+    order?: string | number;
+    nomap?: boolean;
+}
+
+
+interface BrowserPackOptions {
+    basedir?: string;
+    externalRequireName?: string;
+    hasExports?: boolean;
+    prelude?: string;
+    preludePath?: string;
+    standalone?: string;
+    standaloneModule?: boolean;
+    sourceMapPrefix?: string;
 }
 
 
@@ -86,11 +101,11 @@ interface BundleDst {
 
 
 interface MultiBundleOptions {
-    bundles: BundleDst[];
+    bundles: (BundleDst & BrowserPackOptions)[];
     /** the max value + 1 of the indices returned by destinationPicker */
     maxDestinations: number;
-    /** given a 'module-deps' object, return the destination bundle index it should be written to */
-    destinationPicker: (row: ModuleDepRow) => number;
+    /** given a file path (with forward slashes), return the destination bundle index it should be written to */
+    destinationPicker: (row: string) => number;
 }
 
 

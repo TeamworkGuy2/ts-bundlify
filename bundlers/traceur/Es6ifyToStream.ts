@@ -34,8 +34,9 @@ module Es6ifyToStream {
 
             var data = '';
 
-            return through2(function write(buf) {
+            return through2(function write(buf, enc, next) {
                 data += buf;
+                next();
             }, function end() {
                 var hash = getHash(data);
                 var cached = cache[file];

@@ -34,24 +34,53 @@ var BrowserifyHelper;
      *
      * @param rebuildOnSrcChange flag indicating whether bundle should watch filesystem for changes and rebuild on change
      * @param bundler the browserify object with a watchify plugin used to listener for 'update' events on to determine when to rebundle
-     * @param getInitialStream a function which creates the initial stream (i.e. bundler.bundle(opts))
+     * @param getSourceStreams a function which creates the source stream and the one or more bundle output streams
      * @param additionalStreamPipes further transformations (i.e. [ (prevSrc) => prevSrc.pipe(vinyleSourceStream(...), (prevSrc) => prevSrc.pipe(gulp.dest(...)) ])
      * @return a promise which completes when the first build completes and returns a message with the name of the compiled file and how long it took
      */
-    function setupRebundleListener(rebuildOnSrcChange, bundler, getInitialStream, additionalStreamPipes) {
+    function setupRebundleListener(rebuildOnSrcChange, bundler, getSourceStreams, additionalStreamPipes) {
         var firstBuildDfd = Q.defer();
-        function rebundle() {
-            var startTime = {};
-            var endTime = {};
+        function rebundle(updateEvent) {
+            var expectedTotal = 0;
+            var expectDoneFiles = [];
+            var doneFiles = [];
+            var skippedFiles = [];
+            var startTime = Date.now();
+            var startTimes = {};
+            var endTimes = {};
             function startCb(file) {
-                startTime[file] = Date.now();
+                startTimes[file] = Date.now();
+                expectDoneFiles.push(file);
                 gutil.log("start building '" + file + "'...");
             }
-            function doneCb(file) {
-                endTime[file] = Date.now();
-                var msg = "finished building '" + file + "', " + (endTime[file] - startTime[file]) + " ms";
-                gutil.log(msg);
-                firstBuildDfd.resolve(msg);
+            function doneCb(file, type) {
+                endTimes[file] = Date.now();
+                if (type === "compile") {
+                    doneFiles.push(file);
+                }
+                else if (type === "skip") {
+                    skippedFiles.push(file);
+                }
+                else {
+                    var errMsg = "invalid bundle completion type (expected: 'compile' or 'skip'): " + type;
+                    gutil.log(errMsg);
+                    firstBuildDfd.reject(errMsg);
+                    return;
+                }
+                var totalDone = doneFiles.length + skippedFiles.length;
+                if (totalDone >= expectedTotal) {
+                    var endTime = Date.now();
+                    var bldMsg = doneFiles.length > 0 ? "finished building: " + doneFiles.map(function (f) { return f + " (" + (endTimes[file] - startTimes[file]) + " ms)"; }).join(", ") : null;
+                    var skpMsg = skippedFiles.length > 0 ? "skipped building: " + skippedFiles.join(", ") : null;
+                    var buildMsg = "total time: " + (endTime - startTime) + " ms | " + (bldMsg ? bldMsg + (skpMsg ? " | " + skpMsg : "") : (skpMsg ? skpMsg : "no bundles"));
+                    gutil.log(buildMsg);
+                    firstBuildDfd.resolve({
+                        buildMsg: buildMsg,
+                        totalTimeMs: endTime - startTime,
+                        builtBundles: doneFiles.map(function (f) { return ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) }); }),
+                        skippedBundles: skippedFiles.map(function (f) { return ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) }); }),
+                    });
+                }
             }
             function createErrorCb(srcName, dstFile) {
                 return function (err) {
@@ -60,10 +89,15 @@ var BrowserifyHelper;
                     firstBuildDfd.reject(msg + ": " + String(err));
                 };
             }
-            function startStream(bundles) {
-                bundles.forEach(function (bundle) {
-                    var resStream = bundle.stream;
+            function startStreams(bundleStreams) {
+                expectedTotal = bundleStreams.length;
+                bundleStreams.forEach(function (bundle) {
                     var dstFilePath = bundle.dstFileName;
+                    var resStream = bundle.stream;
+                    if (resStream == null) {
+                        doneCb(dstFilePath, "skip");
+                        return;
+                    }
                     resStream.on("error", createErrorCb("initial-stream", dstFilePath));
                     for (var i = 0, size = additionalStreamPipes.length; i < size; i++) {
                         var streamName = additionalStreamPipes[i][0];
@@ -71,16 +105,16 @@ var BrowserifyHelper;
                         resStream = streamCreator(resStream, bundle);
                         resStream.on("error", createErrorCb(streamName, dstFilePath));
                     }
-                    resStream.on("end", function () { return doneCb(dstFilePath); });
+                    resStream.on("end", function () { return doneCb(dstFilePath, "compile"); });
                     startCb(dstFilePath);
                 });
             }
-            var initialStream = getInitialStream(bundler);
-            if (isPromise(initialStream.bundleStreams)) {
-                initialStream.bundleStreams.done(function (streams) { return startStream(streams); }, createErrorCb("creating initial-stream", "multi-stream-base"));
+            var bundles = getSourceStreams(bundler, updateEvent);
+            if (isPromise(bundles.bundleStreams)) {
+                bundles.bundleStreams.done(function (streams) { return startStreams(streams); }, createErrorCb("creating initial-stream", "multi-stream-base"));
             }
             else {
-                startStream(initialStream.bundleStreams);
+                startStreams(bundles.bundleStreams);
             }
             return firstBuildDfd.promise;
         }

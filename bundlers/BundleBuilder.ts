@@ -7,44 +7,59 @@ import watchify = require("watchify");
 import BrowserifyHelper = require("./BrowserifyHelper");
 import TypeScriptHelper = require("./TypeScriptHelper");
 
-/** requires package.json:
- *   "watchify": "~3.7.0",
- */
-
 type ReadableStream = NodeJS.ReadableStream;
-
 type BrowserifyObject = Browserify.BrowserifyObject;
-
 type BrowserifyTransform = BrowserifyHelper.BrowserifyTransform;
 
-/** A function which compiles a bundler into a result bundle
- * @param <R> the type of compiled bundle produced by the bundler
+
+/** requires package.json:
+ *   "browserify": "~14.3.0",
+ *   "watchify": "~3.9.0",
  */
-interface BrowserifyCompileFunc<R> {
-    (transforms: BrowserifyTransform[], bundler: BrowserifyObject, bundleOpts: BundleOptions, paths: CodePaths,
-        initBundleStream: (bundler: BrowserifyObject) => MultiBundleStreams): Q.Promise<R>;
-}
-
-
 module BundleBuilder {
+
+
+    /** A function which bundles/builds/compiles a browserify bundler
+     * @template R the type of compiled bundle result produced by the bundler
+     */
+    export interface BrowserifyCompileFunc<R> {
+        /**
+         * @param transforms array of browserify.transform() options and transformation functions
+         * @param bundler the browserify instance
+         * @param bundleOpts general bundle build options
+         * @param dstDir the directory to write output bundle files to
+         * @param bundleSourceCreator a function which takes the browserify instance and an optional browserify.on('update' ...) event and creates a MultiBundleStreams result
+         * @returns a promise which completes the first time the bundle stream ends
+         */
+        (transforms: BrowserifyTransform[], bundler: BrowserifyObject, bundleOpts: BundleOptions, dstDir: string,
+            bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams): Q.Promise<R>;
+    }
+
+
+    // keep in sync with BrowserifyCompileFunc.bundleSourceCreator and BuilderSetupStep.setBundleSourceCreator(bundleSourceCreator)
+    export interface BundleSourceCreator<T> {
+        (bundler: T, updateEvent: any): MultiBundleStreams;
+    }
+
 
     /** An interface that splits the process of building a JS code bundle into steps.
      * Also includes static methods to assist in initializing an implementation of the interface.
-     * @param <T> the type of bundler used to build the bundle
+     * @template T the type of bundler used to build the bundle
+     * @template R the type of compiled bundle result produced by the bundler
      * @since 2016-11-06
      */
-    export interface Builder<T, R> extends BuilderSetupStep<T, R> {
+    export interface Builder<T, R> extends BuilderTransformsStep<T, R> {
+        /**
+         * @param bundleSourceCreator function which creates a MultiBundleStream object containing Node 'ReadableStream' objects for the source and bundles
+         */
+        setBundleSourceCreator(bundleSourceCreator: (bundler: T, updateEvent: any) => MultiBundleStreams): BuilderTransformsStep<T, R>;
+    }
+
+    export interface BuilderTransformsStep<T, R> extends BuilderCompileStep<T, R> {
         /**
          * @param createTransforms function which creates an array of BrowserifyTransform objects to be passed to the bundler's 'transform()' method
          */
-        transforms(createTransforms: (bundler: T) => BrowserifyTransform[]): BuilderSetupStep<T, R>;
-    }
-
-    export interface BuilderSetupStep<T, R> extends BuilderCompileStep<T, R> {
-        /**
-         * @param initBundleStream function which creates a Node 'ReadableStream' containing the bundle's data
-         */
-        setBundleStreamCreator(initBundleStream: (bundler: T) => MultiBundleStreams): BuilderCompileStep<T, R>;
+        transforms(createTransforms: (bundler: T) => BrowserifyTransform[]): BuilderCompileStep<T, R>;
     }
 
     export interface BuilderCompileStep<T, R> {
@@ -55,30 +70,31 @@ module BundleBuilder {
     }
 
 
-    export function buildOptions(bundleOpts: BundleOptions, optsModifier?: (opts: Browserify.Options & BrowserPack.Options) => void): Builder<BrowserifyObject, string> {
+    export function buildOptions(bundleOpts: BundleOptions, optsModifier?: (opts: Browserify.Options & BrowserPack.Options & { typescriptHelpers?: string }) => void): Builder<BrowserifyObject, BrowserifyHelper.BuildResults> {
         return createBundleBuilder(bundleOpts, compileBundle, optsModifier);
     }
 
 
     /** The advanced no-helper version of '.buildOptions().compileBundle()'.  Builds/compiles source files into a single output bundle JS file using 'babelify'
-     * @param bundler
-     * @param bundleOpts
-     * @param paths
-     * @param initBundleStream function which creates a Node 'ReadableStream' containing the bundle's data
+     * @param transforms an array of options and functions to pass to browserify.transform()
+     * @param bundler the browserify instance to use for bundling
+     * @param bundleOpts options for building the bundles
+     * @param dstDir the directory to write output bundle files to
+     * @param bundleSourceCreator function which creates a MultiBundleStreams object containing Node 'ReadableStream' objects for the source and bundles
      */
-    export function compileBundle(transforms: BrowserifyHelper.BrowserifyTransform[], bundler: BrowserifyObject, bundleOpts: BundleOptions, paths: CodePaths,
-            initBundleStream: (bundler: BrowserifyObject) => MultiBundleStreams): Q.Promise<string> {
+    export function compileBundle(transforms: BrowserifyHelper.BrowserifyTransform[], bundler: BrowserifyObject, bundleOpts: BundleOptions, dstDir: string,
+            bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams): Q.Promise<BrowserifyHelper.BuildResults> {
 
         for (var i = 0, size = transforms.length; i < size; i++) {
             var transform = transforms[i];
             bundler = bundler.transform(transform.transform, transform.options);
         }
 
-        return BrowserifyHelper.setupRebundleListener(bundleOpts.rebuild, bundler, initBundleStream, [
-            ["extract-source-maps", (prevSrc, streamOpts) => prevSrc.pipe(exorcist(getMapFilePath(paths.dstDir, streamOpts.dstFileName, streamOpts.dstMapFile)))],
+        return BrowserifyHelper.setupRebundleListener(bundleOpts.rebuild, bundler, bundleSourceCreator, [
+            ["extract-source-maps", (prevSrc, streamOpts) => prevSrc.pipe(exorcist(getMapFilePath(dstDir, streamOpts.dstFileName, streamOpts.dstMapFile)))],
             ["to-vinyl-file", (prevSrc, streamOpts) => prevSrc.pipe(vinylSourceStream(streamOpts.dstFileName))],
             //(prevSrc) => prevSrc.pipe(rename(dstFile)),
-            ["write-to-dst", (prevSrc, streamOpts) => prevSrc.pipe(gulp.dest(paths.dstDir))],
+            ["write-to-dst", (prevSrc, streamOpts) => prevSrc.pipe(gulp.dest(dstDir))],
         ]);
     }
 
@@ -94,28 +110,28 @@ module BundleBuilder {
      * @param compileBundle a function which takes a bundler, options, paths, and a bundle stream creator and compiles the bundle
      * @param [optsModifier] a optional function which can modify the Browserify and BrowserPack options before they are passed to the browserify constructor
      */
-    export function createBundleBuilder<R>(bundleOpts: BundleOptions, compileBundle: BrowserifyCompileFunc<R>, optsModifier?: (opts: Browserify.Options & BrowserPack.Options) => void): Builder<BrowserifyObject, R> {
-        var optsDfd = Q.defer<Browserify.Options & BrowserPack.Options>();
+    export function createBundleBuilder<R>(
+        bundleOpts: BundleOptions,
+        compileBundle: BrowserifyCompileFunc<R>,
+        optsModifier?: (opts: Browserify.Options & BrowserPack.Options & { typescriptHelpers?: string }) => void
+    ): Builder<BrowserifyObject, R> {
+        var optsRes: Browserify.Options & BrowserPack.Options & { typescriptHelpers?: string } = <any>{};
 
-        if (bundleOpts.typescript && bundleOpts.typescript.includeHelpers) {
-            TypeScriptHelper.createPreludeStringWithTypeScriptHelpers(bundleOpts.typescript.includeHelpersComment != false).done(function (res) {
-                res.prelude = res.typeScriptHelpers + "var require = " + res.preludeSrc;
-                optsDfd.resolve({ prelude: res.prelude });
-            }, function (err) {
-                optsDfd.reject(err)
-            });
-        }
-        else {
-            optsDfd.resolve({});
+        if (bundleOpts.typescript != null && bundleOpts.typescript.includeHelpers) {
+            var res = TypeScriptHelper.createPreludeStringWithTypeScriptHelpers(bundleOpts.typescript.includeHelpersComment != false);
+            optsRes = {
+                prelude: res.preludeSrc,
+                typescriptHelpers: res.typeScriptHelpers
+            };
         }
 
         var _createTransforms = (bundler: BrowserifyObject): BrowserifyTransform[] => [];
-        var _initBundleStream: (bundler: BrowserifyObject) => MultiBundleStreams;
+        var _bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams;
 
         var inst: Builder<BrowserifyObject, R> = {
 
-            setBundleStreamCreator: (initBundleStream) => {
-                _initBundleStream = initBundleStream;
+            setBundleSourceCreator: (bundleSourceCreator) => {
+                _bundleSourceCreator = bundleSourceCreator;
                 return inst;
             },
 
@@ -125,31 +141,29 @@ module BundleBuilder {
             },
 
             compileBundle: (paths, defaultBundleOpts) => {
-                return optsDfd.promise.then((moreOpts) => {
-                    if (optsModifier != null) {
-                        optsModifier(moreOpts);
+                if (optsModifier != null) {
+                    optsModifier(optsRes);
+                }
+                if (_bundleSourceCreator == null) {
+                    if (defaultBundleOpts == null) {
+                        throw new Error("null argument 'defaultBundleOpts' and setBundleSourceCreator() has not been called, cannot create a bundle without bundle options");
                     }
-                    if (_initBundleStream == null) {
-                        if (defaultBundleOpts == null) {
-                            throw new Error("null argument 'defaultBundleOpts' and setBundleStreamCreator() has not been called, cannot create a bundle without bundle options");
-                        }
-                        // create a default single bundle stream
-                        _initBundleStream = (bundler) => {
-                            var baseStream = bundler.bundle();
-                            return {
-                                baseStream,
-                                bundleStreams: [{
-                                    stream: baseStream,
-                                    dstFileName: defaultBundleOpts.dstFileName,
-                                    dstMapFile: defaultBundleOpts.dstMapFile || (paths.dstDir + defaultBundleOpts.dstFileName + ".map")
-                                }]
-                            };
+                    // create a default single bundle stream
+                    _bundleSourceCreator = (bundler, updateEvent) => {
+                        var baseStream = bundler.bundle();
+                        return {
+                            baseStream,
+                            bundleStreams: [{
+                                stream: baseStream,
+                                dstFileName: defaultBundleOpts.dstFileName,
+                                dstMapFile: defaultBundleOpts.dstMapFile || (paths.dstDir + defaultBundleOpts.dstFileName + ".map")
+                            }]
                         };
-                    }
-                    var bundler = createBrowserify(moreOpts, bundleOpts, paths);
-                    var transforms = _createTransforms(bundler);
-                    return compileBundle(transforms, bundler, bundleOpts, paths, _initBundleStream);
-                });
+                    };
+                }
+                var bundler = createBrowserify(optsRes, bundleOpts, paths);
+                var transforms = _createTransforms(bundler);
+                return compileBundle(transforms, bundler, bundleOpts, paths.dstDir, _bundleSourceCreator);
             },
         };
         return inst;

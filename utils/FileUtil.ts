@@ -60,7 +60,7 @@ module FileUtil {
 
         if (debug) {
             gutil.log(badCharRanges.length + " bad char segments:\n" +
-                badCharRanges.map(r => "(" + r.lineNumber + ":[" + r.startIndex + "," + (r.startIndex + r.length) + "])" +
+                badCharRanges.map((r) => "(" + r.lineNumber + ":[" + r.startIndex + "," + (r.startIndex + r.length) + "])" +
                     " '" + r.text + "' line: '" + (r.line.length > 200 ? r.line.substr(0, 200) + "..." : r.line) + "'\n")
             );
         }

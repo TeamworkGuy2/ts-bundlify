@@ -20,6 +20,14 @@ module BrowserifyHelper {
     }
 
 
+    export interface BuildResults {
+        buildMsg: string;
+        totalTimeMs: number;
+        builtBundles: { fileName: string; timeMs: number; }[];
+        skippedBundles: { fileName: string; timeMs: number }[];
+    }
+
+
     /** Merge browser pack, browserify, and CodePaths options with some default options to create full browserify options.
      * Default options are:
      *   extensions: [".js", ".jsx"]
@@ -49,30 +57,56 @@ module BrowserifyHelper {
      *
      * @param rebuildOnSrcChange flag indicating whether bundle should watch filesystem for changes and rebuild on change
      * @param bundler the browserify object with a watchify plugin used to listener for 'update' events on to determine when to rebundle
-     * @param getInitialStream a function which creates the initial stream (i.e. bundler.bundle(opts))
+     * @param getSourceStreams a function which creates the source stream and the one or more bundle output streams
      * @param additionalStreamPipes further transformations (i.e. [ (prevSrc) => prevSrc.pipe(vinyleSourceStream(...), (prevSrc) => prevSrc.pipe(gulp.dest(...)) ])
      * @return a promise which completes when the first build completes and returns a message with the name of the compiled file and how long it took
      */
     export function setupRebundleListener(rebuildOnSrcChange: boolean, bundler: Browserify.BrowserifyObject,
-            getInitialStream: (bundler: Browserify.BrowserifyObject) => MultiBundleStreams,
+            getSourceStreams: (bundler: Browserify.BrowserifyObject, updateEvent: any) => MultiBundleStreams,
             additionalStreamPipes: [string, (prevStream: NodeJS.ReadableStream, streamOpts: BundleDst) => NodeJS.ReadableStream][]) {
 
-        var firstBuildDfd = Q.defer<string>();
+        var firstBuildDfd = Q.defer<BuildResults>();
 
-        function rebundle() {
-            var startTime: { [file: string]: number } = {};
-            var endTime: { [file: string]: number } = {};
+        function rebundle(updateEvent?: any) {
+            var expectedTotal = 0;
+            var expectDoneFiles: string[] = [];
+            var doneFiles: string[] = [];
+            var skippedFiles: string[] = [];
+            var startTime = <number>Date.now();
+            var startTimes: { [file: string]: number } = {};
+            var endTimes: { [file: string]: number } = {};
 
             function startCb(file: string) {
-                startTime[file] = <number>Date.now();
+                startTimes[file] = <number>Date.now();
+                expectDoneFiles.push(file);
                 gutil.log("start building '" + file + "'...");
             }
 
-            function doneCb(file: string) {
-                endTime[file] = <number>Date.now();
-                var msg = "finished building '" + file + "', " + (endTime[file] - startTime[file]) + " ms";
-                gutil.log(msg);
-                firstBuildDfd.resolve(msg);
+            function doneCb(file: string, type: ("compile" | "skip")) {
+                endTimes[file] = <number>Date.now();
+                if (type === "compile") { doneFiles.push(file); }
+                else if (type === "skip") { skippedFiles.push(file); }
+                else {
+                    var errMsg = "invalid bundle completion type (expected: 'compile' or 'skip'): " + type;
+                    gutil.log(errMsg);
+                    firstBuildDfd.reject(errMsg);
+                    return;
+                }
+
+                var totalDone = doneFiles.length + skippedFiles.length;
+                if (totalDone >= expectedTotal) {
+                    var endTime = <number>Date.now();
+                    var bldMsg = doneFiles.length > 0 ? "finished building: " + doneFiles.map((f) => f + " (" + (endTimes[file] - startTimes[file]) + " ms)").join(", ") : null;
+                    var skpMsg = skippedFiles.length > 0 ? "skipped building: " + skippedFiles.join(", ") : null;
+                    var buildMsg = "total time: " + (endTime - startTime) + " ms | " + (bldMsg ? bldMsg + (skpMsg ? " | " + skpMsg : "") : (skpMsg ? skpMsg : "no bundles"));
+                    gutil.log(buildMsg);
+                    firstBuildDfd.resolve({
+                        buildMsg,
+                        totalTimeMs: endTime - startTime,
+                        builtBundles: doneFiles.map((f) => ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) })),
+                        skippedBundles: skippedFiles.map((f) => ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) })),
+                    });
+                }
             }
 
             function createErrorCb(srcName: string, dstFile: string) {
@@ -83,10 +117,17 @@ module BrowserifyHelper {
                 };
             }
 
-            function startStream(bundles: BundleStream<NodeJS.ReadableStream>[]) {
-                bundles.forEach((bundle) => {
-                    var resStream = bundle.stream;
+            function startStreams(bundleStreams: BundleStream<NodeJS.ReadableStream>[]) {
+                expectedTotal = bundleStreams.length;
+
+                bundleStreams.forEach((bundle) => {
                     var dstFilePath = bundle.dstFileName;
+                    var resStream = bundle.stream;
+                    if (resStream == null) {
+                        doneCb(dstFilePath, "skip");
+                        return;
+                    }
+
                     resStream.on("error", createErrorCb("initial-stream", dstFilePath));
 
                     for (var i = 0, size = additionalStreamPipes.length; i < size; i++) {
@@ -97,18 +138,18 @@ module BrowserifyHelper {
                         resStream.on("error", createErrorCb(streamName, dstFilePath));
                     }
 
-                    resStream.on("end", () => doneCb(dstFilePath));
+                    resStream.on("end", () => doneCb(dstFilePath, "compile"));
 
                     startCb(dstFilePath);
                 });
             }
 
-            var initialStream = getInitialStream(bundler);
-            if (isPromise<BundleStream<NodeJS.ReadableStream>[]>(initialStream.bundleStreams)) {
-                initialStream.bundleStreams.done((streams) => startStream(streams), createErrorCb("creating initial-stream", "multi-stream-base"));
+            var bundles = getSourceStreams(bundler, updateEvent);
+            if (isPromise<BundleStream<NodeJS.ReadableStream>[]>(bundles.bundleStreams)) {
+                bundles.bundleStreams.done((streams) => startStreams(streams), createErrorCb("creating initial-stream", "multi-stream-base"));
             }
             else {
-                startStream(<BundleStream<NodeJS.ReadableStream>[]>initialStream.bundleStreams);
+                startStreams(<BundleStream<NodeJS.ReadableStream>[]>bundles.bundleStreams);
             }
 
             return firstBuildDfd.promise;

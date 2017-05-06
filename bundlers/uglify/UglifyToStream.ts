@@ -41,8 +41,9 @@ module UglifyToStream {
             return through2();
         }
 
-        return through2(function write(chunk) {
+        return through2(function write(chunk, enc, next) {
             buffer += chunk;
+            next();
         }, capture(function ready() {
             // match an inlined sourcemap with or without a charset definition
             var matched = buffer.match(

@@ -20,19 +20,15 @@ var defaultPreludePath = path.join(__dirname, "_prelude.js");
     // Save the require from previous bundle to this closure if any
     var previousRequire = typeof require == "function" && require;
 
-    function newRequire(name, jumped){
+    function newRequire (name, jumped) {
         if(!cache[name]) {
             if(!modules[name]) {
-                // if we cannot find the module within our internal map or
-                // cache jump to the current global require ie. the last bundle
-                // that was added to the page.
+                // if we cannot find the module within our internal map or cache jump to the current global require ie. the last bundle that was added to the page.
                 var currentRequire = typeof require == "function" && require;
                 if (!jumped && currentRequire) return currentRequire(name, true);
 
-                // If there are other bundles on this page the require from the
-                // previous one is saved to 'previousRequire'. Repeat this as
-                // many times as there are bundles until the module is found or
-                // we exhaust the require chain.
+                // If there are other bundles on this page the require from the previous one is saved to 'previousRequire'.
+                // Repeat this as many times as there are bundles until the module is found or we exhaust the require chain.
                 if (previousRequire) return previousRequire(name, true);
                 var err = new Error('Cannot find module \'' + name + '\'');
                 err.code = 'MODULE_NOT_FOUND';
@@ -52,22 +48,36 @@ var defaultPreludePath = path.join(__dirname, "_prelude.js");
     return newRequire;
 })
 */
-var defaultPrelude = `(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})`;
+var defaultPrelude = `(function outer(m,c,e){\n` +
+`  function newReq(n,u){\n` +
+`    if(!c[n]){\n` +
+`      if(!m[n]){\n` +
+`        var curReq=typeof require=="function"&&require;\n` +
+`        if(!u&&curReq)return curReq(n,!0);\n` +
+`        if(prevReq)return prevReq(n,!0);\n` +
+`        var f=new Error("Cannot find module '"+n+"'");\n` +
+`        throw f.code="MODULE_NOT_FOUND",f\n` +
+`      }\n` +
+`      var l=c[n]={exports:{}};\n` +
+`      m[n][0].call(l.exports,function(x){` +
+`        var d=m[n][1][x];` +
+`        return newReq(d?d:x)` +
+`      },l,l.exports,outer,m,c,e)\n` +
+`    }\n` +
+`    return c[n].exports\n` +
+`  }\n` +
+`  var prevReq=typeof require=="function"&&require;\n` +
+`  for(var i=0;i<e.length;i++)newReq(e[i]);\n` +
+`  return newReq\n` +
+`})`;
 
 /** A port of npm's 'browser-pack@6.0.2' package.
  * Customized to support multiple output streams.
  */
 module BrowserMultiPack {
 
-    export interface Options {
-        basedir?: string;
-        externalRequireName?: string;
-        hasExports?: boolean;
-        prelude?: string | ((idx: number) => string);
-        preludePath?: string | ((idx: number) => string);
-        standalone?: string;
-        standaloneModule?: boolean;
-        sourceMapPrefix?: string;
+    export function getPreludeSrc() {
+        return defaultPrelude;
     }
 
 
@@ -78,20 +88,32 @@ module BrowserMultiPack {
     }
 
 
-    export function overrideBrowserifyPack(bundleBldr: BundleBuilder.Builder<Browserify.BrowserifyObject, string>, _browserify: Browserify.BrowserifyConstructor,
-            getMultiBundleOpts: () => MultiBundleOptions, getOpts: () => { prelude: string | ((idx: number) => string); preludePath: string | ((idx: number) => string) }) {
+    /** Override browserify's standard 'pack' pipeline step with a custom 'browser-pack' implementation that writes to multiple output bundles.
+     * This requires overwriting browserif.prototype._createPipeline() and setting the 'bundleBldr' setBundleSourceCreator() callback
+     * @param bundleBldr the bundle builder to modify
+     * @param _browserify the browserify instance to modify to output multiple bundle streams
+     * @param getMultiBundleOpts a function which returns a MultiBundleOptions object containing the options to build the bundle streams
+     * @param getOpts options related to setting up the bundle streams
+     */
+    export function overrideBrowserifyPack(
+        bundleBldr: BundleBuilder.Builder<Browserify.BrowserifyObject, any>,
+        _browserify: Browserify.BrowserifyConstructor,
+        getMultiBundleOpts: () => MultiBundleOptions
+    ) {
         var origCreatePipeline = _browserify.prototype["_createPipeline"];
         var newBpack: { baseStream: stream.Transform; bundleStreams: BundleStream<stream.Transform>[] };
+        var updateDeps: string[] = null;
 
         // Override Browserify._createPipeline() to replace the 'pack' pipeline step with a custom browser-pack implementation
+        // gets called when browserify instance is created or when reset() or bundle() are called
         _browserify.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(this: Browserify.BrowserifyObject, createPipeOpts) {
             var pipeline = origCreatePipeline.call(this, createPipeOpts);
             var packPipe = pipeline.get("pack");
             var oldBpack = packPipe.pop();
 
-            var opts = getOpts();
             var multiBundleOpts = getMultiBundleOpts();
-            newBpack = BrowserMultiPack.createPackStreams(multiBundleOpts, { prelude: opts.prelude, });
+            var streamsToUpdate = bundlesToUpdate(multiBundleOpts, updateDeps);
+            newBpack = BrowserMultiPack.createPackStreams(multiBundleOpts, streamsToUpdate);
 
             this["_bpack"] = newBpack.baseStream;
             packPipe.push(newBpack.baseStream);
@@ -99,7 +121,8 @@ module BrowserMultiPack {
         };
 
         // Consume the browserify bundle and return the multiple pack bundles
-        bundleBldr.setBundleStreamCreator(function multiBundleStreamCreator(browserify: Browserify.BrowserifyObject) {
+        bundleBldr.setBundleSourceCreator(function multiBundleStreamCreator(browserify: Browserify.BrowserifyObject, updateEvent: any) {
+            if (updateEvent != null) { updateDeps = Object.keys(updateEvent).map((k) => updateEvent[k]); }
             var brwsBundle = browserify.bundle();
             var res = [];
             // When the bundle stream has available data, read it so that the stream ends
@@ -117,62 +140,112 @@ module BrowserMultiPack {
     }
 
 
-    export function createPackStreams(bundles: MultiBundleOptions, opts: Options): { baseStream: stream.Transform; bundleStreams: BundleStream<stream.Transform>[] } {
-        var basedir = (opts.basedir !== undefined ? opts.basedir : process.cwd());
-        var prelude = opts.prelude || defaultPrelude;
-        var preludePath = opts.preludePath || path.relative(basedir, defaultPreludePath).replace(/\\/g, '/');
+    /** Return an array of booleans indicating which bundles should be updated based on an array of file names
+     */
+    function bundlesToUpdate(bundles: MultiBundleOptions, files: string[]): boolean[] {
+        var cnt = bundles.maxDestinations;
+        var res: boolean[] = new Array(cnt);
+        var updateAll = (files == null);
+        for (var i = 0; i < cnt; i++) { res[i] = updateAll; }
+
+        for (var i = 0, size = !updateAll ? files.length : 0; i < size; i++) {
+            var dstI = bundles.destinationPicker(files[i]);
+            if (dstI > 0) {
+                res[dstI] = true;
+            }
+        }
+        return res;
+    }
+
+
+    /** Create a stream which filters and redirects each 'module-deps' style object written to it into one of an array of output streams each of which bundles its source files using UMD and prelude.
+     * @param bundles the MultiBundleOptions used to determine how many output streams to generate and used to map input data to the correct output streams
+     * @param opts options such as the project base directory, prelude string, prelude file path, etc.
+     * @param enabledStreams an array of flags, equal in length to 'bundles.maxDestinations', indicating which bundle streams should be created and written to.
+     * A way to skip outputing a bundle stream, the other piece of support for the null 'stream' is in 'BrowserifyHelper.setupRebundleListener()'.
+     */
+    export function createPackStreams(bundles: MultiBundleOptions, enabledStreams: boolean[]): { baseStream: stream.Transform; bundleStreams: BundleStream<stream.Transform>[] } {
 
         var baseStream = <stream.Transform>through2.obj(write, () => {
-            bundleStreams.forEach((s, i) => end(s.stream, firsts[i], entriesAry[i], (typeof prelude === "function" ? prelude(i) : prelude), sourcemaps[i]));
+            bundleStreams.forEach((s, i) => {
+                if (enabledStreams[i] !== false) {
+                    var src = toUmdSource(bundles.bundles[i], firsts[i], entriesAry[i], preludes[i], sourcemaps[i]);
+                    s.stream.push(Buffer.from(src));
+                    s.stream.push(null);
+                }
+            });
             baseStream.push(null);
         });
-        baseStream["standaloneModule"] = opts.standaloneModule;
-        baseStream["hasExports"] = opts.hasExports;
 
         var dstCount = bundles.maxDestinations;
+        // tracks whether each bundle stream has been written to yet
         var firsts = new Array<boolean>(dstCount);
+        // tracks prelude entries for each bundle stream
         var entriesAry = new Array<any[]>(dstCount);
+        // tracks source map line number offsets for each bundle stream
         var lineNumAry = new Array<number>(dstCount);
+        // source maps for each bundle stream
         var sourcemaps = new Array<combineSourceMap.Combiner>(dstCount);
+        // prelude strings for each bundle stream
+        var preludes = Array<string>(dstCount);
+        // prelude paths for each bundle stream (mostly for source maps)
+        var preludePaths = Array<string>(dstCount);
+        // the bundle streams
         var bundleStreams = new Array<BundleStream<stream.Transform>>(dstCount);
 
         for (var i = 0; i < dstCount; i++) {
             var bundleOpts = bundles.bundles[i];
             bundleStreams[i] = {
-                stream: <stream.Transform>through2.obj(),
+                stream: enabledStreams[i] !== false ? <stream.Transform>through2.obj() : null,
                 dstFileName: bundleOpts.dstFileName,
                 dstMapFile: bundleOpts.dstMapFile,
             };
             firsts[i] = true;
             entriesAry[i] = [];
+            var basedir = (bundleOpts.basedir !== undefined ? bundleOpts.basedir : process.cwd());
+            preludes[i] = bundleOpts.prelude || defaultPrelude;
+            preludePaths[i] = bundleOpts.preludePath || path.relative(basedir, defaultPreludePath).replace(/\\/g, '/');
         }
 
         return { baseStream, bundleStreams };
 
-        function write(row, enc, next) {
-            var idx = bundles.destinationPicker(row);
+        function write(row: ModuleDepRow, enc: string, next: () => void) {
+            var idx = bundles.destinationPicker(row.file);
+            // skip files with a destination index of -1 and skip streams that aren't enabled
+            if (idx < 0 || enabledStreams[idx] === false) {
+                next();
+                return;
+            }
             var dst = bundleStreams[idx].stream;
             var first = firsts[idx];
             var sourcemap = sourcemaps[idx];
-            var _prelude = typeof prelude === "function" ? prelude(idx) : prelude;
-            var _preludePath = typeof preludePath === "function" ? preludePath(idx) : preludePath;
-            if (lineNumAry[i] == null) { lineNumAry[i] = 1 + newlinesIn(_prelude); }
+            var opts = bundles.bundles[idx];
+            var prelude = preludes[idx];
+            var preludePath = preludePaths[idx];
+            if (lineNumAry[idx] == null) { lineNumAry[idx] = 1 + newlinesIn(prelude); }
 
-            if (first && opts.standalone) {
-                var pre = umd.prelude(opts.standalone).trim();
-                dst.push(Buffer.from(pre + "return "));
+            var wrappedSrc: string[] = [];
+
+            if (first) {
+                if (opts.standalone) {
+                    var pre = umd.prelude(opts.standalone).trim();
+                    wrappedSrc.push(pre, "return ");
+                }
+                else if (opts.hasExports) {
+                    var pre = opts.externalRequireName || "require";
+                    wrappedSrc.push(pre, '=');
+                }
+                wrappedSrc.push(prelude, "({");
             }
-            else if (first && baseStream["hasExports"]) {
-                var pre = opts.externalRequireName || "require";
-                dst.push(Buffer.from(pre + '='));
+            else {
+                wrappedSrc.push(',');
             }
-            if (first) dst.push(Buffer.from(_prelude + "({"));
 
             if (row.sourceFile && !row.nomap) {
                 if (!sourcemap) {
                     sourcemaps[idx] = sourcemap = combineSourceMap.create();
                     sourcemap.addFile(
-                        { sourceFile: _preludePath, source: _prelude },
+                        { sourceFile: preludePath, source: prelude },
                         { line: 0 }
                     );
                 }
@@ -182,23 +255,25 @@ module BrowserMultiPack {
                 );
             }
 
-            var wrappedSource = [
-                (first ? '' : ','),
+            wrappedSrc.push(
                 JSON.stringify(row.id),
                 ":[",
                 "function(require,module,exports){\n",
                 combineSourceMap.removeComments(row.source),
                 "\n},",
-                '{' + Object.keys(row.deps || {}).sort().map(function (key) {
-                    return JSON.stringify(key) + ':'
-                        + JSON.stringify(row.deps[key])
-                        ;
-                }).join(',') + '}',
-                ']'
-            ].join('');
+                '{'
+            );
+            if (row.deps) {
+                Object.keys(row.deps).sort().forEach(function (key, i) {
+                    if (i > 0) { wrappedSrc.push(','); }
+                    wrappedSrc.push(JSON.stringify(key), ':', JSON.stringify(row.deps[key]));
+                });
+            }
+            wrappedSrc.push("}]");
 
-            dst.push(Buffer.from(wrappedSource));
-            lineNumAry[idx] += newlinesIn(wrappedSource);
+            var fullSrc = wrappedSrc.join("");
+            dst.push(Buffer.from(fullSrc));
+            lineNumAry[idx] += newlinesIn(fullSrc);
 
             firsts[idx] = first = false;
             if (row.entry && row.order !== undefined) {
@@ -208,31 +283,30 @@ module BrowserMultiPack {
             next();
         }
 
-        function end(dst: stream.Transform, first: boolean, entries: any[], _prelude: string, sourcemap: combineSourceMap.Combiner) {
-            if (first) dst.push(Buffer.from(_prelude + "({"));
+        function toUmdSource(opts: BrowserPackOptions, first: boolean, entries: any[], _prelude: string, sourcemap: combineSourceMap.Combiner): string {
+            var strs: string[] = [];
+            if (first) strs.push(_prelude, "({");
             entries = entries.filter(function (x) { return x !== undefined });
 
-            dst.push(Buffer.from("},{}," + JSON.stringify(entries) + ')'));
+            strs.push("},{},", JSON.stringify(entries), ')');
 
             if (opts.standalone && !first) {
-                dst.push(Buffer.from(
-                    '(' + JSON.stringify(baseStream["standaloneModule"]) + ')'
-                    + umd.postlude(opts.standalone)
-                ));
+                strs.push(
+                    '(', JSON.stringify(opts.standaloneModule), ')'
+                    , umd.postlude(opts.standalone)
+                );
             }
 
             if (sourcemap) {
                 var comment = sourcemap.comment();
                 if (opts.sourceMapPrefix) {
-                    comment = comment.replace(
-                        /^\/\/#/, function () { return opts.sourceMapPrefix }
-                    )
+                    comment = comment.replace(/^\/\/#/, function () { return opts.sourceMapPrefix })
                 }
-                dst.push(Buffer.from('\n' + comment + '\n'));
+                strs.push('\n', comment, '\n');
             }
-            if (!sourcemap && !opts.standalone) dst.push(Buffer.from(";\n"));
+            if (!sourcemap && !opts.standalone) strs.push(";\n");
 
-            dst.push(null);
+            return strs.join('');
         }
     }
 
