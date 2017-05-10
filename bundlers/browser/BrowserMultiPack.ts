@@ -1,6 +1,6 @@
-﻿import fs = require("fs");
-import path = require("path");
+﻿import path = require("path");
 import stream = require("stream");
+import browserify = require("browserify");
 import combineSourceMap = require("combine-source-map");
 import through2 = require("through2");
 import umd = require("umd");
@@ -96,17 +96,17 @@ module BrowserMultiPack {
      * @param getOpts options related to setting up the bundle streams
      */
     export function overrideBrowserifyPack(
-        bundleBldr: BundleBuilder.Builder<Browserify.BrowserifyObject, any>,
-        _browserify: Browserify.BrowserifyConstructor,
+        bundleBldr: BundleBuilder.Builder<browserify.BrowserifyObject, any>,
+        _browserify: browserify.BrowserifyConstructor,
         getMultiBundleOpts: () => MultiBundleOptions
     ) {
         var origCreatePipeline = _browserify.prototype["_createPipeline"];
         var newBpack: { baseStream: stream.Transform; bundleStreams: BundleStream<stream.Transform>[] };
         var updateDeps: string[] = null;
 
-        // Override Browserify._createPipeline() to replace the 'pack' pipeline step with a custom browser-pack implementation
+        // Override browserify._createPipeline() to replace the 'pack' pipeline step with a custom browser-pack implementation
         // gets called when browserify instance is created or when reset() or bundle() are called
-        _browserify.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(this: Browserify.BrowserifyObject, createPipeOpts) {
+        _browserify.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(this: browserify.BrowserifyObject, createPipeOpts) {
             var pipeline = origCreatePipeline.call(this, createPipeOpts);
             var packPipe = pipeline.get("pack");
             var oldBpack = packPipe.pop();
@@ -121,7 +121,7 @@ module BrowserMultiPack {
         };
 
         // Consume the browserify bundle and return the multiple pack bundles
-        bundleBldr.setBundleSourceCreator(function multiBundleStreamCreator(browserify: Browserify.BrowserifyObject, updateEvent: any) {
+        bundleBldr.setBundleSourceCreator(function multiBundleStreamCreator(browserify: browserify.BrowserifyObject, updateEvent: any) {
             if (updateEvent != null) { updateDeps = Object.keys(updateEvent).map((k) => updateEvent[k]); }
             var brwsBundle = browserify.bundle();
             var res = [];

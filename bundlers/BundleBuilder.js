@@ -1,12 +1,13 @@
 "use strict";
-var gulp = require("gulp");
 var browserify = require("browserify");
 var exorcist = require("exorcist");
+var gulp = require("gulp");
 var vinylSourceStream = require("vinyl-source-stream");
 var watchify = require("watchify");
 var BrowserifyHelper = require("./BrowserifyHelper");
 var TypeScriptHelper = require("./TypeScriptHelper");
-/** requires package.json:
+/** Browserify bundle stream builder
+ * requires package.json:
  *   "browserify": "~14.3.0",
  *   "watchify": "~3.9.0",
  */
@@ -31,7 +32,6 @@ var BundleBuilder;
         return BrowserifyHelper.setupRebundleListener(bundleOpts.rebuild, bundler, bundleSourceCreator, [
             ["extract-source-maps", function (prevSrc, streamOpts) { return prevSrc.pipe(exorcist(getMapFilePath(dstDir, streamOpts.dstFileName, streamOpts.dstMapFile))); }],
             ["to-vinyl-file", function (prevSrc, streamOpts) { return prevSrc.pipe(vinylSourceStream(streamOpts.dstFileName)); }],
-            //(prevSrc) => prevSrc.pipe(rename(dstFile)),
             ["write-to-dst", function (prevSrc, streamOpts) { return prevSrc.pipe(gulp.dest(dstDir)); }],
         ]);
     }
@@ -43,7 +43,7 @@ var BundleBuilder;
      * Handles waiting for a promise, then building 'browserify' options, creating an instance of browserify, running a bundle compiler, and waiting for the result.
      * @param bundleOpts options for how to compile the bundle, are used to build browserify and are also passed along to the compileBundle function
      * @param compileBundle a function which takes a bundler, options, paths, and a bundle stream creator and compiles the bundle
-     * @param [optsModifier] a optional function which can modify the Browserify and BrowserPack options before they are passed to the browserify constructor
+     * @param [optsModifier] a optional function which can modify the Browserify and browserPack options before they are passed to the browserify constructor
      */
     function createBundleBuilder(bundleOpts, compileBundle, optsModifier) {
         var optsRes = {};

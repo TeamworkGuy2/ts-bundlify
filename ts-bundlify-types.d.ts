@@ -1,22 +1,9 @@
-﻿/// <reference path="../definitions/babelify/babelify.d.ts" />
-/// <reference path="../definitions/browserify/browserify.d.ts" />
-/// <reference path="../definitions/browser-pack/browser-pack.d.ts" />
-/// <reference path="../definitions/combine-source-map/combine-source-map.d.ts" />
-/// <reference path="../definitions/convert-source-map/convert-source-map.d.ts" />
-/// <reference path="../definitions/exorcist/exorcist.d.ts" />
-/// <reference path="../definitions/gulp/gulp.d.ts" />
-/// <reference path="../definitions/gulp-concat/gulp-concat.d.ts" />
-/// <reference path="../definitions/gulp-rename/gulp-rename.d.ts" />
-/// <reference path="../definitions/gulp-util/gulp-util.d.ts" />
-/// <reference path="../definitions/minimatch/minimatch.d.ts" />
-/// <reference path="../definitions/node/node.d.ts" />
-/// <reference path="../definitions/node-sass/node-sass.d.ts" />
-/// <reference path="../definitions/q/Q.d.ts" />
-/// <reference path="../definitions/through2/through2.d.ts" />
-/// <reference path="../definitions/uglify-js/uglify-js.d.ts" />
-/// <reference path="../definitions/umd/umd.d.ts" />
-/// <reference path="../definitions/vinyl-source-stream/vinyl-source-stream.d.ts" />
-/// <reference path="../definitions/watchify/watchify.d.ts" />
+﻿/// <reference types="browserify" />
+/// <reference types="browser-pack" />
+/// <reference types="node" />
+/// <reference types="q" />
+/// <reference path="../definitions/custom/combine-source-map/combine-source-map.d.ts" />
+/// <reference path="../definitions/custom/umd/umd.d.ts" />
 
 
 declare module "traceur" {
@@ -34,6 +21,7 @@ interface TraceurCompiler {
 }
 
 
+/** Type of data row that comes out of browserify */
 interface ModuleDepRow {
     deps: { [name: string]: string | number };
     file: string;

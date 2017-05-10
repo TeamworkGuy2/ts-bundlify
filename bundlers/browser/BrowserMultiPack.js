@@ -93,7 +93,7 @@ var BrowserMultiPack;
         var origCreatePipeline = _browserify.prototype["_createPipeline"];
         var newBpack;
         var updateDeps = null;
-        // Override Browserify._createPipeline() to replace the 'pack' pipeline step with a custom browser-pack implementation
+        // Override browserify._createPipeline() to replace the 'pack' pipeline step with a custom browser-pack implementation
         // gets called when browserify instance is created or when reset() or bundle() are called
         _browserify.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(createPipeOpts) {
             var pipeline = origCreatePipeline.call(this, createPipeOpts);

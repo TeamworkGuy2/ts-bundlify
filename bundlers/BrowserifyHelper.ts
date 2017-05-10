@@ -1,6 +1,7 @@
 ﻿import gutil = require("gulp-util");
 import stream = require("stream");
 import util = require("util");
+import browserify = require("browserify");
 import Q = require("q");
 import LogUtil = require("../utils/LogUtil");
 import TypeScriptHelper = require("./TypeScriptHelper");
@@ -35,9 +36,9 @@ module BrowserifyHelper {
      * @param opts the options to use
      * @param plugins an optional list of browserify plugins
      */
-    export function createOptions(opts?: CodePaths & { debug?: boolean; cache?: any; packageCache?: any; } & Browserify.Options & BrowserPack.Options, plugins?: any[]): Browserify.Options {
+    export function createOptions(opts?: CodePaths & { debug?: boolean; cache?: any; packageCache?: any; } & browserify.Options & browserPack.Options, plugins?: any[]): browserify.Options {
         opts = <any>Object.assign({}, opts || {});
-        var res: Browserify.Options = {
+        var res: browserify.Options = {
             debug: opts.debug,
             entries: opts.entries || [opts.entryFile],
             extensions: opts.extensions || [".js", ".jsx"],
@@ -61,8 +62,8 @@ module BrowserifyHelper {
      * @param additionalStreamPipes further transformations (i.e. [ (prevSrc) => prevSrc.pipe(vinyleSourceStream(...), (prevSrc) => prevSrc.pipe(gulp.dest(...)) ])
      * @return a promise which completes when the first build completes and returns a message with the name of the compiled file and how long it took
      */
-    export function setupRebundleListener(rebuildOnSrcChange: boolean, bundler: Browserify.BrowserifyObject,
-            getSourceStreams: (bundler: Browserify.BrowserifyObject, updateEvent: any) => MultiBundleStreams,
+    export function setupRebundleListener(rebuildOnSrcChange: boolean, bundler: browserify.BrowserifyObject,
+            getSourceStreams: (bundler: browserify.BrowserifyObject, updateEvent: any) => MultiBundleStreams,
             additionalStreamPipes: [string, (prevStream: NodeJS.ReadableStream, streamOpts: BundleDst) => NodeJS.ReadableStream][]) {
 
         var firstBuildDfd = Q.defer<BuildResults>();

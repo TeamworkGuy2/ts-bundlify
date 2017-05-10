@@ -1,18 +1,18 @@
-﻿import gulp = require("gulp");
-import browserify = require("browserify");
+﻿import browserify = require("browserify");
 import exorcist = require("exorcist");
+import gulp = require("gulp");
 import vinylSourceStream = require("vinyl-source-stream");
 import Q = require("q");
 import watchify = require("watchify");
 import BrowserifyHelper = require("./BrowserifyHelper");
 import TypeScriptHelper = require("./TypeScriptHelper");
 
-type ReadableStream = NodeJS.ReadableStream;
-type BrowserifyObject = Browserify.BrowserifyObject;
+type BrowserifyObject = browserify.BrowserifyObject;
 type BrowserifyTransform = BrowserifyHelper.BrowserifyTransform;
 
 
-/** requires package.json:
+/** Browserify bundle stream builder
+ * requires package.json:
  *   "browserify": "~14.3.0",
  *   "watchify": "~3.9.0",
  */
@@ -70,7 +70,7 @@ module BundleBuilder {
     }
 
 
-    export function buildOptions(bundleOpts: BundleOptions, optsModifier?: (opts: Browserify.Options & BrowserPack.Options & { typescriptHelpers?: string }) => void): Builder<BrowserifyObject, BrowserifyHelper.BuildResults> {
+    export function buildOptions(bundleOpts: BundleOptions, optsModifier?: (opts: browserify.Options & browserPack.Options & { typescriptHelpers?: string }) => void): Builder<BrowserifyObject, BrowserifyHelper.BuildResults> {
         return createBundleBuilder(bundleOpts, compileBundle, optsModifier);
     }
 
@@ -93,7 +93,6 @@ module BundleBuilder {
         return BrowserifyHelper.setupRebundleListener(bundleOpts.rebuild, bundler, bundleSourceCreator, [
             ["extract-source-maps", (prevSrc, streamOpts) => prevSrc.pipe(exorcist(getMapFilePath(dstDir, streamOpts.dstFileName, streamOpts.dstMapFile)))],
             ["to-vinyl-file", (prevSrc, streamOpts) => prevSrc.pipe(vinylSourceStream(streamOpts.dstFileName))],
-            //(prevSrc) => prevSrc.pipe(rename(dstFile)),
             ["write-to-dst", (prevSrc, streamOpts) => prevSrc.pipe(gulp.dest(dstDir))],
         ]);
     }
@@ -108,14 +107,14 @@ module BundleBuilder {
      * Handles waiting for a promise, then building 'browserify' options, creating an instance of browserify, running a bundle compiler, and waiting for the result.
      * @param bundleOpts options for how to compile the bundle, are used to build browserify and are also passed along to the compileBundle function
      * @param compileBundle a function which takes a bundler, options, paths, and a bundle stream creator and compiles the bundle
-     * @param [optsModifier] a optional function which can modify the Browserify and BrowserPack options before they are passed to the browserify constructor
+     * @param [optsModifier] a optional function which can modify the Browserify and browserPack options before they are passed to the browserify constructor
      */
     export function createBundleBuilder<R>(
         bundleOpts: BundleOptions,
         compileBundle: BrowserifyCompileFunc<R>,
-        optsModifier?: (opts: Browserify.Options & BrowserPack.Options & { typescriptHelpers?: string }) => void
+        optsModifier?: (opts: browserify.Options & browserPack.Options & { typescriptHelpers?: string }) => void
     ): Builder<BrowserifyObject, R> {
-        var optsRes: Browserify.Options & BrowserPack.Options & { typescriptHelpers?: string } = <any>{};
+        var optsRes: browserify.Options & browserPack.Options & { typescriptHelpers?: string } = <any>{};
 
         if (bundleOpts.typescript != null && bundleOpts.typescript.includeHelpers) {
             var res = TypeScriptHelper.createPreludeStringWithTypeScriptHelpers(bundleOpts.typescript.includeHelpersComment != false);
@@ -175,9 +174,9 @@ module BundleBuilder {
      * @param bundleOpts options used to help construct the browserify/browser-pack constructor options
      * @param paths code input/output paths for the bundle compiler
      */
-    export function createBrowserify<R>(customOpts: Browserify.Options & BrowserPack.Options, bundleOpts: BundleOptions, paths: CodePaths): BrowserifyObject {
+    export function createBrowserify<R>(customOpts: browserify.Options & browserPack.Options, bundleOpts: BundleOptions, paths: CodePaths): BrowserifyObject {
         // setup browserify/browser-pack options
-        var defaultOpts: Browserify.Options & BrowserPack.Options = {
+        var defaultOpts: browserify.Options & browserPack.Options = {
             debug: bundleOpts.debug,
         };
         if (customOpts != null) {

@@ -1,6 +1,7 @@
 "use strict";
 var child_process = require("child_process");
 var gutil = require("gulp-util");
+var Q = require("q");
 var BrowserMultiPack = require("./browser/BrowserMultiPack");
 /** Helpers for compiling TypeScript to Javascript
  */

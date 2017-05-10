@@ -1,5 +1,6 @@
 ﻿import child_process = require("child_process");
 import gutil = require("gulp-util");
+import Q = require("q");
 import BrowserMultiPack = require("./browser/BrowserMultiPack");
 
 /** Helpers for compiling TypeScript to Javascript

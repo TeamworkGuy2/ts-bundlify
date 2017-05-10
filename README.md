@@ -7,7 +7,8 @@ Includes bundler helpers for Browserify customization (multiple bundles), Babel,
 See each of the 'bundlers/' sub-directories as well as the [browser-bundle-examples](https://github.com/TeamworkGuy2/browser-bundle-examples) project.
 
 Example of creating a bundle compiler that rebuilds when source file changes are detected (using watchify and browserify) compiled using babel:
-`./gulpfile.js`
+
+`gulpfile.js`
 ```ts
 var babelify = require("babelify");
 var BundleBuilder = require("path-to-ts-bundlify/bundlers/BundleBuilder");
@@ -19,13 +20,13 @@ BundleBuilder.buildOptions({
   verbose: false,
   typescript: { includeHelpers: true }
 })
-  .transforms((browserify) => [
-    BabelBundler.createTransformer(babelify)
-  ])
-  .compileBundle({
-    entryFile: "./src/.../myApp.js",
-    dstDir: "./build/",
-    srcPaths: ["node_modules", "./src/.../"],
-    projectRoot: process.cwd()
-  }, { dstFileName: "app-compiled.js" });
+.transforms((browserify) => [
+  BabelBundler.createTransformer(babelify)
+])
+.compileBundle({
+  entryFile: "./src/.../myApp.js",
+  dstDir: "./build/",
+  srcPaths: ["node_modules", "./src/.../"],
+  projectRoot: process.cwd()
+}, { dstFileName: "app-compiled.js" });
 ```

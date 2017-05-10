@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.5.0](N/A) - 2017-05-06
+### [0.5.1](N/A) - 2017-05-09
+#### Changed
+* Update to TypeScript 2.3, add tsconfig.json, use @types/ definitions
+
+
+--------
+### [0.5.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/6a0dc3abb7604ec6fb7f29ac5380831fdc484782) - 2017-05-06
 #### Added
 * `BrowserMultiPack.getPreludeSrc()` to return customized version of prelude.js customized for easier readability
 

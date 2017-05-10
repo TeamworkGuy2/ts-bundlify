@@ -1,5 +1,4 @@
 ﻿import crypto = require("crypto");
-import path = require("path");
 import through2 = require("through2");
 import Traceur = require("traceur");
 
@@ -63,10 +62,10 @@ module Es6ifyToStream {
 
 
     /** Compile function, exposed to be used from other libraries, not needed when using es6ify as a transform.
-     * @param {string} file name of the file that is being compiled to ES5
-     * @param {string} src source of the file being compiled to ES5
-     * @return {string} compiled source
-     * @throws {Error} if the compilation fails
+     * @param file name of the file that is being compiled to ES5
+     * @param src source of the file being compiled to ES5
+     * @return compiled source string
+     * @throws an Error if the compilation fails
      */
     export function compileFile(traceur: typeof Traceur, file: string, contents: string, traceurOverrides: any): string {
         var options = buildTraceurOptions(traceurOverrides);
