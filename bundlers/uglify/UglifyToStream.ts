@@ -1,4 +1,5 @@
 ﻿import path = require("path");
+import stream = require("stream");
 import minimatch = require("minimatch");
 import convert = require("convert-source-map");
 import through2 = require("through2");
@@ -12,7 +13,7 @@ module UglifyToStream {
         x?: string | string[];
         sourcemap?: boolean;
         _flags?: {
-            debug?: boolean
+            debug?: boolean;
         };
         inSourceMap?: {
             sourcesContent?: any;
@@ -20,8 +21,13 @@ module UglifyToStream {
     }
 
 
-    export function createStreamCompiler(uglify: typeof Uglify, file: string, opts: Uglify.MinifyOptions & UglifyToStreamOptions, filePattern?: { test(str: string): boolean; } | RegExp,
-            dataDone?: (file: string, data: string) => void): NodeJS.ReadWriteStream {
+    export function createStreamCompiler(
+        uglify: typeof Uglify,
+        file: string,
+        opts: Uglify.MinifyOptions & UglifyToStreamOptions,
+        filePattern?: { test(str: string): boolean; } | RegExp,
+        dataDone?: (file: string, data: string) => void
+    ): NodeJS.ReadWriteStream {
         opts = opts || <any>{};
 
         var debug: boolean | RegExpMatchArray = ("_flags" in opts) ? opts._flags.debug : true;
@@ -41,14 +47,12 @@ module UglifyToStream {
             return through2();
         }
 
-        return through2(function write(chunk, enc, next) {
+        return through2(function write(this: stream.Transform, chunk, enc, next) {
             buffer += chunk;
             next();
-        }, capture(function ready() {
+        }, capture<stream.Transform>(function ready() {
             // match an inlined sourcemap with or without a charset definition
-            var matched = buffer.match(
-                /\/\/[#@] ?sourceMappingURL=data:application\/json(?:;charset=utf-8)?;base64,([a-zA-Z0-9+\/]+)={0,2}\n?$/
-            );
+            var matched = buffer.match(/\/\/[#@] ?sourceMappingURL=data:application\/json(?:;charset=utf-8)?;base64,([a-zA-Z0-9+\/]+)={0,2}\n?$/);
 
             debug = opts.sourcemap !== false && (debug || matched);
             opts = Object.assign({
@@ -68,7 +72,7 @@ module UglifyToStream {
             }
 
             // Check if incoming source code already has source map comment.
-            // If so, send it in to ujs.minify as the inSourceMap parameter
+            // If so, send it in to uglifyjs.minify as the inSourceMap parameter
             if (debug && matched) {
                 opts.inSourceMap = convert.fromJSON(new Buffer(matched[1], "base64").toString()).sourcemap;
             }
@@ -78,7 +82,7 @@ module UglifyToStream {
             // Uglify leaves a source map comment pointing back to "out.js.map",
             // which we want to get rid of because it confuses browserify.
             min.code = min.code.replace(/\/\/[#@] ?sourceMappingURL=out.js.map$/, '');
-            this.queue(min.code);
+            this.push(min.code);
 
             if (min.map && min.map !== "null") {
                 var map = convert.fromJSON(min.map);
@@ -86,17 +90,17 @@ module UglifyToStream {
                 map.setProperty("sources", [path.basename(file)]);
                 map.setProperty("sourcesContent", matched ? opts.inSourceMap.sourcesContent : [buffer]);
 
-                this.queue('\n');
-                this.queue(map.toComment());
+                this.push('\n');
+                this.push(map.toComment());
             }
 
-            this.queue(null);
+            this.push(null);
 
             if (dataDone) { dataDone(file, min.code); }
         }));
 
-        function capture(fn) {
-            return function () {
+        function capture<T extends stream.Readable>(fn: (this: T, ...args: any[]) => any) {
+            return function (this: T) {
                 try {
                     fn.apply(this, arguments);
                 } catch (err) {

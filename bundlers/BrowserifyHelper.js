@@ -2,7 +2,6 @@
 var gutil = require("gulp-util");
 var stream = require("stream");
 var util = require("util");
-var Q = require("q");
 /** Helpers for building JS bundles using 'browserify'
  */
 var BrowserifyHelper;
@@ -33,13 +32,14 @@ var BrowserifyHelper;
      * The major reason to use this method instead of hand rolling the pipe() calls is the detailed error handling this method adds to each pipe() step.
      *
      * @param rebuildOnSrcChange flag indicating whether bundle should watch filesystem for changes and rebuild on change
+     * @param verbose whether to print bundle build info to 'gulp-util' log()
      * @param bundler the browserify object with a watchify plugin used to listener for 'update' events on to determine when to rebundle
      * @param getSourceStreams a function which creates the source stream and the one or more bundle output streams
      * @param additionalStreamPipes further transformations (i.e. [ (prevSrc) => prevSrc.pipe(vinyleSourceStream(...), (prevSrc) => prevSrc.pipe(gulp.dest(...)) ])
-     * @return a promise which completes when the first build completes and returns a message with the name of the compiled file and how long it took
+     * @param listeners various optional functions to call when bundle compile steps are completed, including a finishAll() function which passes back an object with stats about all the compiled bundles
      */
-    function setupRebundleListener(rebuildOnSrcChange, bundler, getSourceStreams, additionalStreamPipes) {
-        var firstBuildDfd = Q.defer();
+    function setupRebundleListener(rebuildOnSrcChange, verbose, bundler, getSourceStreams, additionalStreamPipes, listeners) {
+        listeners = listeners || {};
         function rebundle(updateEvent) {
             var expectedTotal = 0;
             var expectDoneFiles = [];
@@ -51,42 +51,60 @@ var BrowserifyHelper;
             function startCb(file) {
                 startTimes[file] = Date.now();
                 expectDoneFiles.push(file);
-                gutil.log("start building '" + file + "'...");
+                if (verbose) {
+                    gutil.log("start building '" + file + "'...");
+                }
+                if (listeners.startBundle) {
+                    tryCall(listeners.startBundle, file);
+                }
             }
-            function doneCb(file, type) {
+            function doneCb(srcName, file, type) {
                 endTimes[file] = Date.now();
                 if (type === "compile") {
                     doneFiles.push(file);
+                    if (listeners.finishBundle) {
+                        tryCall(listeners.finishBundle, file);
+                    }
                 }
                 else if (type === "skip") {
                     skippedFiles.push(file);
+                    if (listeners.skipBundle) {
+                        tryCall(listeners.skipBundle, file);
+                    }
                 }
                 else {
                     var errMsg = "invalid bundle completion type (expected: 'compile' or 'skip'): " + type;
-                    gutil.log(errMsg);
-                    firstBuildDfd.reject(errMsg);
+                    console.error(errMsg);
+                    if (listeners.error) {
+                        tryCall(listeners.error, srcName, file, errMsg);
+                    }
                     return;
                 }
                 var totalDone = doneFiles.length + skippedFiles.length;
                 if (totalDone >= expectedTotal) {
                     var endTime = Date.now();
-                    var bldMsg = doneFiles.length > 0 ? "finished building: " + doneFiles.map(function (f) { return f + " (" + (endTimes[file] - startTimes[file]) + " ms)"; }).join(", ") : null;
-                    var skpMsg = skippedFiles.length > 0 ? "skipped building: " + skippedFiles.join(", ") : null;
-                    var buildMsg = "total time: " + (endTime - startTime) + " ms | " + (bldMsg ? bldMsg + (skpMsg ? " | " + skpMsg : "") : (skpMsg ? skpMsg : "no bundles"));
-                    gutil.log(buildMsg);
-                    firstBuildDfd.resolve({
-                        buildMsg: buildMsg,
-                        totalTimeMs: endTime - startTime,
-                        builtBundles: doneFiles.map(function (f) { return ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) }); }),
-                        skippedBundles: skippedFiles.map(function (f) { return ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) }); }),
-                    });
+                    var bldMsg = doneFiles.length > 0 ? doneFiles.map(function (f) { return f + " (" + (endTimes[file] - startTimes[file]) + " ms)"; }).join(", ") : null;
+                    var skpMsg = skippedFiles.length > 0 ? "skipped: " + skippedFiles.join(", ") : null;
+                    var buildMsg = "done building (" + (endTime - startTime) + " ms): " + (bldMsg ? bldMsg + (skpMsg ? " | " + skpMsg : "") : (skpMsg ? skpMsg : "no bundles"));
+                    if (verbose) {
+                        gutil.log(buildMsg);
+                    }
+                    if (listeners.finishAll) {
+                        tryCall(listeners.finishAll, {
+                            buildMsg: buildMsg,
+                            totalTimeMs: endTime - startTime,
+                            builtBundles: doneFiles.map(function (f) { return ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) }); }),
+                            skippedBundles: skippedFiles.map(function (f) { return ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) }); }),
+                        });
+                    }
                 }
             }
             function createErrorCb(srcName, dstFile) {
                 return function (err) {
-                    var msg = "error building '" + dstFile + "' at stream '" + srcName + "'";
-                    console.error(msg, err);
-                    firstBuildDfd.reject(msg + ": " + String(err));
+                    console.error("error building '" + dstFile + "' at stream '" + srcName + "'", err);
+                    if (listeners.error) {
+                        tryCall(listeners.error, srcName, dstFile, err);
+                    }
                 };
             }
             function startStreams(bundleStreams) {
@@ -95,7 +113,7 @@ var BrowserifyHelper;
                     var dstFilePath = bundle.dstFileName;
                     var resStream = bundle.stream;
                     if (resStream == null) {
-                        doneCb(dstFilePath, "skip");
+                        doneCb("initial-stream", dstFilePath, "skip");
                         return;
                     }
                     resStream.on("error", createErrorCb("initial-stream", dstFilePath));
@@ -105,7 +123,7 @@ var BrowserifyHelper;
                         resStream = streamCreator(resStream, bundle);
                         resStream.on("error", createErrorCb(streamName, dstFilePath));
                     }
-                    resStream.on("end", function () { return doneCb(dstFilePath, "compile"); });
+                    resStream.on("end", function () { return doneCb(streamName, dstFilePath, "compile"); });
                     startCb(dstFilePath);
                 });
             }
@@ -116,12 +134,11 @@ var BrowserifyHelper;
             else {
                 startStreams(bundles.bundleStreams);
             }
-            return firstBuildDfd.promise;
         }
         if (rebuildOnSrcChange) {
             bundler.on("update", rebundle);
         }
-        return rebundle();
+        rebundle();
     }
     BrowserifyHelper.setupRebundleListener = setupRebundleListener;
     /** Create a Node stream 'Transform' instance which supports prepending and appending data to each chunk passed to the private/internal '_transform' method
@@ -185,8 +202,28 @@ var BrowserifyHelper;
         }
     }
     BrowserifyHelper.combineOpts = combineOpts;
+    function tryCall(func, arg1, arg2, arg3) {
+        if (func == null) {
+            return;
+        }
+        try {
+            switch (arguments.length - 1) {
+                case 3:
+                    return func(arg1, arg2, arg3);
+                case 2:
+                    return func(arg1, arg2);
+                case 1:
+                    return func(arg1);
+                default:
+                    throw new Error("unsupported number of arguments");
+            }
+        }
+        catch (err) {
+            console.error("error calling '" + (func != null ? func.name : null) + "'", err);
+        }
+    }
     function isPromise(p) {
-        return Q.isPromiseAlike(p);
+        return p != null && typeof p.then === "function";
     }
 })(BrowserifyHelper || (BrowserifyHelper = {}));
 module.exports = BrowserifyHelper;

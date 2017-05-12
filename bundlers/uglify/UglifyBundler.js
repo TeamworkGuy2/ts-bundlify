@@ -8,13 +8,15 @@ var UglifyToStream = require("./UglifyToStream");
  */
 var UglifyBundler;
 (function (UglifyBundler) {
-    /** Create a 'browserify' transform which compiles source files using uglify-js
+    /** Create a browserify transform which compiles source files using uglify-js
      */
-    function createTransformer(uglify, filePattern, uglifyCompileOpts, transformOpts) {
+    function createTransformer(uglify, filePattern, uglifyCompileOpts, transformOpts, verbose) {
         var res = {
             transform: function uglifyTransform(file, opts) {
                 var strm = UglifyToStream.createStreamCompiler(uglify, file, BrowserifyHelper.combineOpts(opts, uglifyCompileOpts), filePattern, function (file, data) {
-                    console.log("uglify: '" + PathUtil.toShortFileName(file) + "'");
+                    if (verbose) {
+                        console.log("uglify: '" + PathUtil.toShortFileName(file) + "'");
+                    }
                 });
                 return strm;
             },

@@ -6,6 +6,7 @@ import through2 = require("through2");
 import umd = require("umd");
 import BundleBuilder = require("../BundleBuilder");
 
+var ln = '\n';
 var defaultPreludePath = path.join(__dirname, "_prelude.js");
 /*
 // modules are defined as an array
@@ -48,27 +49,27 @@ var defaultPreludePath = path.join(__dirname, "_prelude.js");
     return newRequire;
 })
 */
-var defaultPrelude = `(function outer(m,c,e){\n` +
-`  function newReq(n,u){\n` +
-`    if(!c[n]){\n` +
-`      if(!m[n]){\n` +
-`        var curReq=typeof require=="function"&&require;\n` +
-`        if(!u&&curReq)return curReq(n,!0);\n` +
-`        if(prevReq)return prevReq(n,!0);\n` +
-`        var f=new Error("Cannot find module '"+n+"'");\n` +
-`        throw f.code="MODULE_NOT_FOUND",f\n` +
-`      }\n` +
-`      var l=c[n]={exports:{}};\n` +
-`      m[n][0].call(l.exports,function(x){` +
-`        var d=m[n][1][x];` +
-`        return newReq(d?d:x)` +
-`      },l,l.exports,outer,m,c,e)\n` +
-`    }\n` +
-`    return c[n].exports\n` +
-`  }\n` +
-`  var prevReq=typeof require=="function"&&require;\n` +
-`  for(var i=0;i<e.length;i++)newReq(e[i]);\n` +
-`  return newReq\n` +
+var defaultPrelude = `(function outer(m,c,e){` + ln +
+`  function newReq(n,u){` + ln +
+`    if(!c[n]){` + ln +
+`      if(!m[n]){` + ln +
+`        var curReq=typeof require=="function"&&require;` + ln +
+`        if(!u&&curReq)return curReq(n,!0);` + ln +
+`        if(prevReq)return prevReq(n,!0);` + ln +
+`        var f=new Error("Cannot find module '"+n+"'");` + ln +
+`        throw f.code="MODULE_NOT_FOUND",f` + ln +
+`      }` + ln +
+`      var l=c[n]={exports:{}};` + ln +
+`      m[n][0].call(l.exports,function(x){` + ln +
+`        var d=m[n][1][x];` + ln +
+`        return newReq(d?d:x)` + ln +
+`      },l,l.exports,outer,m,c,e)` + ln +
+`    }` + ln +
+`    return c[n].exports` + ln +
+`  }` + ln +
+`  var prevReq=typeof require=="function"&&require;` + ln +
+`  for(var i=0;i<e.length;i++)newReq(e[i]);` + ln +
+`  return newReq` + ln +
 `})`;
 
 /** A port of npm's 'browser-pack@6.0.2' package.
@@ -96,7 +97,7 @@ module BrowserMultiPack {
      * @param getOpts options related to setting up the bundle streams
      */
     export function overrideBrowserifyPack(
-        bundleBldr: BundleBuilder.Builder<browserify.BrowserifyObject, any>,
+        bundleBldr: BundleBuilder.Builder<browserify.BrowserifyObject>,
         _browserify: browserify.BrowserifyConstructor,
         getMultiBundleOpts: () => MultiBundleOptions
     ) {
@@ -150,7 +151,7 @@ module BrowserMultiPack {
 
         for (var i = 0, size = !updateAll ? files.length : 0; i < size; i++) {
             var dstI = bundles.destinationPicker(files[i]);
-            if (dstI > 0) {
+            if (dstI > -1) {
                 res[dstI] = true;
             }
         }

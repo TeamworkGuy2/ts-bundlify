@@ -10,16 +10,18 @@ import UglifyToStream = require("./UglifyToStream");
  */
 module UglifyBundler {
 
-    /** Create a 'browserify' transform which compiles source files using uglify-js
+    /** Create a browserify transform which compiles source files using uglify-js
      */
     export function createTransformer(uglify: typeof Uglify, filePattern?: { test(str: string): boolean; } | RegExp,
-            uglifyCompileOpts?: Uglify.MinifyOptions & UglifyToStream.UglifyToStreamOptions, transformOpts?: any) {
+            uglifyCompileOpts?: Uglify.MinifyOptions & UglifyToStream.UglifyToStreamOptions, transformOpts?: BrowserifyHelper.BrowserifyTransform["options"], verbose?: boolean) {
 
         var res: BrowserifyHelper.BrowserifyTransform = {
             transform: function uglifyTransform(file, opts) {
 
                 var strm = UglifyToStream.createStreamCompiler(uglify, file, BrowserifyHelper.combineOpts(opts, uglifyCompileOpts), filePattern, (file, data) => {
-                    console.log("uglify: '" + PathUtil.toShortFileName(file) + "'");
+                    if (verbose) {
+                        console.log("uglify: '" + PathUtil.toShortFileName(file) + "'");
+                    }
                 });
                 return strm;
             },

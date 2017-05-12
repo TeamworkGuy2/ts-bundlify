@@ -1,6 +1,6 @@
 {
   "name": "ts-bundlify",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "TypeScript-to-Javascript build process helpers for creating bundles using Gulp, Browserify, Traceur, Babel, and Node-Sass",
   "devDependencies": {
     "@types/babelify": "~7.3.0",

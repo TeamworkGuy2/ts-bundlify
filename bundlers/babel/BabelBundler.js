@@ -11,15 +11,17 @@ var BrowserifyHelper = require("../../bundlers/BrowserifyHelper");
  */
 var BabelBundler;
 (function (BabelBundler) {
-    /** Create a 'browserify' transform which compiles source files using babelify
+    /** Create a browserify transform which compiles source files using babelify
      */
-    function createTransformer(babelify, filePattern, babelCompilerOpts, transformOpts) {
+    function createTransformer(babelify, filePattern, babelCompilerOpts, transformOpts, verbose) {
         var res = {
             transform: function babelifyTransform(tr, opts) {
                 if (filePattern != null && !filePattern.test(tr)) {
                     return new stream.PassThrough();
                 }
-                console.log("babelify: '" + PathUtil.toShortFileName(tr) + "'");
+                if (verbose) {
+                    console.log("babelify: '" + PathUtil.toShortFileName(tr) + "'");
+                }
                 var strm = babelify(tr, BrowserifyHelper.combineOpts(opts, babelCompilerOpts));
                 return strm;
             },

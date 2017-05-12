@@ -24,16 +24,16 @@ var BundleBuilder;
      * @param dstDir the directory to write output bundle files to
      * @param bundleSourceCreator function which creates a MultiBundleStreams object containing Node 'ReadableStream' objects for the source and bundles
      */
-    function compileBundle(transforms, bundler, bundleOpts, dstDir, bundleSourceCreator) {
+    function compileBundle(transforms, bundler, bundleOpts, dstDir, bundleSourceCreator, listeners) {
         for (var i = 0, size = transforms.length; i < size; i++) {
             var transform = transforms[i];
             bundler = bundler.transform(transform.transform, transform.options);
         }
-        return BrowserifyHelper.setupRebundleListener(bundleOpts.rebuild, bundler, bundleSourceCreator, [
+        BrowserifyHelper.setupRebundleListener(bundleOpts.rebuild, bundleOpts.verbose, bundler, bundleSourceCreator, [
             ["extract-source-maps", function (prevSrc, streamOpts) { return prevSrc.pipe(exorcist(getMapFilePath(dstDir, streamOpts.dstFileName, streamOpts.dstMapFile))); }],
             ["to-vinyl-file", function (prevSrc, streamOpts) { return prevSrc.pipe(vinylSourceStream(streamOpts.dstFileName)); }],
             ["write-to-dst", function (prevSrc, streamOpts) { return prevSrc.pipe(gulp.dest(dstDir)); }],
-        ]);
+        ], listeners);
     }
     BundleBuilder.compileBundle = compileBundle;
     function getMapFilePath(dstDir, fileName, mapFile) {
@@ -56,6 +56,7 @@ var BundleBuilder;
         }
         var _createTransforms = function (bundler) { return []; };
         var _bundleSourceCreator;
+        var _listeners;
         var inst = {
             setBundleSourceCreator: function (bundleSourceCreator) {
                 _bundleSourceCreator = bundleSourceCreator;
@@ -63,6 +64,10 @@ var BundleBuilder;
             },
             transforms: function (createTransforms) {
                 _createTransforms = createTransforms;
+                return inst;
+            },
+            setBundleListeners: function (listeners) {
+                _listeners = listeners;
                 return inst;
             },
             compileBundle: function (paths, defaultBundleOpts) {
@@ -88,7 +93,7 @@ var BundleBuilder;
                 }
                 var bundler = createBrowserify(optsRes, bundleOpts, paths);
                 var transforms = _createTransforms(bundler);
-                return compileBundle(transforms, bundler, bundleOpts, paths.dstDir, _bundleSourceCreator);
+                compileBundle(transforms, bundler, bundleOpts, paths.dstDir, _bundleSourceCreator, _listeners);
             },
         };
         return inst;

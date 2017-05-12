@@ -20,19 +20,18 @@ module BundleBuilder {
 
 
     /** A function which bundles/builds/compiles a browserify bundler
-     * @template R the type of compiled bundle result produced by the bundler
      */
-    export interface BrowserifyCompileFunc<R> {
+    export interface BrowserifyCompileFunc {
         /**
          * @param transforms array of browserify.transform() options and transformation functions
          * @param bundler the browserify instance
          * @param bundleOpts general bundle build options
          * @param dstDir the directory to write output bundle files to
          * @param bundleSourceCreator a function which takes the browserify instance and an optional browserify.on('update' ...) event and creates a MultiBundleStreams result
-         * @returns a promise which completes the first time the bundle stream ends
+         * @param listeners optional listener functions that are called when various compilation events occur, including finishAll() which is called with stats when the bundle build proces finishes
          */
         (transforms: BrowserifyTransform[], bundler: BrowserifyObject, bundleOpts: BundleOptions, dstDir: string,
-            bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams): Q.Promise<R>;
+            bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams, listeners: BrowserifyHelper.BuildListeners): void;
     }
 
 
@@ -45,32 +44,38 @@ module BundleBuilder {
     /** An interface that splits the process of building a JS code bundle into steps.
      * Also includes static methods to assist in initializing an implementation of the interface.
      * @template T the type of bundler used to build the bundle
-     * @template R the type of compiled bundle result produced by the bundler
      * @since 2016-11-06
      */
-    export interface Builder<T, R> extends BuilderTransformsStep<T, R> {
+    export interface Builder<T> extends BuilderTransformsStep<T> {
         /**
          * @param bundleSourceCreator function which creates a MultiBundleStream object containing Node 'ReadableStream' objects for the source and bundles
          */
-        setBundleSourceCreator(bundleSourceCreator: (bundler: T, updateEvent: any) => MultiBundleStreams): BuilderTransformsStep<T, R>;
+        setBundleSourceCreator(bundleSourceCreator: (bundler: T, updateEvent: any) => MultiBundleStreams): BuilderTransformsStep<T>;
     }
 
-    export interface BuilderTransformsStep<T, R> extends BuilderCompileStep<T, R> {
+    export interface BuilderTransformsStep<T> extends BuilderListenersStep<T> {
         /**
          * @param createTransforms function which creates an array of BrowserifyTransform objects to be passed to the bundler's 'transform()' method
          */
-        transforms(createTransforms: (bundler: T) => BrowserifyTransform[]): BuilderCompileStep<T, R>;
+        transforms(createTransforms: (bundler: T) => BrowserifyTransform[]): BuilderListenersStep<T>;
     }
 
-    export interface BuilderCompileStep<T, R> {
+    export interface BuilderListenersStep<T> extends BuilderCompileStep<T> {
+        /**
+         * @param listeners optional functions which are called when various bundle compilation events occur
+         */
+        setBundleListeners(listeners: BrowserifyHelper.BuildListeners): BuilderCompileStep<T>;
+    }
+
+    export interface BuilderCompileStep<T> {
         /**
          * @param paths code paths for the bundle inputs and outputs
          */
-        compileBundle(paths: CodePaths, defaultBundleOpts: BundleDst): Q.Promise<R>;
+        compileBundle(paths: CodePaths, defaultBundleOpts: BundleDst): void;
     }
 
 
-    export function buildOptions(bundleOpts: BundleOptions, optsModifier?: (opts: browserify.Options & browserPack.Options & { typescriptHelpers?: string }) => void): Builder<BrowserifyObject, BrowserifyHelper.BuildResults> {
+    export function buildOptions(bundleOpts: BundleOptions, optsModifier?: (opts: browserify.Options & browserPack.Options & { typescriptHelpers?: string }) => void): Builder<BrowserifyObject> {
         return createBundleBuilder(bundleOpts, compileBundle, optsModifier);
     }
 
@@ -83,18 +88,18 @@ module BundleBuilder {
      * @param bundleSourceCreator function which creates a MultiBundleStreams object containing Node 'ReadableStream' objects for the source and bundles
      */
     export function compileBundle(transforms: BrowserifyHelper.BrowserifyTransform[], bundler: BrowserifyObject, bundleOpts: BundleOptions, dstDir: string,
-            bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams): Q.Promise<BrowserifyHelper.BuildResults> {
+            bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams, listeners: BrowserifyHelper.BuildListeners): void {
 
         for (var i = 0, size = transforms.length; i < size; i++) {
             var transform = transforms[i];
             bundler = bundler.transform(transform.transform, transform.options);
         }
 
-        return BrowserifyHelper.setupRebundleListener(bundleOpts.rebuild, bundler, bundleSourceCreator, [
+        BrowserifyHelper.setupRebundleListener(bundleOpts.rebuild, bundleOpts.verbose, bundler, bundleSourceCreator, [
             ["extract-source-maps", (prevSrc, streamOpts) => prevSrc.pipe(exorcist(getMapFilePath(dstDir, streamOpts.dstFileName, streamOpts.dstMapFile)))],
             ["to-vinyl-file", (prevSrc, streamOpts) => prevSrc.pipe(vinylSourceStream(streamOpts.dstFileName))],
             ["write-to-dst", (prevSrc, streamOpts) => prevSrc.pipe(gulp.dest(dstDir))],
-        ]);
+        ], listeners);
     }
 
 
@@ -109,11 +114,11 @@ module BundleBuilder {
      * @param compileBundle a function which takes a bundler, options, paths, and a bundle stream creator and compiles the bundle
      * @param [optsModifier] a optional function which can modify the Browserify and browserPack options before they are passed to the browserify constructor
      */
-    export function createBundleBuilder<R>(
+    export function createBundleBuilder(
         bundleOpts: BundleOptions,
-        compileBundle: BrowserifyCompileFunc<R>,
+        compileBundle: BrowserifyCompileFunc,
         optsModifier?: (opts: browserify.Options & browserPack.Options & { typescriptHelpers?: string }) => void
-    ): Builder<BrowserifyObject, R> {
+    ): Builder<BrowserifyObject> {
         var optsRes: browserify.Options & browserPack.Options & { typescriptHelpers?: string } = <any>{};
 
         if (bundleOpts.typescript != null && bundleOpts.typescript.includeHelpers) {
@@ -126,8 +131,9 @@ module BundleBuilder {
 
         var _createTransforms = (bundler: BrowserifyObject): BrowserifyTransform[] => [];
         var _bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams;
+        var _listeners: BrowserifyHelper.BuildListeners;
 
-        var inst: Builder<BrowserifyObject, R> = {
+        var inst: Builder<BrowserifyObject> = {
 
             setBundleSourceCreator: (bundleSourceCreator) => {
                 _bundleSourceCreator = bundleSourceCreator;
@@ -136,6 +142,11 @@ module BundleBuilder {
 
             transforms: (createTransforms) => {
                 _createTransforms = createTransforms;
+                return inst;
+            },
+
+            setBundleListeners: (listeners) => {
+                _listeners = listeners;
                 return inst;
             },
 
@@ -162,7 +173,7 @@ module BundleBuilder {
                 }
                 var bundler = createBrowserify(optsRes, bundleOpts, paths);
                 var transforms = _createTransforms(bundler);
-                return compileBundle(transforms, bundler, bundleOpts, paths.dstDir, _bundleSourceCreator);
+                compileBundle(transforms, bundler, bundleOpts, paths.dstDir, _bundleSourceCreator, _listeners);
             },
         };
         return inst;

@@ -85,6 +85,8 @@ interface BundleDst {
     dstFileName: string;
     /** the bundle output map file, can be null, in which the following name is used: dstFileName + '.map' */
     dstMapFile?: string;
+    /** don't generate a map file */
+    noMapFile?: boolean;
 }
 
 

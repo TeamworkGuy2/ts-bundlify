@@ -40,11 +40,11 @@ var Es6ifyToStream;
                     }
                     catch (ex) {
                         this.emit('error', ex);
-                        return this.queue(null);
+                        return this.push(null);
                     }
                 }
-                this.queue(cache[file].compiled);
-                this.queue(null);
+                this.push(cache[file].compiled);
+                this.push(null);
                 if (dataDone) {
                     dataDone(file, data);
                 }

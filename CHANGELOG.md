@@ -4,7 +4,24 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.5.1](N/A) - 2017-05-09
+### [0.6.0](N/A) - 2017-05-12
+#### Changed
+* `BrowserifyHelper.setupRebundleListener()`
+  * no longer returns a promise
+  * instead it now takes an additional parameter, an object containing optional event callback functions for the following events: `startBundle`, `finishBundle`, `finishAll`, `skipBundle`, and `error`.
+  * additional 'verbose' parameter and default gulp-util log() messages changed and are only printed when 'verbose' == true
+* Updated BundleBuilder interfaces to handle new `BrowserifyHelper.setupRebundleListener()` parameters
+* Added `setBundleListeners()` step/function to the `Builder` interface
+* `BabelBundler`, `TraceurBundler`, and `UglifyBundler` `createTransformer()` methods now accept an optional `verbose` flag which controls whether file compilation info is printed to `console`
+* Updated readme with examples
+
+#### Fixed
+* `BrowserMultiPack` fixed an issue where rebuilds of a bundle pack would do nothing when the modified files affected bundle `0` (as returned by `MultiBundleStreams.destinationPicker()`)
+* Fixed a bug in `Es6ifyToStream` and `UglifyToStream`, was calling `through.queue()` instead of the correct through2 `stream.Transform.push()` after upgrading to through2 at version 0.4.0
+
+
+--------
+### [0.5.1](https://github.com/TeamworkGuy2/ts-bundlify/commit/f4e5a2f89a3f1f08d4b7aa6c4358609069f61a52) - 2017-05-09
 #### Changed
 * Update to TypeScript 2.3, add tsconfig.json, use @types/ definitions
 

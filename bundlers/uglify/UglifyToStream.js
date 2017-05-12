@@ -41,7 +41,7 @@ var UglifyToStream;
                 opts.outSourceMap = "out.js.map";
             }
             // Check if incoming source code already has source map comment.
-            // If so, send it in to ujs.minify as the inSourceMap parameter
+            // If so, send it in to uglifyjs.minify as the inSourceMap parameter
             if (debug && matched) {
                 opts.inSourceMap = convert.fromJSON(new Buffer(matched[1], "base64").toString()).sourcemap;
             }
@@ -49,15 +49,15 @@ var UglifyToStream;
             // Uglify leaves a source map comment pointing back to "out.js.map",
             // which we want to get rid of because it confuses browserify.
             min.code = min.code.replace(/\/\/[#@] ?sourceMappingURL=out.js.map$/, '');
-            this.queue(min.code);
+            this.push(min.code);
             if (min.map && min.map !== "null") {
                 var map = convert.fromJSON(min.map);
                 map.setProperty("sources", [path.basename(file)]);
                 map.setProperty("sourcesContent", matched ? opts.inSourceMap.sourcesContent : [buffer]);
-                this.queue('\n');
-                this.queue(map.toComment());
+                this.push('\n');
+                this.push(map.toComment());
             }
-            this.queue(null);
+            this.push(null);
             if (dataDone) {
                 dataDone(file, min.code);
             }

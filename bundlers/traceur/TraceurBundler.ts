@@ -9,12 +9,18 @@ import Es6ifyToStream = require("./Es6ifyToStream");
  */
 module TraceurBundler {
 
-    export function createTransformer(traceur: typeof Traceur, filePattern?: { test(str: string): boolean; } | RegExp, traceurCompilerOpts?: any, transformOpts?: any) {
+    /** Create a browserify transform which compiles source files using traceur
+     */
+    export function createTransformer(traceur: typeof Traceur, filePattern?: { test(str: string): boolean; } | RegExp,
+            traceurCompilerOpts?: any, transformOpts?: BrowserifyHelper.BrowserifyTransform["options"], verbose?: boolean) {
+
         Es6ifyToStream.traceurOverrides.global = true;
 
         // no file pattern, match all JS files
         var es6ifyCompile = Es6ifyToStream.createCompiler(traceur, filePattern, (file, data) => {
-            console.log("traceur: '" + PathUtil.toShortFileName(file) + "'"); // + ", data " + data.length + " done");
+            if (verbose) {
+                console.log("traceur: '" + PathUtil.toShortFileName(file) + "'"); // + ", data " + data.length + " done");
+            }
         });
 
         var res: BrowserifyHelper.BrowserifyTransform = {

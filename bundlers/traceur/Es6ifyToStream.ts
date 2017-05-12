@@ -1,4 +1,5 @@
 ﻿import crypto = require("crypto");
+import stream = require("stream");
 import through2 = require("through2");
 import Traceur = require("traceur");
 
@@ -22,8 +23,11 @@ module Es6ifyToStream {
      * file's name, the second argument is true if the file is going to be compiled or false if the file is being skipped/rejected
      * @param dataDone optional callback which is called when a file finishes being compiled
      */
-    export function createCompiler(traceur: typeof Traceur, filePattern?: { test(str: string): boolean; } | RegExp,
-            dataDone?: (file: string, data: string) => void): (file: string) => NodeJS.ReadWriteStream {
+    export function createCompiler(
+        traceur: typeof Traceur,
+        filePattern?: { test(str: string): boolean; } | RegExp,
+        dataDone?: (file: string, data: string) => void
+    ): (file: string) => NodeJS.ReadWriteStream {
         filePattern = filePattern || /\.js$/;
 
         return function es6ifyCompile(file: string) {
@@ -33,10 +37,10 @@ module Es6ifyToStream {
 
             var data = '';
 
-            return through2(function write(buf, enc, next) {
+            return through2(function write(this: stream.Transform, buf, enc, next) {
                 data += buf;
                 next();
-            }, function end() {
+            }, function end(this: stream.Transform) {
                 var hash = getHash(data);
                 var cached = cache[file];
 
@@ -48,12 +52,12 @@ module Es6ifyToStream {
                         };
                     } catch (ex) {
                         this.emit('error', ex);
-                        return this.queue(null);
+                        return this.push(null);
                     }
                 }
 
-                this.queue(cache[file].compiled);
-                this.queue(null);
+                this.push(cache[file].compiled);
+                this.push(null);
 
                 if (dataDone) { dataDone(file, data); }
             });
