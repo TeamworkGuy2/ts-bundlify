@@ -2,8 +2,6 @@
 /// <reference types="browser-pack" />
 /// <reference types="node" />
 /// <reference types="q" />
-/// <reference path="../definitions/custom/combine-source-map/combine-source-map.d.ts" />
-/// <reference path="../definitions/custom/umd/umd.d.ts" />
 
 
 declare module "traceur" {

@@ -1,7 +1,7 @@
 ﻿import path = require("path");
 import stream = require("stream");
 import browserify = require("browserify");
-import combineSourceMap = require("combine-source-map");
+import CombineSourceMap = require("combine-source-map");
 import through2 = require("through2");
 import umd = require("umd");
 import BundleBuilder = require("../BundleBuilder");
@@ -93,7 +93,8 @@ module BrowserMultiPack {
      * This requires overwriting browserif.prototype._createPipeline() and setting the 'bundleBldr' setBundleSourceCreator() callback
      * @param bundleBldr the bundle builder to modify
      * @param _browserify the browserify instance to modify to output multiple bundle streams
-     * @param getMultiBundleOpts a function which returns a MultiBundleOptions object containing the options to build the bundle streams
+     * @param getMultiBundleOpts a function which returns a MultiBundleOptions object containing the options to build the bundle streams.
+     * This function gets called when browserify.bundle() is called, which happens right at the beginning of BundleBuilder.compileBundle() (which calls BrowserifyHelper.setupRebundleListener())
      * @param getOpts options related to setting up the bundle streams
      */
     export function overrideBrowserifyPack(
@@ -186,7 +187,7 @@ module BrowserMultiPack {
         // tracks source map line number offsets for each bundle stream
         var lineNumAry = new Array<number>(dstCount);
         // source maps for each bundle stream
-        var sourcemaps = new Array<combineSourceMap.Combiner>(dstCount);
+        var sourcemaps = new Array<CombineSourceMap>(dstCount);
         // prelude strings for each bundle stream
         var preludes = Array<string>(dstCount);
         // prelude paths for each bundle stream (mostly for source maps)
@@ -244,7 +245,7 @@ module BrowserMultiPack {
 
             if (row.sourceFile && !row.nomap) {
                 if (!sourcemap) {
-                    sourcemaps[idx] = sourcemap = combineSourceMap.create();
+                    sourcemaps[idx] = sourcemap = CombineSourceMap.create();
                     sourcemap.addFile(
                         { sourceFile: preludePath, source: prelude },
                         { line: 0 }
@@ -260,7 +261,7 @@ module BrowserMultiPack {
                 JSON.stringify(row.id),
                 ":[",
                 "function(require,module,exports){\n",
-                combineSourceMap.removeComments(row.source),
+                CombineSourceMap.removeComments(row.source),
                 "\n},",
                 '{'
             );
@@ -284,7 +285,7 @@ module BrowserMultiPack {
             next();
         }
 
-        function toUmdSource(opts: BrowserPackOptions, first: boolean, entries: any[], _prelude: string, sourcemap: combineSourceMap.Combiner): string {
+        function toUmdSource(opts: BrowserPackOptions, first: boolean, entries: any[], _prelude: string, sourcemap: CombineSourceMap): string {
             var strs: string[] = [];
             if (first) strs.push(_prelude, "({");
             entries = entries.filter(function (x) { return x !== undefined });

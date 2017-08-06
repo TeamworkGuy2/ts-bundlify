@@ -1,7 +1,7 @@
 ts-bundlify
 ==============
 
-You want to compile all your JS (or TS, JSX, coffee, etc.) files into multiple bundles?
+Are you trying to compile your JS (or TS, JSX, coffee, etc.) files into multiple bundle files with the ability to require() any file from one bundle in another bundle without asynchronous waits?
 
 Been having trouble getting [browserify](https://www.npmjs.com/package/browserify) to output bundles exactly the way you want?
 
@@ -14,7 +14,7 @@ ts-bundlify uses Browserify under the hood along with gulp.js to do the actual b
 
 See each of the 'bundlers/' sub-directories as well as the [browser-bundle-examples](https://github.com/TeamworkGuy2/browser-bundle-examples) project for more examples.
 
-Two examples, creatingsingle and multiple bundle compilers that rebuild when source file changes are detected (using watchify and browserify) compiled using babel:
+Two examples, creating single and multiple bundle compilers that rebuild when source file changes are detected (using watchify and browserify) compiled using babel:
 
 `gulpfile.js`
 ```ts
@@ -22,6 +22,7 @@ var babelify = require("babelify");
 var BundleBuilder = require("path-to-ts-bundlify/bundlers/BundleBuilder");
 var BabelBundler = require("path-to-ts-bundlify/bundlers/babel/BabelBundler");
 ```
+
 
 ```ts
 // [...]
@@ -37,7 +38,7 @@ BundleBuilder.buildOptions({
 .transforms((browserify) => [
   BabelBundler.createTransformer(babelify)
 ])
-// kick off the build process with information about the source files to compile and the bundle destination file path
+// start the build process with options about the source files to compile and the bundle destination file path
 .compileBundle({
   entryFile: "./src/[...]/myApp.js",
   dstDir: "./build/",
@@ -54,9 +55,11 @@ Bundle 1 contains code from all `./src/[...]` files.
 Bundle 2 contains all the `node_modules` files.
 
 ```ts
-var browserifyOpts;
+var BrowserMultiPack = require("path-to-ts-bundlify/bundlers/browser/BrowserMultiPack");
 
-// create the bundle builder with some build options (same as before but save the browserify options via the options inspector callback)
+// create the bundle builder with some build options (same as before but save
+// the browserify options via the buildOptions() `optsModifier` callback)
+var browserifyOpts;
 var bundleBldr = BundleBuilder.buildOptions({
   rebuild: true,
   debug: false,
@@ -65,14 +68,18 @@ var bundleBldr = BundleBuilder.buildOptions({
 }, (opts) => browserifyOpts = opts);
 
 
-// 'the magic', insert a custom 'browser-pack' implementation into browserify's pipeline
+// the magic, insert a custom 'browser-pack' implementation into browserify's pipeline
 BrowserMultiPack.overrideBrowserifyPack(bundleBldr, BundleBuilder.getBrowserify(), () => ({
-  bundles: [{ // bundle 1 (destinationPicker() => 0)
+  bundles: [{
+    // bundle 1 (destinationPicker() => 0)
     dstFileName: "app-compiled.js",
     prelude: browserifyOpts.prelude
-  }, { // bundle 2 (destinationPicker() => 1)
+  }, {
+    // bundle 2 (destinationPicker() => 1)
     dstFileName: "app-modules.js",
-    prelude: browserifyOpts.typescriptHelpers + "var require = " + browserifyOpts.prelude, // example of customizing the generated bundle code, in this case to insert typescript helper functions like __extends and __awaiter
+    // example of customizing the generated bundle code, in this case to insert typescript
+    // helper functions like __extends and __awaiter
+    prelude: browserifyOpts.typescriptHelpers + "var require = " + browserifyOpts.prelude,
     preludePath: "./_prelude-with-typescript-helpers.js"
   }],
   maxDestinations: 2,
@@ -87,7 +94,7 @@ BrowserMultiPack.overrideBrowserifyPack(bundleBldr, BundleBuilder.getBrowserify(
 bundleBldr.transforms((browserify) => [
   BabelBundler.createTransformer(babelify)
 ])
-// kick off the build process with information about the source files to compile and the bundle destination file path
+// start the build process with options about the source files to compile and the bundle destination file path
 // (excluding the default bundle destination file name since this was already configured with BrowserMultiPack.overrideBrowserifyPack())
 .compileBundle({
   entryFile: "./src/[...]/myApp.js",

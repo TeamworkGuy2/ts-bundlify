@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.6.0](N/A) - 2017-05-12
+### [0.6.1](N/A) - 2017-08-06
+#### Changed
+* Update to TypeScript 2.4
+* README.md improved
+
+
+--------
+### [0.6.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/1bf781d76b78bcd618b5f1e693f5100824e9b6c9) - 2017-05-12
 #### Changed
 * `BrowserifyHelper.setupRebundleListener()`
   * no longer returns a promise

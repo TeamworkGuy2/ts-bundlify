@@ -1,6 +1,6 @@
 "use strict";
 var path = require("path");
-var combineSourceMap = require("combine-source-map");
+var CombineSourceMap = require("combine-source-map");
 var through2 = require("through2");
 var umd = require("umd");
 var ln = '\n';
@@ -87,7 +87,8 @@ var BrowserMultiPack;
      * This requires overwriting browserif.prototype._createPipeline() and setting the 'bundleBldr' setBundleSourceCreator() callback
      * @param bundleBldr the bundle builder to modify
      * @param _browserify the browserify instance to modify to output multiple bundle streams
-     * @param getMultiBundleOpts a function which returns a MultiBundleOptions object containing the options to build the bundle streams
+     * @param getMultiBundleOpts a function which returns a MultiBundleOptions object containing the options to build the bundle streams.
+     * This function gets called when browserify.bundle() is called, which happens right at the beginning of BundleBuilder.compileBundle() (which calls BrowserifyHelper.setupRebundleListener())
      * @param getOpts options related to setting up the bundle streams
      */
     function overrideBrowserifyPack(bundleBldr, _browserify, getMultiBundleOpts) {
@@ -224,12 +225,12 @@ var BrowserMultiPack;
             }
             if (row.sourceFile && !row.nomap) {
                 if (!sourcemap) {
-                    sourcemaps[idx] = sourcemap = combineSourceMap.create();
+                    sourcemaps[idx] = sourcemap = CombineSourceMap.create();
                     sourcemap.addFile({ sourceFile: preludePath, source: prelude }, { line: 0 });
                 }
                 sourcemap.addFile({ sourceFile: row.sourceFile, source: row.source }, { line: lineNumAry[idx] });
             }
-            wrappedSrc.push(JSON.stringify(row.id), ":[", "function(require,module,exports){\n", combineSourceMap.removeComments(row.source), "\n},", '{');
+            wrappedSrc.push(JSON.stringify(row.id), ":[", "function(require,module,exports){\n", CombineSourceMap.removeComments(row.source), "\n},", '{');
             if (row.deps) {
                 Object.keys(row.deps).sort().forEach(function (key, i) {
                     if (i > 0) {
