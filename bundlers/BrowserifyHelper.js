@@ -128,6 +128,7 @@ var BrowserifyHelper;
                 });
             }
             var bundles = getSourceStreams(bundler, updateEvent);
+            bundler.pipeline.on("error", createErrorCb("initial-stream", "bundle"));
             if (isPromise(bundles.bundleStreams)) {
                 bundles.bundleStreams.done(function (streams) { return startStreams(streams); }, createErrorCb("creating initial-stream", "multi-stream-base"));
             }

@@ -203,6 +203,9 @@ module BrowserifyHelper {
             }
 
             var bundles = getSourceStreams(bundler, updateEvent);
+
+            bundler.pipeline.on("error", createErrorCb("initial-stream", "bundle"));
+
             if (isPromise<BundleStream<NodeJS.ReadableStream>[]>(bundles.bundleStreams)) {
                 bundles.bundleStreams.done((streams) => startStreams(streams), createErrorCb("creating initial-stream", "multi-stream-base"));
             }
