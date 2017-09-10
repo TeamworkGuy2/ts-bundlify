@@ -4,9 +4,15 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.6.2](N/A) - 2017-08-09
+### [0.6.3](N/A) - 2017-09-10
 #### Changed
-* Added browserify pipeline 'error' event callback to BrowserifyHelper.setupRebundleListener() so errors don't get lost
+* tsconfig.json "noImplicitThis: true"
+
+
+--------
+### [0.6.2](https://github.com/TeamworkGuy2/ts-bundlify/commit/896270d305a1d24c779a30e1a4289bf22d0a9dfa) - 2017-08-09
+#### Changed
+* Added browserify pipeline 'error' event listener to BrowserifyHelper.setupRebundleListener() so errors don't get lost
 
 
 --------

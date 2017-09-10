@@ -231,7 +231,7 @@ module BrowserifyHelper {
                 appendEach?: BufferTransformFunc,
             }): stream.Transform {
 
-        function SimpleStreamView(opts?) {
+        function SimpleStreamView(this: stream.Transform, opts?) {
             stream.Transform.call(this, opts);
         }
 
