@@ -104,7 +104,7 @@ module BrowserMultiPack {
     ) {
         var origCreatePipeline = _browserify.prototype["_createPipeline"];
         var newBpack: { baseStream: stream.Transform; bundleStreams: BundleStream<stream.Transform>[] };
-        var updateDeps: string[] = null;
+        var updateDeps: string[] | null = null;
 
         // Override browserify._createPipeline() to replace the 'pack' pipeline step with a custom browser-pack implementation
         // gets called when browserify instance is created or when reset() or bundle() are called
@@ -126,7 +126,7 @@ module BrowserMultiPack {
         bundleBldr.setBundleSourceCreator(function multiBundleStreamCreator(browserify: browserify.BrowserifyObject, updateEvent: any) {
             if (updateEvent != null) { updateDeps = Object.keys(updateEvent).map((k) => updateEvent[k]); }
             var brwsBundle = browserify.bundle();
-            var res = [];
+            var res: any[] = [];
             // When the bundle stream has available data, read it so that the stream ends
             brwsBundle.on("readable", () => {
                 var rec;
@@ -144,14 +144,14 @@ module BrowserMultiPack {
 
     /** Return an array of booleans indicating which bundles should be updated based on an array of file names
      */
-    function bundlesToUpdate(bundles: MultiBundleOptions, files: string[]): boolean[] {
+    function bundlesToUpdate(bundles: MultiBundleOptions, files: string[] | null | undefined): boolean[] {
         var cnt = bundles.maxDestinations;
         var res: boolean[] = new Array(cnt);
         var updateAll = (files == null);
         for (var i = 0; i < cnt; i++) { res[i] = updateAll; }
 
-        for (var i = 0, size = !updateAll ? files.length : 0; i < size; i++) {
-            var dstI = bundles.destinationPicker(files[i]);
+        for (var i = 0, size = !updateAll ? (<string[]>files).length : 0; i < size; i++) {
+            var dstI = bundles.destinationPicker((<string[]>files)[i]);
             if (dstI > -1) {
                 res[dstI] = true;
             }
@@ -198,7 +198,7 @@ module BrowserMultiPack {
         for (var i = 0; i < dstCount; i++) {
             var bundleOpts = bundles.bundles[i];
             bundleStreams[i] = {
-                stream: enabledStreams[i] !== false ? <stream.Transform>through2.obj() : null,
+                stream: enabledStreams[i] !== false ? <stream.Transform>through2.obj() : <stream.Transform><any>null,
                 dstFileName: bundleOpts.dstFileName,
                 dstMapFile: bundleOpts.dstMapFile,
             };
@@ -302,7 +302,7 @@ module BrowserMultiPack {
             if (sourcemap) {
                 var comment = sourcemap.comment();
                 if (opts.sourceMapPrefix) {
-                    comment = comment.replace(/^\/\/#/, function () { return opts.sourceMapPrefix })
+                    comment = comment.replace(/^\/\/#/, function () { return <string>opts.sourceMapPrefix; });
                 }
                 strs.push('\n', comment, '\n');
             }

@@ -30,7 +30,7 @@ module UglifyToStream {
     ): NodeJS.ReadWriteStream {
         opts = opts || <any>{};
 
-        var debug: boolean | RegExpMatchArray = ("_flags" in opts) ? opts._flags.debug : true;
+        var debug: boolean | RegExpMatchArray | null = ("_flags" in opts) ? (<{ debug: boolean | null; }>opts._flags).debug : true;
         delete opts._flags;
 
         if (ignore(file, opts.ignore, filePattern)) {
@@ -38,7 +38,7 @@ module UglifyToStream {
         }
 
         var buffer = '';
-        var exts = []
+        var exts = (<string[]>[])
             .concat(opts.exts || [])
             .concat(opts.x || [])
             .map((d) => (d.charAt(0) === '.') ? d : ('.' + d));
@@ -88,7 +88,7 @@ module UglifyToStream {
                 var map = convert.fromJSON(min.map);
 
                 map.setProperty("sources", [path.basename(file)]);
-                map.setProperty("sourcesContent", matched ? opts.inSourceMap.sourcesContent : [buffer]);
+                map.setProperty("sourcesContent", matched ? (<any>opts.inSourceMap).sourcesContent : [buffer]);
 
                 this.push('\n');
                 this.push(map.toComment());
@@ -111,7 +111,7 @@ module UglifyToStream {
     }
 
 
-    function ignore(file: string, list: string | string[], filePattern?: { test(str: string): boolean; } | RegExp) {
+    function ignore(file: string, list: string | string[] | null | undefined, filePattern?: { test(str: string): boolean; } | RegExp) {
         if (!list) {
             return filePattern != null ? !filePattern.test(file) : false;
         }

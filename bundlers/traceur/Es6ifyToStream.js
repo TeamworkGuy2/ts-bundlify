@@ -6,22 +6,20 @@ var through2 = require("through2");
  */
 var Es6ifyToStream;
 (function (Es6ifyToStream) {
-    Es6ifyToStream.traceurOverrides = {};
-    var cache = {};
-    var traceurOptions = {
-        modules: 'commonjs',
-        sourceMaps: 'inline'
+    Es6ifyToStream.traceurOptions = {
+        modules: "commonjs",
+        sourceMaps: "inline"
     };
+    var cache = {};
     /** Configure a new es6ify compiler function
+     * @param traceur the traceur instance to use
      * @param filePattern a matcher against which files are tested to determine whether a file should be compiled
-     * @param willProcess optional callback which is called when a file is compiled or rejected, the first argument is the
-     * file's name, the second argument is true if the file is going to be compiled or false if the file is being skipped/rejected
-     * @param dataDone optional callback which is called when a file finishes being compiled
+     * @param [dataDone] optional callback which is called when a file is compiled
      */
     function createCompiler(traceur, filePattern, dataDone) {
-        filePattern = filePattern || /\.js$/;
+        var _filePattern = filePattern || /\.js$/;
         return function es6ifyCompile(file) {
-            if (!filePattern.test(file)) {
+            if (!_filePattern.test(file)) {
                 return through2();
             }
             var data = '';
@@ -34,7 +32,7 @@ var Es6ifyToStream;
                 if (!cached || cached.hash !== hash) {
                     try {
                         cache[file] = {
-                            compiled: compileFile(traceur, file, data, Es6ifyToStream.traceurOverrides),
+                            compiled: compileFile(traceur, file, data, Es6ifyToStream.traceurOptionsOverrider),
                             hash: hash
                         };
                     }
@@ -54,12 +52,13 @@ var Es6ifyToStream;
     Es6ifyToStream.createCompiler = createCompiler;
     /** Compile function, exposed to be used from other libraries, not needed when using es6ify as a transform.
      * @param file name of the file that is being compiled to ES5
-     * @param src source of the file being compiled to ES5
+     * @param contents the file data being compiled to ES5
+     * @param [getTraceurOptions] optional function which customizes the traceur compiler options passed to traceur with this file data
      * @return compiled source string
      * @throws an Error if the compilation fails
      */
-    function compileFile(traceur, file, contents, traceurOverrides) {
-        var options = buildTraceurOptions(traceurOverrides);
+    function compileFile(traceur, file, contents, getTraceurOptions) {
+        var options = getTraceurOptions != null ? Object.assign({}, Es6ifyToStream.traceurOptions, getTraceurOptions(file, contents)) : Es6ifyToStream.traceurOptions;
         try {
             var compiler = new traceur.NodeCompiler(options);
             var result = compiler.compile(contents, file, file);
@@ -70,19 +69,6 @@ var Es6ifyToStream;
         return result;
     }
     Es6ifyToStream.compileFile = compileFile;
-    function buildTraceurOptions(overrides) {
-        var options = Object.assign({}, traceurOptions, overrides);
-        if (typeof options.sourceMap !== 'undefined') {
-            console.warn('Es6ifyToStream: DEPRECATED traceurOverrides.sourceMap has changed to traceurOverrides.sourceMaps (plural)');
-            options.sourceMaps = options.sourceMap;
-            delete options.sourceMap;
-        }
-        if (options.sourceMaps === true) {
-            console.warn('Es6ifyToStream: DEPRECATED "traceurOverrides.sourceMaps = true" is not a valid option, traceur sourceMaps options are [false|inline|file]');
-            options.sourceMaps = 'inline';
-        }
-        return options;
-    }
     function getHash(data) {
         return crypto
             .createHash('md5')

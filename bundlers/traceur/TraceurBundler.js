@@ -10,11 +10,11 @@ var TraceurBundler;
     /** Create a browserify transform which compiles source files using traceur
      */
     function createTransformer(traceur, filePattern, traceurCompilerOpts, transformOpts, verbose) {
-        Es6ifyToStream.traceurOverrides.global = true;
+        Es6ifyToStream.traceurOptions.global = true;
         // no file pattern, match all JS files
         var es6ifyCompile = Es6ifyToStream.createCompiler(traceur, filePattern, function (file, data) {
             if (verbose) {
-                console.log("traceur: '" + PathUtil.toShortFileName(file) + "'"); // + ", data " + data.length + " done");
+                console.log("traceur: '" + PathUtil.toShortFileName(file) + "'");
             }
         });
         var res = {

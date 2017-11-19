@@ -4,9 +4,16 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.6.3](N/A) - 2017-09-10
+### [0.6.4](N/A) - 2017-11-19
 #### Changed
-* tsconfig.json "noImplicitThis: true"
+* `tsconfig.json` added `strictNullChecks` and setup code to handle null types
+* Updated some `package.json` dependencies
+
+
+--------
+### [0.6.3](https://github.com/TeamworkGuy2/ts-bundlify/commit/77b5624f2afeafd2149dc43f399adccd704b125c) - 2017-09-10
+#### Changed
+* `tsconfig.json` added `noImplicitThis: true`
 
 
 --------

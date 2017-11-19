@@ -70,9 +70,10 @@ module BrowserifyHelper {
      * @param opts the options to use
      * @param plugins an optional list of browserify plugins
      */
-    export function createOptions(opts?: CodePaths & { debug?: boolean; cache?: any; packageCache?: any; } & browserify.Options & browserPack.Options, plugins?: any[]): browserify.Options {
-        opts = <any>Object.assign({}, opts || {});
-        var res: browserify.Options = {
+    export function createOptions(opts: CodePaths & { debug?: boolean; cache?: any; packageCache?: any; } & browserify.Options & browserPack.Options, plugins?: any[]): browserify.Options {
+        opts = opts || <any>{};
+
+        var defaults: browserify.Options = {
             debug: opts.debug,
             entries: opts.entries || [opts.entryFile],
             extensions: opts.extensions || [".js", ".jsx"],
@@ -81,8 +82,7 @@ module BrowserifyHelper {
             cache: opts.cache || {},
             packageCache: opts.packageCache || {},
         };
-
-        return Object.assign(res, opts);
+        return Object.assign(defaults, opts);
     }
 
 
@@ -240,10 +240,10 @@ module BrowserifyHelper {
         // override a private stream.Transform method
         SimpleStreamView.prototype._transform = function _transform(chunk: Buffer, encoding: string, cb: () => void) {
             if (i === 0) {
-                chunk = runFuncResultToBuffer(chunk, false, optionalTransforms.prependInitial);
+                chunk = <Buffer>runFuncResultToBuffer(chunk, false, optionalTransforms.prependInitial);
             }
-            chunk = runFuncResultToBuffer(chunk, false, optionalTransforms.prependEach);
-            chunk = runFuncResultToBuffer(chunk, true, optionalTransforms.appendEach);
+            chunk = <Buffer>runFuncResultToBuffer(chunk, false, optionalTransforms.prependEach);
+            chunk = <Buffer>runFuncResultToBuffer(chunk, true, optionalTransforms.appendEach);
             this.push(chunk);
             cb();
             i++;
@@ -251,8 +251,8 @@ module BrowserifyHelper {
 
         var i = 0;
 
-        function runFuncResultToBuffer(chunk: Buffer, append: boolean, func: (buf?: Buffer) => void | string | Buffer): Buffer {
-            if (func) {
+        function runFuncResultToBuffer(chunk: Buffer, append: boolean, func: ((buf?: Buffer) => void | string | Buffer) | null | undefined): Buffer | undefined {
+            if (func != null) {
                 var res = func(chunk);
                 if (res != null) {
                     if (Buffer.isBuffer(res)) {
@@ -275,7 +275,7 @@ module BrowserifyHelper {
      * @param opts the 'options' objects
      */
     export function combineOpts(...opts: any[]) {
-        var validOpts = [];
+        var validOpts: any[] = [];
         for (var i = 0, size = opts.length; i < size; i++) {
             if (opts[i] != null) {
                 validOpts.push(opts[i]);

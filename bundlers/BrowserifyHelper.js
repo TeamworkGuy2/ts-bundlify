@@ -14,8 +14,8 @@ var BrowserifyHelper;
      * @param plugins an optional list of browserify plugins
      */
     function createOptions(opts, plugins) {
-        opts = Object.assign({}, opts || {});
-        var res = {
+        opts = opts || {};
+        var defaults = {
             debug: opts.debug,
             entries: opts.entries || [opts.entryFile],
             extensions: opts.extensions || [".js", ".jsx"],
@@ -24,7 +24,7 @@ var BrowserifyHelper;
             cache: opts.cache || {},
             packageCache: opts.packageCache || {},
         };
-        return Object.assign(res, opts);
+        return Object.assign(defaults, opts);
     }
     BrowserifyHelper.createOptions = createOptions;
     /** Setup a browserify/watchify rebundler given an intial stream and further stream transforms.
@@ -163,7 +163,7 @@ var BrowserifyHelper;
         };
         var i = 0;
         function runFuncResultToBuffer(chunk, append, func) {
-            if (func) {
+            if (func != null) {
                 var res = func(chunk);
                 if (res != null) {
                     if (Buffer.isBuffer(res)) {

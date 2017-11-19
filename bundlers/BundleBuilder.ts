@@ -103,7 +103,7 @@ module BundleBuilder {
     }
 
 
-    function getMapFilePath(dstDir: string, fileName: string, mapFile: string) {
+    function getMapFilePath(dstDir: string, fileName: string, mapFile: string | null | undefined) {
         return mapFile != null ? mapFile : (dstDir + fileName + ".map");
     }
 

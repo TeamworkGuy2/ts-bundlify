@@ -37,7 +37,7 @@ module TypeScriptHelper {
                 dfd.reject(error);
             }
             else {
-                dfd.resolve(null);
+                dfd.resolve(<void><any>null);
             }
         });
 

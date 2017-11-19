@@ -14,12 +14,12 @@ module TraceurBundler {
     export function createTransformer(traceur: typeof Traceur, filePattern?: { test(str: string): boolean; } | RegExp,
             traceurCompilerOpts?: any, transformOpts?: BrowserifyHelper.BrowserifyTransform["options"], verbose?: boolean) {
 
-        Es6ifyToStream.traceurOverrides.global = true;
+        Es6ifyToStream.traceurOptions.global = true;
 
         // no file pattern, match all JS files
         var es6ifyCompile = Es6ifyToStream.createCompiler(traceur, filePattern, (file, data) => {
             if (verbose) {
-                console.log("traceur: '" + PathUtil.toShortFileName(file) + "'"); // + ", data " + data.length + " done");
+                console.log("traceur: '" + PathUtil.toShortFileName(file) + "'");
             }
         });
 
