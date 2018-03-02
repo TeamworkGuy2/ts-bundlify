@@ -108,7 +108,7 @@ module BrowserMultiPack {
 
         // Override browserify._createPipeline() to replace the 'pack' pipeline step with a custom browser-pack implementation
         // gets called when browserify instance is created or when reset() or bundle() are called
-        _browserify.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(this: browserify.BrowserifyObject, createPipeOpts) {
+        _browserify.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(this: browserify.BrowserifyObject, createPipeOpts: any) {
             var pipeline = origCreatePipeline.call(this, createPipeOpts);
             var packPipe = pipeline.get("pack");
             var oldBpack = packPipe.pop();
@@ -117,7 +117,7 @@ module BrowserMultiPack {
             var streamsToUpdate = bundlesToUpdate(multiBundleOpts, updateDeps);
             newBpack = BrowserMultiPack.createPackStreams(multiBundleOpts, streamsToUpdate);
 
-            this["_bpack"] = newBpack.baseStream;
+            (<any>this)["_bpack"] = newBpack.baseStream;
             packPipe.push(newBpack.baseStream);
             return pipeline;
         };
@@ -279,7 +279,7 @@ module BrowserMultiPack {
 
             firsts[idx] = first = false;
             if (row.entry && row.order !== undefined) {
-                entriesAry[idx][row.order] = row.id;
+                (<any>entriesAry[idx])[row.order] = row.id;
             }
             else if (row.entry) entriesAry[idx].push(row.id);
             next();

@@ -1,7 +1,7 @@
 "use strict";
 var fs = require("fs");
 var path = require("path");
-var gutil = require("gulp-util");
+var log = require("fancy-log");
 var LogUtil = require("../../utils/LogUtil");
 /** Compile SASS/SCSS stylesheet files to CSS
  */
@@ -31,12 +31,12 @@ var SassBundler;
         };
         sass.render(scssOpts, function (err, res) {
             if (err) {
-                gutil.log("error compiling SCSS '" + srcFile + "': " + LogUtil.objToString(err, true, paths.projectRoot));
+                log("error compiling SCSS '" + srcFile + "': " + LogUtil.objToString(err, true, paths.projectRoot));
             }
             else {
                 fs.writeFileSync(dstFile, res.css);
                 fs.writeFileSync(dstFileMap, res.map);
-                gutil.log("compiled SCSS '" + dstFile + "': " + LogUtil.objToString(res.stats, true, paths.projectRoot));
+                log("compiled SCSS '" + dstFile + "': " + LogUtil.objToString(res.stats, true, paths.projectRoot));
             }
         });
     }

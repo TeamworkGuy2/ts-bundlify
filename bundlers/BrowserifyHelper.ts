@@ -1,4 +1,4 @@
-﻿import gutil = require("gulp-util");
+﻿import log = require("fancy-log");
 import stream = require("stream");
 import util = require("util");
 import browserify = require("browserify");
@@ -116,7 +116,7 @@ module BrowserifyHelper {
                 startTimes[file] = <number>Date.now();
                 expectDoneFiles.push(file);
                 if (verbose) {
-                    gutil.log("start building '" + file + "'...");
+                    log("start building '" + file + "'...");
                 }
                 if (listeners.startBundle) {
                     tryCall(listeners.startBundle, file);
@@ -153,7 +153,7 @@ module BrowserifyHelper {
                     var skpMsg = skippedFiles.length > 0 ? "skipped: " + skippedFiles.join(", ") : null;
                     var buildMsg = "done building (" + (endTime - startTime) + " ms): " + (bldMsg ? bldMsg + (skpMsg ? " | " + skpMsg : "") : (skpMsg ? skpMsg : "no bundles"));
                     if (verbose) {
-                        gutil.log(buildMsg);
+                        log(buildMsg);
                     }
                     if (listeners.finishAll) {
                         tryCall(listeners.finishAll, {
@@ -167,7 +167,7 @@ module BrowserifyHelper {
             }
 
             function createErrorCb(srcName: string, dstFile: string) {
-                return function (err) {
+                return function (err: any) {
                     console.error("error building '" + dstFile + "' at stream '" + srcName + "'", err);
                     if (listeners.error) {
                         tryCall(listeners.error, srcName, dstFile, err);
@@ -231,7 +231,7 @@ module BrowserifyHelper {
                 appendEach?: BufferTransformFunc,
             }): stream.Transform {
 
-        function SimpleStreamView(this: stream.Transform, opts?) {
+        function SimpleStreamView(this: stream.Transform, opts?: stream.TransformOptions) {
             stream.Transform.call(this, opts);
         }
 
@@ -267,7 +267,7 @@ module BrowserifyHelper {
             }
         }
 
-        return <stream.Transform>new SimpleStreamView();
+        return <stream.Transform>new (<any>SimpleStreamView)();
     }
 
 

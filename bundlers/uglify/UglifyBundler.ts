@@ -1,5 +1,4 @@
-﻿import gulp = require("gulp");
-import Uglify = require("uglify-js");
+﻿import Uglify = require("uglify-js");
 import PathUtil = require("../../utils/PathUtil");
 import BrowserifyHelper = require("../../bundlers/BrowserifyHelper");
 import UglifyToStream = require("./UglifyToStream");

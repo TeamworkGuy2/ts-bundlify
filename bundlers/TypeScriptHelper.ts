@@ -1,5 +1,5 @@
 ﻿import child_process = require("child_process");
-import gutil = require("gulp-util");
+import log = require("fancy-log");
 import Q = require("q");
 import BrowserMultiPack = require("./browser/BrowserMultiPack");
 
@@ -27,13 +27,13 @@ module TypeScriptHelper {
 
         var child = child_process.exec(tscCmd, function (error, stdout, stderr) {
             if (stdout != null && stdout.length > 0) {
-                gutil.log("TypeScript compile stdout: " + stdout);
+                log("TypeScript compile stdout: " + stdout);
             }
             if (stderr != null && stderr.length > 0) {
-                gutil.log("TypeScript compile stderr: " + stderr);
+                log("TypeScript compile stderr: " + stderr);
             }
             if (error != null) {
-                gutil.log("TypeScript compile error: " + error);
+                log("TypeScript compile error: " + error);
                 dfd.reject(error);
             }
             else {
@@ -53,7 +53,7 @@ module TypeScriptHelper {
         var comment = "/* TypeScript static helpers - inserted once, here.  Run TypeScript compiler with '--noEmitHelpers' option to prevent duplicate helpers being inserted into each bundled TypeScript file */";
 
         var typeScriptHelpers = (includeUsageComment != false ? comment : "") +
-            Object.keys(staticHelpers).map((s) => staticHelpers[s]).join("\n") + "\n\n";
+            (<(keyof typeof staticHelpers)[]>Object.keys(staticHelpers)).map((s) => staticHelpers[s]).join("\n") + "\n\n";
         var customPrelude = typeScriptHelpers + preludeSrc;
 
         return {

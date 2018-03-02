@@ -1,14 +1,14 @@
 "use strict";
-var gutil = require("gulp-util");
+var llog = require("fancy-log");
 var PathUtil = require("./PathUtil");
 var LogUtil;
 (function (LogUtil) {
     function log(taskDescription, promise) {
         return promise.then(function (res) {
-            gutil.log("done " + taskDescription, res);
+            llog("done " + taskDescription, res);
             return res;
         }, function (err) {
-            gutil.log("error " + taskDescription, err);
+            llog("error " + taskDescription, err);
             throw err;
         });
     }

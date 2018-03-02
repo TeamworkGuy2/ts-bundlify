@@ -1,14 +1,14 @@
-﻿import gutil = require("gulp-util");
+﻿import llog = require("fancy-log");
 import PathUtil = require("./PathUtil");
 
 module LogUtil {
 
     export function log<S>(taskDescription: string, promise: Q.Promise<S>): Q.Promise<S> {
         return promise.then(function (res) {
-            gutil.log("done " + taskDescription, res);
+            llog("done " + taskDescription, res);
             return res;
         }, function (err): typeof err {
-            gutil.log("error " + taskDescription, err);
+            llog("error " + taskDescription, err);
             throw err;
         });
     }

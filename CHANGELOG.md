@@ -4,7 +4,15 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.6.4](N/A) - 2017-11-19
+### [0.6.5](N/A) - 2018-03-02
+#### Changed
+* Update to TypeScript 2.7
+* Update dependencies: mocha, @types/chai, @types/mocha, @types/node
+* Enable tsconfig.json `noImplicitAny`
+
+
+--------
+### [0.6.4](https://github.com/TeamworkGuy2/ts-bundlify/commit/9514b79bee0b8907a8be4987db6e115c0aaa49de) - 2017-11-19
 #### Changed
 * `tsconfig.json` added `strictNullChecks` and setup code to handle null types
 * Updated some `package.json` dependencies

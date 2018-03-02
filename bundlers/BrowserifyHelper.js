@@ -1,5 +1,5 @@
 "use strict";
-var gutil = require("gulp-util");
+var log = require("fancy-log");
 var stream = require("stream");
 var util = require("util");
 /** Helpers for building JS bundles using 'browserify'
@@ -52,7 +52,7 @@ var BrowserifyHelper;
                 startTimes[file] = Date.now();
                 expectDoneFiles.push(file);
                 if (verbose) {
-                    gutil.log("start building '" + file + "'...");
+                    log("start building '" + file + "'...");
                 }
                 if (listeners.startBundle) {
                     tryCall(listeners.startBundle, file);
@@ -87,7 +87,7 @@ var BrowserifyHelper;
                     var skpMsg = skippedFiles.length > 0 ? "skipped: " + skippedFiles.join(", ") : null;
                     var buildMsg = "done building (" + (endTime - startTime) + " ms): " + (bldMsg ? bldMsg + (skpMsg ? " | " + skpMsg : "") : (skpMsg ? skpMsg : "no bundles"));
                     if (verbose) {
-                        gutil.log(buildMsg);
+                        log(buildMsg);
                     }
                     if (listeners.finishAll) {
                         tryCall(listeners.finishAll, {

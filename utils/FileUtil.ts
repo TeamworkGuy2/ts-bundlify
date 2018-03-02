@@ -1,5 +1,5 @@
 ﻿import fs = require("fs");
-import gutil = require("gulp-util");
+import log = require("fancy-log");
 
 /** Helpers for dealing with Node 'fs' file system manipulation
  * @since 2016-07-15
@@ -52,14 +52,14 @@ module FileUtil {
         var f = fs.readFileSync(fileName);
 
         if (debug) {
-            gutil.log("checking '" + fileName + "' file for ASCII encoding");
+            log("checking '" + fileName + "' file for ASCII encoding");
         }
 
         var lines = f.toString().split("\n");
         var badCharRanges = findBadCharRanges(lines);
 
         if (debug) {
-            gutil.log(badCharRanges.length + " bad char segments:\n" +
+            log(badCharRanges.length + " bad char segments:\n" +
                 badCharRanges.map((r) => "(" + r.lineNumber + ":[" + r.startIndex + "," + (r.startIndex + r.length) + "])" +
                     " '" + r.text + "' line: '" + (r.line.length > 200 ? r.line.substr(0, 200) + "..." : r.line) + "'\n")
             );
@@ -78,7 +78,7 @@ module FileUtil {
     export function convertFileEncodingToAscii(srcFile: string, dstFile: string, replace: string | ((ch: string, ...args: any[]) => string)) {
         var f = fs.readFileSync(srcFile);
 
-        gutil.log("converting '" + srcFile + "' file encoding to ASCII");
+        log("converting '" + srcFile + "' file encoding to ASCII");
 
         var lines = f.toString().split("\n");
         var badCharRanges = findBadCharRanges(lines);

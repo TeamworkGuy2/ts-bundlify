@@ -1,6 +1,6 @@
 ﻿import fs = require("fs");
 import path = require("path");
-import gutil = require("gulp-util");
+import log = require("fancy-log");
 import NodeSass = require("node-sass");
 import PathUtil = require("../../utils/PathUtil");
 import LogUtil = require("../../utils/LogUtil");
@@ -34,12 +34,12 @@ module SassBundler {
         };
         sass.render(scssOpts, (err, res) => {
             if (err) {
-                gutil.log("error compiling SCSS '" + srcFile + "': " + LogUtil.objToString(err, true, paths.projectRoot));
+                log("error compiling SCSS '" + srcFile + "': " + LogUtil.objToString(err, true, paths.projectRoot));
             }
             else {
                 fs.writeFileSync(dstFile, res.css);
                 fs.writeFileSync(dstFileMap, res.map);
-                gutil.log("compiled SCSS '" + dstFile + "': " + LogUtil.objToString(res.stats, true, paths.projectRoot));
+                log("compiled SCSS '" + dstFile + "': " + LogUtil.objToString(res.stats, true, paths.projectRoot));
             }
         });
     }

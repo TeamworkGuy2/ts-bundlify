@@ -1,6 +1,6 @@
 "use strict";
 var child_process = require("child_process");
-var gutil = require("gulp-util");
+var log = require("fancy-log");
 var Q = require("q");
 var BrowserMultiPack = require("./browser/BrowserMultiPack");
 /** Helpers for compiling TypeScript to Javascript
@@ -25,13 +25,13 @@ var TypeScriptHelper;
         var dfd = Q.defer();
         var child = child_process.exec(tscCmd, function (error, stdout, stderr) {
             if (stdout != null && stdout.length > 0) {
-                gutil.log("TypeScript compile stdout: " + stdout);
+                log("TypeScript compile stdout: " + stdout);
             }
             if (stderr != null && stderr.length > 0) {
-                gutil.log("TypeScript compile stderr: " + stderr);
+                log("TypeScript compile stderr: " + stderr);
             }
             if (error != null) {
-                gutil.log("TypeScript compile error: " + error);
+                log("TypeScript compile error: " + error);
                 dfd.reject(error);
             }
             else {
