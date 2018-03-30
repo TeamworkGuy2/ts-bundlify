@@ -16,6 +16,7 @@ var BundlifyHelper;
         var dstDir = path.dirname(dstFile);
         var dstName = path.basename(dstFile);
         return gulp.src(srcFiles)
+            //.pipe(uglify())
             .pipe(gconcat(dstName, { newLine: fileSeparator }))
             .pipe(gulp.dest(dstDir));
     }

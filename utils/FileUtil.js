@@ -132,13 +132,16 @@ var FileUtil;
         if (len < maxLen) {
             return str;
         }
+        // character of interest at beginning of a long string
         else if (offset === 0) {
             return str.substr(0, maxLen) + "...";
         }
+        // character of interest at end of a long string
         else if (offset >= len - 1) {
             var start = offset - maxLen;
             return (start > 0 ? "..." : "") + str.substr(Math.max(0, start));
         }
+        // character of interest somewhere in the middle of a long string
         else {
             return "..." + str.substr(offset, maxLen) + (len > offset + maxLen ? "..." : "");
         }

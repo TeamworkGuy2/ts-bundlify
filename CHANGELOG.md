@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.6.5](N/A) - 2018-03-02
+### [0.6.6](N/A) - 2018-03-30
+#### Changed
+* Update to TypeScript 2.8
+* Update dependencies: browserify, @types/node, @types/q, other minor version bumps
+
+
+--------
+### [0.6.5](https://github.com/TeamworkGuy2/ts-bundlify/commit/f06db45f9603503e354a71d0699cc7d891cda7c4) - 2018-03-01
 #### Changed
 * Update to TypeScript 2.7
 * Update dependencies: mocha, @types/chai, @types/mocha, @types/node
