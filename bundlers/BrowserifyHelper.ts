@@ -265,6 +265,7 @@ module BrowserifyHelper {
                 }
                 return chunk;
             }
+            return undefined;
         }
 
         return <stream.Transform>new (<any>SimpleStreamView)();

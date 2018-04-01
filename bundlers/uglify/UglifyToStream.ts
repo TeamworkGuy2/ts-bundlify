@@ -106,6 +106,7 @@ module UglifyToStream {
                 } catch (err) {
                     return this.emit("error", err);
                 }
+                return undefined;
             }
         }
     }

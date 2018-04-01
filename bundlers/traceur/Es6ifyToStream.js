@@ -46,6 +46,7 @@ var Es6ifyToStream;
                 if (dataDone) {
                     dataDone(file, data);
                 }
+                return undefined;
             });
         };
     }

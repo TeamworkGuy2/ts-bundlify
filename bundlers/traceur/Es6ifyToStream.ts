@@ -59,6 +59,7 @@ module Es6ifyToStream {
                 this.push(null);
 
                 if (dataDone) { dataDone(file, data); }
+                return undefined;
             });
         };
     }

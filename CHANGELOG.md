@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.6.6](N/A) - 2018-03-30
+### [0.6.7](N/A) - 2018-03-31
+#### Changed
+* Update tsconfig.json with `noImplicitReturns: true` and `forceConsistentCasingInFileNames: true`, fixed a few methods that didn't explicitly return from every code path.
+
+
+--------
+### [0.6.6](https://github.com/TeamworkGuy2/ts-bundlify/commit/8134ace2745988b6106fa6f2560eca7034b09324) - 2018-03-30
 #### Changed
 * Update to TypeScript 2.8
 * Update dependencies: browserify, @types/node, @types/q, other minor version bumps

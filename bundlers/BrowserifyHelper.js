@@ -176,6 +176,7 @@ var BrowserifyHelper;
                 }
                 return chunk;
             }
+            return undefined;
         }
         return new SimpleStreamView();
     }
