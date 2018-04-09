@@ -31,14 +31,12 @@ module BundleBuilder {
          * @param listeners optional listener functions that are called when various compilation events occur, including finishAll() which is called with stats when the bundle build proces finishes
          */
         (transforms: BrowserifyTransform[], bundler: BrowserifyObject, bundleOpts: BundleOptions, dstDir: string,
-            bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams, listeners: BrowserifyHelper.BuildListeners): void;
+            bundleSourceCreator: BundleSourceCreator<BrowserifyObject>, listeners: BrowserifyHelper.BuildListeners): void;
     }
 
 
-    // keep in sync with BrowserifyCompileFunc.bundleSourceCreator and BuilderSetupStep.setBundleSourceCreator(bundleSourceCreator)
-    export interface BundleSourceCreator<T> {
-        (bundler: T, updateEvent: any): MultiBundleStreams;
-    }
+    /** keep in sync with BrowserifyCompileFunc.bundleSourceCreator and BuilderSetupStep.setBundleSourceCreator(bundleSourceCreator) */
+    type BundleSourceCreator<T> = (bundler: T, updateEvent?: { [key: string]: any } | { [key: number]: any }) => MultiBundleStreams;
 
 
     /** An interface that splits the process of building a JS code bundle into steps.
@@ -50,7 +48,7 @@ module BundleBuilder {
         /**
          * @param bundleSourceCreator function which creates a MultiBundleStream object containing Node 'ReadableStream' objects for the source and bundles
          */
-        setBundleSourceCreator(bundleSourceCreator: (bundler: T, updateEvent: any) => MultiBundleStreams): BuilderTransformsStep<T>;
+        setBundleSourceCreator(bundleSourceCreator: BundleSourceCreator<T>): BuilderTransformsStep<T>;
     }
 
     export interface BuilderTransformsStep<T> extends BuilderListenersStep<T> {
@@ -75,12 +73,7 @@ module BundleBuilder {
     }
 
 
-    export function buildOptions(bundleOpts: BundleOptions, optsModifier?: (opts: browserify.Options & browserPack.Options & { typescriptHelpers?: string }) => void): Builder<BrowserifyObject> {
-        return createBundleBuilder(bundleOpts, compileBundle, optsModifier);
-    }
-
-
-    /** The advanced no-helper version of '.buildOptions().compileBundle()'.  Builds/compiles source files into a single output bundle JS file using 'babelify'
+    /** The advanced no-helper version of '.buildBundler().compileBundle()'.  Builds/compiles source files into a single output bundle JS file using 'babelify'
      * @param transforms an array of options and functions to pass to browserify.transform()
      * @param bundler the browserify instance to use for bundling
      * @param bundleOpts options for building the bundles
@@ -88,7 +81,7 @@ module BundleBuilder {
      * @param bundleSourceCreator function which creates a MultiBundleStreams object containing Node 'ReadableStream' objects for the source and bundles
      */
     export function compileBundle(transforms: BrowserifyHelper.BrowserifyTransform[], bundler: BrowserifyObject, bundleOpts: BundleOptions, dstDir: string,
-            bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams, listeners: BrowserifyHelper.BuildListeners): void {
+            bundleSourceCreator: BundleSourceCreator<BrowserifyObject>, listeners: BrowserifyHelper.BuildListeners): void {
 
         for (var i = 0, size = transforms.length; i < size; i++) {
             var transform = transforms[i];
@@ -114,7 +107,7 @@ module BundleBuilder {
      * @param compileBundle a function which takes a bundler, options, paths, and a bundle stream creator and compiles the bundle
      * @param [optsModifier] a optional function which can modify the Browserify and browserPack options before they are passed to the browserify constructor
      */
-    export function createBundleBuilder(
+    export function buildBundler(
         bundleOpts: BundleOptions,
         compileBundle: BrowserifyCompileFunc,
         optsModifier?: (opts: browserify.Options & browserPack.Options & { typescriptHelpers?: string }) => void
@@ -130,7 +123,7 @@ module BundleBuilder {
         }
 
         var _createTransforms = (bundler: BrowserifyObject): BrowserifyTransform[] => [];
-        var _bundleSourceCreator: (bundler: BrowserifyObject, updateEvent: any) => MultiBundleStreams;
+        var _bundleSourceCreator: BundleSourceCreator<BrowserifyObject>;
         var _listeners: BrowserifyHelper.BuildListeners;
 
         var inst: Builder<BrowserifyObject> = {

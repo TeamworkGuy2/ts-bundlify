@@ -98,7 +98,7 @@ module BrowserifyHelper {
      * @param listeners various optional functions to call when bundle compile steps are completed, including a finishAll() function which passes back an object with stats about all the compiled bundles
      */
     export function setupRebundleListener(rebuildOnSrcChange: boolean, verbose: boolean, bundler: browserify.BrowserifyObject,
-            getSourceStreams: (bundler: browserify.BrowserifyObject, updateEvent: any) => MultiBundleStreams,
+            getSourceStreams: (bundler: browserify.BrowserifyObject, updateEvent?: { [key: string]: any } | { [key: number]: any }) => MultiBundleStreams,
             additionalStreamPipes: [string, (prevStream: NodeJS.ReadableStream, streamOpts: BundleDst) => NodeJS.ReadableStream][],
             listeners: BuildListeners) {
         listeners = listeners || <BuildListeners>{};

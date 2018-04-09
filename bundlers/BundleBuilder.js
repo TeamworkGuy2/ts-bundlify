@@ -13,11 +13,7 @@ var TypeScriptHelper = require("./TypeScriptHelper");
  */
 var BundleBuilder;
 (function (BundleBuilder) {
-    function buildOptions(bundleOpts, optsModifier) {
-        return createBundleBuilder(bundleOpts, compileBundle, optsModifier);
-    }
-    BundleBuilder.buildOptions = buildOptions;
-    /** The advanced no-helper version of '.buildOptions().compileBundle()'.  Builds/compiles source files into a single output bundle JS file using 'babelify'
+    /** The advanced no-helper version of '.buildBundler().compileBundle()'.  Builds/compiles source files into a single output bundle JS file using 'babelify'
      * @param transforms an array of options and functions to pass to browserify.transform()
      * @param bundler the browserify instance to use for bundling
      * @param bundleOpts options for building the bundles
@@ -45,7 +41,7 @@ var BundleBuilder;
      * @param compileBundle a function which takes a bundler, options, paths, and a bundle stream creator and compiles the bundle
      * @param [optsModifier] a optional function which can modify the Browserify and browserPack options before they are passed to the browserify constructor
      */
-    function createBundleBuilder(bundleOpts, compileBundle, optsModifier) {
+    function buildBundler(bundleOpts, compileBundle, optsModifier) {
         var optsRes = {};
         if (bundleOpts.typescript != null && bundleOpts.typescript.includeHelpers) {
             var res = TypeScriptHelper.createPreludeStringWithTypeScriptHelpers(bundleOpts.typescript.includeHelpersComment != false);
@@ -98,7 +94,7 @@ var BundleBuilder;
         };
         return inst;
     }
-    BundleBuilder.createBundleBuilder = createBundleBuilder;
+    BundleBuilder.buildBundler = buildBundler;
     /** Sets up options and paths and creates a new Browserify instance
      * @param customOpts custom browserify/browser-pack constructor options in addition to the 'bundleOpts' parameter already provided, can be null
      * @param bundleOpts options used to help construct the browserify/browser-pack constructor options

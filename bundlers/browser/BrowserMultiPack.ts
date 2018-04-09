@@ -123,7 +123,7 @@ module BrowserMultiPack {
         };
 
         // Consume the browserify bundle and return the multiple pack bundles
-        bundleBldr.setBundleSourceCreator(function multiBundleStreamCreator(browserify: browserify.BrowserifyObject, updateEvent: any) {
+        bundleBldr.setBundleSourceCreator(function multiBundleStreamCreator(browserify: browserify.BrowserifyObject, updateEvent?: { [key: string]: any }) {
             if (updateEvent != null) { updateDeps = Object.keys(updateEvent).map((k) => updateEvent[k]); }
             var brwsBundle = browserify.bundle();
             var res: any[] = [];

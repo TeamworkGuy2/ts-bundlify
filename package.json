@@ -1,6 +1,6 @@
 {
   "name": "ts-bundlify",
-  "version": "0.6.7",
+  "version": "0.7.0",
   "description": "TypeScript-to-Javascript build helpers for creating bundles using Gulp, Browserify, Traceur, Babel, and Node-Sass",
   "author": "TeamworkGuy2",
   "homepage": "https://github.com/TeamworkGuy2/ts-bundlify",
@@ -39,6 +39,7 @@
     "minimatch": "~3.0.4",
     "minimist": "~1.2.0",
     "mocha": "~5.0.5",
+    "package-tarball": "~0.1.0",
     "q": "~1.5.1",
     "through2": "~2.0.3",
     "typescript": "~2.8.0",
@@ -47,6 +48,7 @@
     "watchify": "~3.9.0"
   },
   "scripts": {
+    "build-package": "node ../package-tarball/index.js",
     "test": "mocha -u tdd --recursive",
     "tsc": "tsc"
   }

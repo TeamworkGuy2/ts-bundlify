@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.6.7](N/A) - 2018-03-31
+### [0.7.0](N/A) - 2018-04-09
+#### Changed
+* Changed interface `BundleBuilder.BundleSourceCreator<T>` to a type and use it in more places
+* Renamed `BundleBuilder.createBundleBuilder()` -> `BundleBuilder.buildBundler()`
+
+#### Removed
+* `BundleBuilder.buildOptions()` use new `buildBundler()` with `BundleBuilder.compileBundle()` as the second parameter
+
+
+--------
+### [0.6.7](https://github.com/TeamworkGuy2/ts-bundlify/commit/b68d9569b0acd65329d8399c6a51a97837a510bb) - 2018-03-31
 #### Changed
 * Update tsconfig.json with `noImplicitReturns: true` and `forceConsistentCasingInFileNames: true`, fixed a few methods that didn't explicitly return from every code path.
 
@@ -105,7 +115,7 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 ### [0.4.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/f1974d72cf2a7ce12cf0ed5a68685a136b80d543) - 2017-05-02
 #### Added
 Multiple output bundle support; Browserify pipeline output customization
-* Added `BrowserifyMultiPack` (port of npm 'browser-pack' package) which supports filtering/redirecting an input stream into multiple output streams.
+* Added `BrowserifyMultiPack` (port of npm `browser-pack` package) which supports filtering/redirecting an input stream into multiple output streams.
 
 #### Changed
 * Extensive `BrowserifyHelper` and `BundleBuilder` refactoring
@@ -117,13 +127,13 @@ Multiple output bundle support; Browserify pipeline output customization
 --------
 ### [0.3.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/ee6c6fe7e629c7d794e9e54384eca92ba7c3b4ca) - 2016-11-09
 #### Added
-* UglifyBundler and UglifyToStream leveraging 'uglify-js' package to transform files for browserify to bundle
-* Added 'convert-source-map@~1.3.0', 'minimatch@~3.0.3', and 'watchify@~3.7.0' project.json dependencies
+* UglifyBundler and UglifyToStream leveraging `uglify-js` package to transform files for browserify to bundle
+* Added `convert-source-map@~1.3.0`, `minimatch@~3.0.3`, and `watchify@~3.7.0` project.json dependencies
 * Added BrowserifyHelper.combineOpts()
-* Added parameters to BabelBundler and TraceurBundler createTransformer()
+* Added parameters to `BabelBundler` and `TraceurBundler` `createTransformer()`
 
 #### Changed
-* Renamed Es6ifyLike -> Es6ifyToStream
+* Renamed `Es6ifyLike` -> `Es6ifyToStream`
 
 
 --------

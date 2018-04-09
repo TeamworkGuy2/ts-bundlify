@@ -54,7 +54,7 @@ module LogUtil {
             var res = (obj.prototype.constructor ? obj.prototype.constructor.name : (obj.prototype.name ? obj.prototype.name : toStr.call(obj.prototype)));
             if (res !== "object") { return res; }
         }
-        return obj.name ? obj.name : (typeof obj === "object" ? ("keys:[" + Object.keys(obj).join(", ") + "]") : String(obj));
+        return obj.name ? obj.name : (typeof obj === "object" ? ("keys:[" + Object.keys(<{}>obj).join(", ") + "]") : String(obj));
     }
 
 
