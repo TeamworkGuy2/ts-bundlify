@@ -19,8 +19,8 @@ Two examples, creating single and multiple bundle compilers that rebuild when so
 `gulpfile.js`
 ```ts
 var babelify = require("babelify");
-var BundleBuilder = require("path-to-ts-bundlify/bundlers/BundleBuilder");
-var BabelBundler = require("path-to-ts-bundlify/bundlers/babel/BabelBundler");
+var BundleBuilder = require("ts-bundlify/bundlers/BundleBuilder");
+var BabelBundler = require("ts-bundlify/bundlers/babel/BabelBundler");
 ```
 
 
@@ -28,12 +28,12 @@ var BabelBundler = require("path-to-ts-bundlify/bundlers/babel/BabelBundler");
 // [...]
 
 // create the bundle builder with some build options
-BundleBuilder.buildOptions({
+BundleBuilder.buildOptions(browserify, watchify, {
   rebuild: true,
   debug: false,
   verbose: true,
   typescript: { includeHelpers: true }
-})
+}, BundleBuilder.compileBundle)
 // add a babelify transform step, you can add multiple transforms which are passed on to browserify.transform()
 .transforms((browserify) => [
   BabelBundler.createTransformer(babelify)
@@ -55,17 +55,17 @@ Bundle 1 contains code from all `./src/[...]` files.
 Bundle 2 contains all the `node_modules` files.
 
 ```ts
-var BrowserMultiPack = require("path-to-ts-bundlify/bundlers/browser/BrowserMultiPack");
+var BrowserMultiPack = require("ts-bundlify/bundlers/browser/BrowserMultiPack");
 
 // create the bundle builder with some build options (same as before but save
-// the browserify options via the buildOptions() `optsModifier` callback)
+// the browserify options via the buildBundle() `optsModifier` callback)
 var browserifyOpts;
-var bundleBldr = BundleBuilder.buildOptions({
+var bundleBldr = BundleBuilder.buildBundle(browserify, watchify, {
   rebuild: true,
   debug: false,
   verbose: true,
   typescript: { includeHelpers: true }
-}, (opts) => browserifyOpts = opts);
+}, BundleBuilder.compileBundle, (opts) => browserifyOpts = opts);
 
 
 // the magic, insert a custom 'browser-pack' implementation into browserify's pipeline

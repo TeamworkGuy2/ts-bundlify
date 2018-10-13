@@ -1,5 +1,5 @@
 ﻿import path = require("path");
-import gulp = require("gulp");
+import vinylfs = require("vinyl-fs");
 import gconcat = require("gulp-concat");
 
 /** Helpers for creating bundles
@@ -14,10 +14,10 @@ module BundlifyHelper {
     export function concat(srcFiles: string[], dstFile: string, fileSeparator = "\n") {
         var dstDir = path.dirname(dstFile);
         var dstName = path.basename(dstFile);
-        return gulp.src(srcFiles)
+        return vinylfs.src(srcFiles)
             //.pipe(uglify())
             .pipe(gconcat(dstName, { newLine: fileSeparator }))
-            .pipe(gulp.dest(dstDir));
+            .pipe(vinylfs.dest(dstDir));
     }
 
 }

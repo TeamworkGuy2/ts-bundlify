@@ -1,6 +1,6 @@
 "use strict";
 var path = require("path");
-var gulp = require("gulp");
+var vinylfs = require("vinyl-fs");
 var gconcat = require("gulp-concat");
 /** Helpers for creating bundles
  */
@@ -15,10 +15,10 @@ var BundlifyHelper;
         if (fileSeparator === void 0) { fileSeparator = "\n"; }
         var dstDir = path.dirname(dstFile);
         var dstName = path.basename(dstFile);
-        return gulp.src(srcFiles)
+        return vinylfs.src(srcFiles)
             //.pipe(uglify())
             .pipe(gconcat(dstName, { newLine: fileSeparator }))
-            .pipe(gulp.dest(dstDir));
+            .pipe(vinylfs.dest(dstDir));
     }
     BundlifyHelper.concat = concat;
 })(BundlifyHelper || (BundlifyHelper = {}));

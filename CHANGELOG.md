@@ -4,7 +4,18 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.7.0](N/A) - 2018-04-09
+### [0.8.0](N/A) - 2018-10-13
+#### Changed
+* Update to TypeScript 3.1
+* Update README documentation
+* `BundleBuilder.buildBundler()` now requires a `browserify` and `rebuilder` parameter to decouple this package from version dependencies
+* Switched from `gulp` to `vinyl-fs` for `src()` and `dest()` in `BundleBuilder` and `BundlifyHelper`
+* Minor dependency updates, removed browserify, gulp, and watchify.
+* Removed compiled bin tarball in favor of git tags and github releases
+
+
+--------
+### [0.7.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/38bd772ce1928f8be080f4c24df2823bf19ad23e) - 2018-04-09
 #### Changed
 * Changed interface `BundleBuilder.BundleSourceCreator<T>` to a type and use it in more places
 * Renamed `BundleBuilder.createBundleBuilder()` -> `BundleBuilder.buildBundler()`
