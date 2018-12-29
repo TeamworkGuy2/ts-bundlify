@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.8.0](N/A) - 2018-10-13
+### [0.8.1](N/A) - 2018-12-29
+#### Changed
+* Update to TypeScript 3.2
+* Replaced `gulp-concat` with `concat-with-sourcemaps` and `vinyl` (`through2` also required but already imported)
+
+
+--------
+### [0.8.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/b2cebfb8af2c76700f86f4bb13129ef8a2fb8fe3) - 2018-10-13
 #### Changed
 * Update to TypeScript 3.1
 * Update README documentation
