@@ -6,7 +6,6 @@
 import fs = require("fs");
 import path = require("path");
 import stream = require("stream");
-import bpack = require("browser-pack");
 import bresolve = require("browser-resolve");
 import concat = require("concat-stream");
 import depsSort = require("deps-sort");
@@ -30,6 +29,9 @@ interface RequireOptions {
 }
 
 interface CreateDepsOptions extends mdeps.Options {
+    /** 'insert-module-globals@7.2.0' or equivalent */
+    insertModuleGlobals: typeof insertGlobals;
+
     basedir?: string;
     bundleExternal?: boolean;
     builtins?: any;
@@ -39,8 +41,6 @@ interface CreateDepsOptions extends mdeps.Options {
     extensions?: string[];
     filter?: (id: any) => boolean;
     insertGlobals?: boolean;
-    /** 'insert-module-globals@7.2.0' or equivalent */
-    insertModuleGlobals: typeof insertGlobals;
     insertGlobalVars?: insertGlobals.VarsOption;
     noParse?: any;
     postFilter?: (id: any, file: any, pkg: any) => boolean;
@@ -49,13 +49,18 @@ interface CreateDepsOptions extends mdeps.Options {
 }
 
 interface CreatePipelineOptions extends CreateDepsOptions {
-    basedir?: string;
+    /** 'browser-pack@6.1.0' or equivalent to pack modules */
+    browserPack: (opts?: browserPack.Options) => NodeJS.ReadWriteStream;
+    /** 'deps-sort@2.0.0' or equivalent to sort dependency output order */
+    depsSort: (opts?: depsSort.Options) => stream.Transform;
+    /** 'module-deps@6.2.0' or equivalent to parse module dependencies */
+    moduleDeps: (opts: mdeps.Options) => mdeps.ModuleDepsObject;
+
+    basedir ?: string;
     debug?: any;
     dedupe?: boolean;
     exposeAll?: any;
     fullPaths?: boolean;
-    /** 'module-deps@6.2.0' or equivalent to parse module dependencies */
-    moduleDeps: (opts: mdeps.Options) => mdeps.ModuleDepsObject;
 }
 
 interface StreamLike {
@@ -74,6 +79,9 @@ interface RowLike {
 }
 
 interface BrowserifyOptions extends CreatePipelineOptions {
+    /** 'browser-resolve@1.11.3' or equivalent resolve() algorithm */
+    browserResolve?: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
+
     bare?: boolean;
     basedir?: string;
     browserField?: boolean;
@@ -131,16 +139,22 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     constructor(files: any, opts: BrowserifyOptions);
     constructor(files: any, options?: BrowserifyOptions) {
         super();
+        if (options == null) {
+            var fileOpts = <BrowserifyOptions>files;
+            if (fileOpts.insertModuleGlobals != null || fileOpts.moduleDeps != null || fileOpts.basedir != null) {
+                options = fileOpts;
+            }
+        }
         if (options == null) throw new Error("'options' is required");
         if (options.insertModuleGlobals == null) throw new Error("'options.insertModuleGlobals' is required");
         if (options.moduleDeps == null) throw new Error("'options.moduleDeps' is required");
+
         var self = this;
         var opts = options;
 
         if (typeof files === "string" || isArray(files) || isStream(files)) {
-            opts = xtend(opts, { entries: (<any[]>[]).concat(opts.entries || [], files) });
+            opts.entries = (<any[]>[]).concat(opts.entries || [], files);
         }
-        else opts = xtend(files, opts);
 
         if (opts.node) {
             opts.bare = true;
@@ -178,12 +192,12 @@ class TsBrowserify extends EventEmitter.EventEmitter {
         self._transforms = [];
         self._entryOrder = 0;
         self._ticked = false;
-        self._bresolve = opts.browserField === false
+        self._bresolve = opts.browserResolve || (opts.browserField === false
             ? function (id, opts, cb) {
                 if (!opts.basedir) opts.basedir = path.dirname(<string>opts.filename)
                 resolve(id, opts, <any>cb);
             }
-            : bresolve;
+            : bresolve);
         self._syntaxCache = {};
 
         var ignoreTransform: any[] = [].concat(opts.ignoreTransform).filter(Boolean);
@@ -517,7 +531,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
             dedupe: opts.dedupe,
             expose: this._expose
         };
-        this._bpack = bpack(xtend(opts, { raw: true }));
+        this._bpack = opts.browserPack(xtend(opts, { raw: true }));
 
         var pipeline = splicer.obj([
             "record", [this._recorder()],
@@ -526,7 +540,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
             "unbom", [this._unbom()],
             "unshebang", [this._unshebang()],
             "syntax", [this._syntax()],
-            "sort", [depsSort(dopts)],
+            "sort", [opts.depsSort(dopts)],
             "dedupe", [this._dedupe()],
             "label", [this._label(opts)],
             "emit-deps", [this._emitDeps()],
@@ -912,7 +926,12 @@ class TsBrowserify extends EventEmitter.EventEmitter {
 
         if (this._bundled) {
             var recorded = this._recorded;
-            this.reset({ insertModuleGlobals: this._options.insertModuleGlobals, moduleDeps: this._options.moduleDeps });
+            this.reset({
+                browserPack: this._options.browserPack,
+                depsSort: this._options.depsSort,
+                insertModuleGlobals: this._options.insertModuleGlobals,
+                moduleDeps: this._options.moduleDeps
+            });
             recorded.forEach(function (x) {
                 self.pipeline.write(x);
             });

@@ -18,10 +18,8 @@ var __extends = (this && this.__extends) || (function () {
 // based on browserify@14.4.0
 var fs = require("fs");
 var path = require("path");
-var bpack = require("browser-pack");
 var bresolve = require("browser-resolve");
 var concat = require("concat-stream");
-var depsSort = require("deps-sort");
 var EventEmitter = require("events");
 var splicer = require("labeled-stream-splicer");
 var readonly = require("read-only-stream");
@@ -38,6 +36,12 @@ var TsBrowserify = /** @class */ (function (_super) {
     __extends(TsBrowserify, _super);
     function TsBrowserify(files, options) {
         var _this = _super.call(this) || this;
+        if (options == null) {
+            var fileOpts = files;
+            if (fileOpts.insertModuleGlobals != null || fileOpts.moduleDeps != null || fileOpts.basedir != null) {
+                options = fileOpts;
+            }
+        }
         if (options == null)
             throw new Error("'options' is required");
         if (options.insertModuleGlobals == null)
@@ -47,10 +51,8 @@ var TsBrowserify = /** @class */ (function (_super) {
         var self = _this;
         var opts = options;
         if (typeof files === "string" || isArray(files) || isStream(files)) {
-            opts = xtend(opts, { entries: [].concat(opts.entries || [], files) });
+            opts.entries = [].concat(opts.entries || [], files);
         }
-        else
-            opts = xtend(files, opts);
         if (opts.node) {
             opts.bare = true;
             opts.browserField = false;
@@ -83,13 +85,13 @@ var TsBrowserify = /** @class */ (function (_super) {
         self._transforms = [];
         self._entryOrder = 0;
         self._ticked = false;
-        self._bresolve = opts.browserField === false
+        self._bresolve = opts.browserResolve || (opts.browserField === false
             ? function (id, opts, cb) {
                 if (!opts.basedir)
                     opts.basedir = path.dirname(opts.filename);
                 resolve(id, opts, cb);
             }
-            : bresolve;
+            : bresolve);
         self._syntaxCache = {};
         var ignoreTransform = [].concat(opts.ignoreTransform).filter(Boolean);
         self._filterTransform = function (tr) {
@@ -396,7 +398,7 @@ var TsBrowserify = /** @class */ (function (_super) {
             dedupe: opts.dedupe,
             expose: this._expose
         };
-        this._bpack = bpack(xtend(opts, { raw: true }));
+        this._bpack = opts.browserPack(xtend(opts, { raw: true }));
         var pipeline = splicer.obj([
             "record", [this._recorder()],
             "deps", [this._mdeps],
@@ -404,7 +406,7 @@ var TsBrowserify = /** @class */ (function (_super) {
             "unbom", [this._unbom()],
             "unshebang", [this._unshebang()],
             "syntax", [this._syntax()],
-            "sort", [depsSort(dopts)],
+            "sort", [opts.depsSort(dopts)],
             "dedupe", [this._dedupe()],
             "label", [this._label(opts)],
             "emit-deps", [this._emitDeps()],
@@ -761,7 +763,12 @@ var TsBrowserify = /** @class */ (function (_super) {
         var self = this;
         if (this._bundled) {
             var recorded = this._recorded;
-            this.reset({ insertModuleGlobals: this._options.insertModuleGlobals, moduleDeps: this._options.moduleDeps });
+            this.reset({
+                browserPack: this._options.browserPack,
+                depsSort: this._options.depsSort,
+                insertModuleGlobals: this._options.insertModuleGlobals,
+                moduleDeps: this._options.moduleDeps
+            });
             recorded.forEach(function (x) {
                 self.pipeline.write(x);
             });
