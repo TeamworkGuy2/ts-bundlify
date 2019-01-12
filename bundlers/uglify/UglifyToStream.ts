@@ -102,7 +102,7 @@ module UglifyToStream {
         function capture<T extends stream.Readable>(fn: (this: T, ...args: any[]) => any) {
             return function (this: T) {
                 try {
-                    fn.apply(this, arguments);
+                    fn.apply(this, <any[]><any>arguments);
                 } catch (err) {
                     return this.emit("error", err);
                 }

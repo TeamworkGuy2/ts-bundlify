@@ -10,6 +10,7 @@
     "noImplicitThis": true,
     "removeComments": false,
     "sourceMap": false,
+    "strictBindCallApply": true,
     "strictNullChecks": true,
     "target": "es5"
   }

@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.8.1](N/A) - 2018-12-29
+### [0.8.2](N/A) - 2019-10-12
+#### Added
+* Added `bundlers/browser/TsBrowserify` with TypeScript converted version of `Browserify@14.4.0` with some customizations
+* Added `package.json` dependencies for TsBrowserify
+
+#### Changed
+* Enable tsconfig.json `strictBindCallApply` and fixed compile error
+
+
+--------
+### [0.8.1](https://github.com/TeamworkGuy2/ts-bundlify/commit/1ffd757f924ea9e9b70d0809dec9ea019987da12) - 2018-12-29
 #### Changed
 * Update to TypeScript 3.2
 * Replaced `gulp-concat` with `concat-with-sourcemaps` and `vinyl` (`through2` also required but already imported)
