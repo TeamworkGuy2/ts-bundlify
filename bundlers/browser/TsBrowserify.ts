@@ -275,7 +275,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
                 var rec: (typeof _rec & { order?: number; transform?: boolean }) = _rec;
                 if (rec.entry) rec.order = order;
                 if (rec.transform === false) rec.transform = false;
-                self.pipeline.write(rec);
+                self.pipeline.write(<any>rec);
 
                 if (--self._pending === 0) self.emit("_ready");
             }));
@@ -313,7 +313,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
         if (row.entry) row.order = self._entryOrder++;
 
         if (opts.transform === false) row.transform = false;
-        self.pipeline.write(row);
+        self.pipeline.write(<any>row);
         return self;
     }
 
@@ -668,7 +668,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
         mopts.globalTransform = [];
         if (!this._bundled) {
             this.once("bundle", function () {
-                self.pipeline.write({
+                self.pipeline.write(<any>{
                     transform: globalTr,
                     global: true,
                     options: {}

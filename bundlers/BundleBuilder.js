@@ -38,9 +38,9 @@ var BundleBuilder;
      * @param rebuilder the browserify plugin to use if 'bundleOpts.rebuild' is true (normally watchify)
      * @param bundleOpts options for how to compile the bundle, are used to build browserify and are also passed along to the compileBundle function
      * @param compileBundle a function which takes a bundler, options, paths, and a bundle stream creator and compiles the bundle
-     * @param [optsModifier] a optional function which can modify the Browserify and browserPack options before they are passed to the browserify constructor
+     * @param optsModifier optional, function which can modify the Browserify and browserPack options before they are passed to the browserify constructor
      */
-    function buildBundler(browserify, rebuilder, bundleOpts, compileBundle, optsModifier) {
+    function buildBundler(browserBundler, rebuilder, bundleOpts, compileBundle, optsModifier) {
         var optsRes = {};
         if (bundleOpts.typescript != null && bundleOpts.typescript.includeHelpers) {
             var res = TypeScriptHelper.createPreludeStringWithTypeScriptHelpers(bundleOpts.typescript.includeHelpersComment != false);
@@ -86,7 +86,7 @@ var BundleBuilder;
                         };
                     };
                 }
-                var bundler = createBrowserify(browserify, rebuilder, optsRes, bundleOpts, paths);
+                var bundler = createBrowserify(browserBundler, rebuilder, optsRes, bundleOpts, paths);
                 var transforms = _createTransforms(bundler);
                 compileBundle(transforms, bundler, bundleOpts, paths.dstDir, _bundleSourceCreator, _listeners);
             },
@@ -95,13 +95,13 @@ var BundleBuilder;
     }
     BundleBuilder.buildBundler = buildBundler;
     /** Sets up options and paths and creates a new Browserify instance
-     * @param browserify the browserify constructor to use
-     * @param rebuilder optional browserify plugin to use if 'bundleOpts.rebuild' is true
-     * @param customOpts custom browserify/browser-pack constructor options in addition to the 'bundleOpts' parameter already provided, can be null
-     * @param bundleOpts options used to help construct the browserify/browser-pack constructor options
+     * @param browserBundler the browser-bundler constructor to use
+     * @param rebuilder optional browser-bundler plugin to use if 'bundleOpts.rebuild' is true
+     * @param customOpts custom browser-bundler/browser-pack constructor options in addition to the 'bundleOpts' parameter already provided, can be null
+     * @param bundleOpts options used to help construct the browser-bundler/browser-pack constructor options
      * @param paths code input/output paths for the bundle compiler
      */
-    function createBrowserify(browserify, rebuilder, customOpts, bundleOpts, paths) {
+    function createBrowserify(browserBundler, rebuilder, customOpts, bundleOpts, paths) {
         // setup browserify/browser-pack options
         var defaultOpts = {
             debug: bundleOpts.debug,
@@ -112,7 +112,7 @@ var BundleBuilder;
         // setup bundler options
         var plugins = bundleOpts.rebuild ? [rebuilder] : [];
         var bundlerOpts = BrowserifyHelper.createOptions(Object.assign(defaultOpts, paths), plugins);
-        return new browserify(bundlerOpts);
+        return new browserBundler(bundlerOpts);
     }
     BundleBuilder.createBrowserify = createBrowserify;
 })(BundleBuilder || (BundleBuilder = {}));

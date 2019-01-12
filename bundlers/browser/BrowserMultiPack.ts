@@ -99,7 +99,7 @@ module BrowserMultiPack {
      */
     export function overrideBrowserifyPack(
         bundleBldr: BundleBuilder.Builder<browserify.BrowserifyObject>,
-        _browserify: browserify.BrowserifyConstructor,
+        _browserify: { _bpack: any; prototype: { _createPipeline(opts: any): any } },
         getMultiBundleOpts: () => MultiBundleOptions
     ) {
         var origCreatePipeline = _browserify.prototype["_createPipeline"];

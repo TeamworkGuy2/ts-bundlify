@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.8.3](N/A) - 2019-10-12
+### [0.8.4](N/A) - 2019-01-12
+#### Changed
+* `BrowserMultiPack.overrideBrowserifyPack()` `_browserify` parameter type simplified
+* `BundleBuilder` `buildBundler()` and `createBrowserify()` `browserify` parameters renamed `browserBundler` and types are more generic now to make it easier to use `TsBrowserify` with them
+
+#### Fixed
+* `TsBrowserify` compile errors using certain TypeScript settings
+
+
+--------
+### [0.8.3](https://github.com/TeamworkGuy2/ts-bundlify/commit/e472bd3cac51552656e464a2ffcc6d7568907f5c) - 2019-01-12
 #### Changed
 * Modified `package.json` dependencies to use `^` for versions to allow projects which depend on this project to specify their own minor.patch version
 * Adjusted TsBrowserify constructor to work with one argument
