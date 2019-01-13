@@ -36,14 +36,13 @@ var TsBrowserify = /** @class */ (function (_super) {
     __extends(TsBrowserify, _super);
     function TsBrowserify(files, options) {
         var _this = _super.call(this) || this;
-        if (options == null) {
-            var fileOpts = files;
-            if (fileOpts.insertModuleGlobals != null || fileOpts.moduleDeps != null || fileOpts.basedir != null) {
-                options = fileOpts;
-            }
-        }
+        options = (options != null ? options : files);
         if (options == null)
             throw new Error("'options' is required");
+        if (options.browserPack == null)
+            throw new Error("'options.browserPack' is required");
+        if (options.depsSort == null)
+            throw new Error("'options.depsSort' is required");
         if (options.insertModuleGlobals == null)
             throw new Error("'options.insertModuleGlobals' is required");
         if (options.moduleDeps == null)

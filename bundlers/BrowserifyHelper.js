@@ -10,16 +10,16 @@ var BrowserifyHelper;
      * Default options are:
      *   extensions: [".js", ".jsx"]
      *   entries: [opts.entryFile]
-     * @param opts the options to use
+     * @param opts the browser-bundler options to use
+     * @param paths the default paths to use
      * @param plugins an optional list of browserify plugins
      */
-    function createOptions(opts, plugins) {
-        opts = opts || {};
+    function createOptions(opts, paths, plugins) {
         var defaults = {
             debug: opts.debug,
-            entries: opts.entries || [opts.entryFile],
+            entries: opts.entries || [paths.entryFile],
             extensions: opts.extensions || [".js", ".jsx"],
-            paths: opts.srcPaths,
+            paths: paths.srcPaths,
             plugin: plugins || [],
             cache: opts.cache || {},
             packageCache: opts.packageCache || {},
@@ -28,7 +28,8 @@ var BrowserifyHelper;
     }
     BrowserifyHelper.createOptions = createOptions;
     /** Setup a browserify/watchify rebundler given an intial stream and further stream transforms.
-     * This method does roughly the equivalent of bundler.pipe(...).pipe(...).pipe..., as well as adding a bundler.on('update', ...) listener which re-runs the bundler piping process whenever bundle updates are detected.
+     * This method does roughly the equivalent of bundler.pipe(...).pipe(...).pipe..., as well as adding
+     * a bundler.on('update', ...) listener which re-runs the bundler piping process whenever bundle updates are detected.
      * The major reason to use this method instead of hand rolling the pipe() calls is the detailed error handling this method adds to each pipe() step.
      *
      * @param rebuildOnSrcChange flag indicating whether bundle should watch filesystem for changes and rebuild on change
@@ -92,9 +93,9 @@ var BrowserifyHelper;
                     if (listeners.finishAll) {
                         tryCall(listeners.finishAll, {
                             buildMsg: buildMsg,
-                            totalTimeMs: endTime - startTime,
-                            builtBundles: doneFiles.map(function (f) { return ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) }); }),
-                            skippedBundles: skippedFiles.map(function (f) { return ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) }); }),
+                            totalTimeMillis: endTime - startTime,
+                            builtBundles: doneFiles.map(function (f) { return ({ fileName: f, timeMillis: (endTimes[f] - startTimes[f]) }); }),
+                            skippedBundles: skippedFiles.map(function (f) { return ({ fileName: f, timeMillis: (endTimes[f] - startTimes[f]) }); }),
                         });
                     }
                 }
@@ -162,27 +163,10 @@ var BrowserifyHelper;
             i++;
         };
         var i = 0;
-        function runFuncResultToBuffer(chunk, append, func) {
-            if (func != null) {
-                var res = func(chunk);
-                if (res != null) {
-                    if (Buffer.isBuffer(res)) {
-                        chunk = res;
-                    }
-                    else {
-                        var bufs = [append ? chunk : Buffer.from(res), append ? Buffer.from(res) : chunk];
-                        chunk = Buffer.concat(bufs);
-                    }
-                }
-                return chunk;
-            }
-            return undefined;
-        }
         return new SimpleStreamView();
     }
     BrowserifyHelper.createStreamTransformer = createStreamTransformer;
-    /** Given a set of 'options' type objects used by many constructors, create a shallow copy, left-to-right, of the non-null objects, or return the non-null object if only one non-null parameter is provided
-     * @param opts the 'options' objects
+    /** Given a set of 'options' objects, create a shallow copy, left-to-right, of the non-null objects, or return the non-null object if only one non-null parameter is provided
      */
     function combineOpts() {
         var opts = [];
@@ -223,6 +207,22 @@ var BrowserifyHelper;
         catch (err) {
             console.error("error calling '" + (func != null ? func.name : null) + "'", err);
         }
+    }
+    function runFuncResultToBuffer(chunk, append, func) {
+        if (func != null) {
+            var res = func(chunk);
+            if (res != null) {
+                if (Buffer.isBuffer(res)) {
+                    chunk = res;
+                }
+                else {
+                    var bufs = [append ? chunk : Buffer.from(res), append ? Buffer.from(res) : chunk];
+                    chunk = Buffer.concat(bufs);
+                }
+            }
+            return chunk;
+        }
+        return undefined;
     }
     function isPromise(p) {
         return p != null && typeof p.then === "function";

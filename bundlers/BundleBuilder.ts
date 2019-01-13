@@ -17,19 +17,19 @@ type BrowserifyTransform = BrowserifyHelper.BrowserifyTransform;
 module BundleBuilder {
 
 
-    /** A function which bundles/builds/compiles a browserify bundler
+    /** A function which bundles/builds/compiles a bundler
      */
-    export interface BrowserifyCompileFunc {
+    export interface CompileFunc<T> {
         /**
-         * @param transforms array of browserify.transform() options and transformation functions
-         * @param bundler the browserify instance
+         * @param transforms array of transform() options and transformation functions
+         * @param bundler the browser-bundler instance
          * @param bundleOpts general bundle build options
          * @param dstDir the directory to write output bundle files to
-         * @param bundleSourceCreator a function which takes the browserify instance and an optional browserify.on('update' ...) event and creates a MultiBundleStreams result
+         * @param bundleSourceCreator a function which takes the bundler instance and an optional on('update' ...) event and creates a MultiBundleStreams result
          * @param listeners optional listener functions that are called when various compilation events occur, including finishAll() which is called with stats when the bundle build proces finishes
          */
-        (transforms: BrowserifyTransform[], bundler: BrowserifyObject, bundleOpts: BundleOptions, dstDir: string,
-            bundleSourceCreator: BundleSourceCreator<BrowserifyObject>, listeners: BrowserifyHelper.BuildListeners): void;
+        (transforms: BrowserifyTransform[], bundler: T, bundleOpts: BundleOptions, dstDir: string,
+            bundleSourceCreator: BundleSourceCreator<T>, listeners: BrowserifyHelper.BuildListeners): void;
     }
 
 
@@ -71,9 +71,9 @@ module BundleBuilder {
     }
 
 
-    /** The advanced no-helper version of '.buildBundler().compileBundle()'.  Builds/compiles source files into a single output bundle JS file using 'babelify'
+    /** The advanced version of '.buildBundler().compileBundle()'. Builds/compiles source files into a single output bundle JS file using the provided 'bundler'.
      * @param transforms an array of options and functions to pass to browserify.transform()
-     * @param bundler the browserify instance to use for bundling
+     * @param bundler the browser-bundler instance to use for bundling
      * @param bundleOpts options for building the bundles
      * @param dstDir the directory to write output bundle files to
      * @param bundleSourceCreator function which creates a MultiBundleStreams object containing Node 'ReadableStream' objects for the source and bundles
@@ -99,36 +99,37 @@ module BundleBuilder {
     }
 
 
-    /** Create a Browserify bundle builder using the provided options, paths, and bundle stream compiler.
-     * Handles waiting for a promise, then building 'browserify' options, creating an instance of browserify, running a bundle compiler, and waiting for the result.
-     * @param browserify the browserify constructor to use
-     * @param rebuilder the browserify plugin to use if 'bundleOpts.rebuild' is true (normally watchify)
-     * @param bundleOpts options for how to compile the bundle, are used to build browserify and are also passed along to the compileBundle function
+    /** Create a browser bundle builder using the provided options, paths, and bundle stream compiler.
+     * Handles waiting for a promise, then creating options, creating an instance of 'browserBundler', running a bundle compiler, and waiting for the result.
+     * @param browserBundler function which creates the browser-bundler to use (normally browserify)
+     * @param rebuilder the options 'plugin' to pass to 'browserBundler' if 'bundleOpts.rebuild' is true (normally watchify)
+     * @param bundleOpts options for how to compile the bundle, these are also passed along to 'compileBundle()'
      * @param compileBundle a function which takes a bundler, options, paths, and a bundle stream creator and compiles the bundle
-     * @param optsModifier optional, function which can modify the Browserify and browserPack options before they are passed to the browserify constructor
+     * @param optsModifier optional, function which can modify the browserBundler and browserPack options before they are passed to 'browserBundler' at the beginning of each 'compileBundle()' call
      */
-    export function buildBundler(
-        browserBundler: { new(opts: browserify.Options): browserify.BrowserifyObject },
-        rebuilder: (b: browserify.BrowserifyObject, opts?: any) => browserify.BrowserifyObject,
+    export function buildBundler<TBundler extends { bundle(): NodeJS.ReadableStream }, TOptions>(
+        browserBundler: (opts: TOptions) => TBundler,
+        rebuilder: (b: TBundler, opts?: any) => TBundler,
         bundleOpts: BundleOptions,
-        compileBundle: BrowserifyCompileFunc,
-        optsModifier?: (opts: browserify.Options & browserPack.Options & { typescriptHelpers?: string }) => void
-    ): Builder<BrowserifyObject> {
-        var optsRes: browserify.Options & browserPack.Options & { typescriptHelpers?: string } = <any>{};
+        compileBundle: CompileFunc<TBundler>,
+        optsModifier?: (opts: TOptions & { debug?: boolean; prelude?: string; typescriptHelpers?: string }) => void
+    ): Builder<TBundler> {
+        var customOpts: TOptions & { debug?: boolean; prelude?: string; typescriptHelpers?: string } = <any>{ debug: bundleOpts.debug };
 
         if (bundleOpts.typescript != null && bundleOpts.typescript.includeHelpers) {
             var res = TypeScriptHelper.createPreludeStringWithTypeScriptHelpers(bundleOpts.typescript.includeHelpersComment != false);
-            optsRes = {
+            customOpts = <any>{
+                debug: bundleOpts.debug,
                 prelude: res.preludeSrc,
                 typescriptHelpers: res.typeScriptHelpers
             };
         }
 
-        var _createTransforms = (bundler: BrowserifyObject): BrowserifyTransform[] => [];
-        var _bundleSourceCreator: BundleSourceCreator<BrowserifyObject>;
+        var _createTransforms = (bundler: TBundler): BrowserifyTransform[] => [];
+        var _bundleSourceCreator: BundleSourceCreator<TBundler>;
         var _listeners: BrowserifyHelper.BuildListeners;
 
-        var inst: Builder<BrowserifyObject> = {
+        var inst: Builder<TBundler> = {
 
             setBundleSourceCreator: (bundleSourceCreator) => {
                 _bundleSourceCreator = bundleSourceCreator;
@@ -147,7 +148,7 @@ module BundleBuilder {
 
             compileBundle: (paths, defaultBundleOpts) => {
                 if (optsModifier != null) {
-                    optsModifier(optsRes);
+                    optsModifier(customOpts);
                 }
                 if (_bundleSourceCreator == null) {
                     if (defaultBundleOpts == null) {
@@ -166,36 +167,18 @@ module BundleBuilder {
                         };
                     };
                 }
-                var bundler = createBrowserify(browserBundler, rebuilder, optsRes, bundleOpts, paths);
+
+                // setup browser-bundler/browser-pack options
+                var plugins = bundleOpts.rebuild ? [rebuilder] : [];
+                var bundlerOpts = BrowserifyHelper.createOptions(customOpts, paths, plugins);
+
+                var bundler = browserBundler(bundlerOpts);
+
                 var transforms = _createTransforms(bundler);
                 compileBundle(transforms, bundler, bundleOpts, paths.dstDir, _bundleSourceCreator, _listeners);
             },
         };
         return inst;
-    }
-
-
-    /** Sets up options and paths and creates a new Browserify instance
-     * @param browserBundler the browser-bundler constructor to use
-     * @param rebuilder optional browser-bundler plugin to use if 'bundleOpts.rebuild' is true
-     * @param customOpts custom browser-bundler/browser-pack constructor options in addition to the 'bundleOpts' parameter already provided, can be null
-     * @param bundleOpts options used to help construct the browser-bundler/browser-pack constructor options
-     * @param paths code input/output paths for the bundle compiler
-     */
-    export function createBrowserify<R>(browserBundler: { new(opts: browserify.Options): R }, rebuilder: (b: BrowserifyObject, opts?: any) => BrowserifyObject,
-            customOpts: browserify.Options & browserPack.Options, bundleOpts: BundleOptions, paths: CodePaths): R {
-        // setup browserify/browser-pack options
-        var defaultOpts: browserify.Options & browserPack.Options = {
-            debug: bundleOpts.debug,
-        };
-        if (customOpts != null) {
-            defaultOpts = Object.assign(defaultOpts, customOpts);
-        }
-
-        // setup bundler options
-        var plugins = bundleOpts.rebuild ? [rebuilder] : [];
-        var bundlerOpts = BrowserifyHelper.createOptions(Object.assign(defaultOpts, paths), plugins);
-        return new browserBundler(bundlerOpts);
     }
 
 }

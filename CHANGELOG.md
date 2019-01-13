@@ -4,7 +4,23 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.8.4](N/A) - 2019-01-12
+### [0.9.0](N/A) - 2019-01-12
+#### Changed
+* Cleaned up some documentation, change 'browserify' to 'browser-bundler'
+* Make `BundleBuilder` more generic to handle `browserify` and `TsBrowserify`:
+  * Renamed interface `BrowserifyCompileFunc` -> `CompileFunc<T>`
+  * `buildBundler()` parameters now generic and `browserBundler` parameter now expected to be a function, not a constructor
+* `BrowserifyHelper` changed `BuildResults` `totalTimeMs` -> `totalTimeMillis` and `FileBundleResults` `timeMs` -> `timeMillis`
+
+#### Fixed
+* `TsBrowserify` constructor still not working with one argument
+
+#### Removed
+* `BundleBuilder.createBrowserify()` (simplified and moved the code into `buildBundler()`)
+
+
+--------
+### [0.8.4](https://github.com/TeamworkGuy2/ts-bundlify/commit/714874b086ca77df220a6469cffb167eb30590e8) - 2019-01-12
 #### Changed
 * `BrowserMultiPack.overrideBrowserifyPack()` `_browserify` parameter type simplified
 * `BundleBuilder` `buildBundler()` and `createBrowserify()` `browserify` parameters renamed `browserBundler` and types are more generic now to make it easier to use `TsBrowserify` with them

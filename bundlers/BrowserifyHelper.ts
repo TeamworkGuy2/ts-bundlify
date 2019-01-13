@@ -51,7 +51,7 @@ module BrowserifyHelper {
 
     export interface BuildResults {
         buildMsg: string;
-        totalTimeMs: number;
+        totalTimeMillis: number;
         builtBundles: FileBundleResults[];
         skippedBundles: FileBundleResults[];
     }
@@ -59,7 +59,7 @@ module BrowserifyHelper {
 
     export interface FileBundleResults {
         fileName: string;
-        timeMs: number;
+        timeMillis: number;
     }
 
 
@@ -67,17 +67,16 @@ module BrowserifyHelper {
      * Default options are:
      *   extensions: [".js", ".jsx"]
      *   entries: [opts.entryFile]
-     * @param opts the options to use
+     * @param opts the browser-bundler options to use
+     * @param paths the default paths to use
      * @param plugins an optional list of browserify plugins
      */
-    export function createOptions(opts: CodePaths & { debug?: boolean; cache?: any; packageCache?: any; } & browserify.Options & browserPack.Options, plugins?: any[]): browserify.Options {
-        opts = opts || <any>{};
-
-        var defaults: browserify.Options = {
+    export function createOptions<T extends { debug?: boolean; cache?: any; entries?: any; extensions?: string[]; packageCache?: any }>(opts: T, paths: CodePaths, plugins?: any[]) {
+        var defaults = {
             debug: opts.debug,
-            entries: opts.entries || [opts.entryFile],
+            entries: opts.entries || [paths.entryFile],
             extensions: opts.extensions || [".js", ".jsx"],
-            paths: opts.srcPaths,
+            paths: paths.srcPaths,
             plugin: plugins || [],
             cache: opts.cache || {},
             packageCache: opts.packageCache || {},
@@ -87,7 +86,8 @@ module BrowserifyHelper {
 
 
     /** Setup a browserify/watchify rebundler given an intial stream and further stream transforms.
-     * This method does roughly the equivalent of bundler.pipe(...).pipe(...).pipe..., as well as adding a bundler.on('update', ...) listener which re-runs the bundler piping process whenever bundle updates are detected.
+     * This method does roughly the equivalent of bundler.pipe(...).pipe(...).pipe..., as well as adding
+     * a bundler.on('update', ...) listener which re-runs the bundler piping process whenever bundle updates are detected.
      * The major reason to use this method instead of hand rolling the pipe() calls is the detailed error handling this method adds to each pipe() step.
      *
      * @param rebuildOnSrcChange flag indicating whether bundle should watch filesystem for changes and rebuild on change
@@ -158,9 +158,9 @@ module BrowserifyHelper {
                     if (listeners.finishAll) {
                         tryCall(listeners.finishAll, {
                             buildMsg,
-                            totalTimeMs: endTime - startTime,
-                            builtBundles: doneFiles.map((f) => ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) })),
-                            skippedBundles: skippedFiles.map((f) => ({ fileName: f, timeMs: (endTimes[f] - startTimes[f]) })),
+                            totalTimeMillis: endTime - startTime,
+                            builtBundles: doneFiles.map((f) => ({ fileName: f, timeMillis: (endTimes[f] - startTimes[f]) })),
+                            skippedBundles: skippedFiles.map((f) => ({ fileName: f, timeMillis: (endTimes[f] - startTimes[f]) })),
                         });
                     }
                 }
@@ -251,29 +251,11 @@ module BrowserifyHelper {
 
         var i = 0;
 
-        function runFuncResultToBuffer(chunk: Buffer, append: boolean, func: ((buf?: Buffer) => void | string | Buffer) | null | undefined): Buffer | undefined {
-            if (func != null) {
-                var res = func(chunk);
-                if (res != null) {
-                    if (Buffer.isBuffer(res)) {
-                        chunk = <Buffer>res;
-                    }
-                    else {
-                        var bufs = [append ? chunk : Buffer.from(<string>res), append ? Buffer.from(<string>res) : chunk];
-                        chunk = Buffer.concat(bufs);
-                    }
-                }
-                return chunk;
-            }
-            return undefined;
-        }
-
         return <stream.Transform>new (<any>SimpleStreamView)();
     }
 
 
-    /** Given a set of 'options' type objects used by many constructors, create a shallow copy, left-to-right, of the non-null objects, or return the non-null object if only one non-null parameter is provided
-     * @param opts the 'options' objects
+    /** Given a set of 'options' objects, create a shallow copy, left-to-right, of the non-null objects, or return the non-null object if only one non-null parameter is provided
      */
     export function combineOpts(...opts: any[]) {
         var validOpts: any[] = [];
@@ -308,6 +290,24 @@ module BrowserifyHelper {
         } catch (err) {
             console.error("error calling '" + (func != null ? func.name : null) + "'", err);
         }
+    }
+
+
+    function runFuncResultToBuffer(chunk: Buffer, append: boolean, func: ((buf?: Buffer) => void | string | Buffer) | null | undefined): Buffer | undefined {
+        if (func != null) {
+            var res = func(chunk);
+            if (res != null) {
+                if (Buffer.isBuffer(res)) {
+                    chunk = <Buffer>res;
+                }
+                else {
+                    var bufs = [append ? chunk : Buffer.from(<string>res), append ? Buffer.from(<string>res) : chunk];
+                    chunk = Buffer.concat(bufs);
+                }
+            }
+            return chunk;
+        }
+        return undefined;
     }
 
 
