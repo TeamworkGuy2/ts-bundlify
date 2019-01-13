@@ -159,7 +159,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
         if (isArray(file)) {
             file.forEach(function (x) {
                 if (typeof x === "object") {
-                    self.require(x.file, xtend(opts, x));
+                    self.require(x.file, xtend({}, opts, x));
                 }
                 else self.require(x, opts);
             });
@@ -209,14 +209,14 @@ class TsBrowserify extends EventEmitter.EventEmitter {
 
         var row: RowLike;
         if (typeof file === "object") {
-            row = xtend(file, opts);
+            row = xtend({}, file, opts);
         }
         else if (!opts.entry && isExternalModule(file)) {
             // external module or builtin
-            row = xtend(opts, { id: expose || file, file: file });
+            row = xtend({}, opts, { id: expose || file, file: file });
         }
         else {
-            row = xtend(opts, { file: path.resolve(basedir, file) });
+            row = xtend({}, opts, { file: path.resolve(basedir, file) });
         }
 
         if (!row.id) {
@@ -259,7 +259,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
         if (isArray(file)) {
             file.forEach(function (f) {
                 if (typeof f === "object") {
-                    self.external(f, xtend(opts, f));
+                    self.external(f, xtend({}, opts, f));
                 }
                 else self.external(f, opts)
             });
@@ -282,7 +282,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
             });
 
             b.pipeline.get("deps").push(through.obj(function (row, enc, next) {
-                bdeps = xtend(bdeps, row.deps);
+                bdeps = xtend({}, bdeps, row.deps);
                 this.push(row);
                 next();
             }));
@@ -456,7 +456,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
             dedupe: opts.dedupe,
             expose: this._expose
         };
-        this._bpack = opts.browserPack(xtend(opts, { raw: true }));
+        this._bpack = opts.browserPack(xtend({}, opts, { raw: true }));
 
         var pipeline = splicer.obj([
             "record", [this._recorder()],
@@ -495,7 +495,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
 
     public _createDepsOpts(opts: CreateDepsOptions) {
         var self = this;
-        var mopts: mdeps.Options = xtend(opts);
+        var mopts: mdeps.Options = xtend({}, opts);
         var basedir = defined(opts.basedir, process.cwd());
 
         // Let mdeps populate these values since it will be resolving file paths anyway.
@@ -584,7 +584,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
         else if (opts.builtins && typeof opts.builtins === "object") {
             mopts.modules = opts.builtins;
         }
-        else mopts.modules = xtend(TsBrowserify.builtins);
+        else mopts.modules = xtend({}, TsBrowserify.builtins);
 
         Object.keys(TsBrowserify.builtins).forEach(function (key) {
             if (!has(mopts.modules, key)) self._exclude.push(key);
@@ -648,7 +648,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
                 vars.buffer = undefined;
             }
 
-            return opts.insertModuleGlobals(file, xtend(opts, {
+            return opts.insertModuleGlobals(file, xtend({}, opts, {
                 debug: opts.debug,
                 always: opts.insertGlobals,
                 basedir: opts.commondir === false && isArray(opts.builtins)
@@ -838,7 +838,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
 
     public reset(opts: CreatePipelineOptions) {
         var hadExports = this._bpack.hasExports;
-        this.pipeline = this._createPipeline(xtend(opts, this._options));
+        this.pipeline = this._createPipeline(xtend({}, opts, this._options));
         this._bpack.hasExports = hadExports;
         this._entryOrder = 0;
         this._bundled = false;

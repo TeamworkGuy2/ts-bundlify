@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.9.2](N/A) - 2019-01-12
+### [0.9.3](N/A) - 2019-01-12
+#### Fixed
+* `TsBrowserify` xtend() calls not correctly creating new objects
+
+
+--------
+### [0.9.2](https://github.com/TeamworkGuy2/ts-bundlify/commit/02737880b5ce398af3dead01475212aa1e7d4d60) - 2019-01-12
 #### Changed
 * `BrowserMultiPack` fully generic now, `browserify` changed to `bundler`
 * `BrowserifyHelper.setupRebundleListener()` no longer using browserify interfaces, generic
