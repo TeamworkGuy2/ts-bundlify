@@ -86,18 +86,18 @@ var BrowserMultiPack;
     /** Override browserify's standard 'pack' pipeline step with a custom 'browser-pack' implementation that writes to multiple output bundles.
      * This requires overwriting browserif.prototype._createPipeline() and setting the 'bundleBldr' setBundleSourceCreator() callback
      * @param bundleBldr the bundle builder to modify
-     * @param _browserify the browserify instance to modify to output multiple bundle streams
+     * @param _bundler the browserify instance to modify to output multiple bundle streams
      * @param getMultiBundleOpts a function which returns a MultiBundleOptions object containing the options to build the bundle streams.
      * This function gets called when browserify.bundle() is called, which happens right at the beginning of BundleBuilder.compileBundle() (which calls BrowserifyHelper.setupRebundleListener())
      * @param getOpts options related to setting up the bundle streams
      */
-    function overrideBrowserifyPack(bundleBldr, _browserify, getMultiBundleOpts) {
-        var origCreatePipeline = _browserify.prototype["_createPipeline"];
+    function overrideBrowserifyPack(bundleBldr, _bundler, getMultiBundleOpts) {
+        var origCreatePipeline = _bundler.prototype["_createPipeline"];
         var newBpack;
         var updateDeps = null;
         // Override browserify._createPipeline() to replace the 'pack' pipeline step with a custom browser-pack implementation
         // gets called when browserify instance is created or when reset() or bundle() are called
-        _browserify.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(createPipeOpts) {
+        _bundler.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(createPipeOpts) {
             var pipeline = origCreatePipeline.call(this, createPipeOpts);
             var packPipe = pipeline.get("pack");
             var oldBpack = packPipe.pop();
@@ -109,11 +109,11 @@ var BrowserMultiPack;
             return pipeline;
         };
         // Consume the browserify bundle and return the multiple pack bundles
-        bundleBldr.setBundleSourceCreator(function multiBundleStreamCreator(browserify, updateEvent) {
+        bundleBldr.setBundleSourceCreator(function multiBundleStreamCreator(bundler, updateEvent) {
             if (updateEvent != null) {
                 updateDeps = Object.keys(updateEvent).map(function (k) { return updateEvent[k]; });
             }
-            var brwsBundle = browserify.bundle();
+            var brwsBundle = bundler.bundle();
             var res = [];
             // When the bundle stream has available data, read it so that the stream ends
             brwsBundle.on("readable", function () {

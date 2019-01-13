@@ -1,17 +1,14 @@
 ﻿import log = require("fancy-log");
 import stream = require("stream");
 import util = require("util");
-import browserify = require("browserify");
 import Q = require("q");
-import LogUtil = require("../utils/LogUtil");
-import TypeScriptHelper = require("./TypeScriptHelper");
 
 /** Helpers for building JS bundles using 'browserify'
  */
 module BrowserifyHelper {
 
     export interface BrowserifyTransform {
-        transform: (file: string, opts: { basedir?: string }) =>  NodeJS.ReadWriteStream;
+        transform(file: string, opts: { basedir?: string }): NodeJS.ReadWriteStream;
         options: any;
     }
 
@@ -97,10 +94,14 @@ module BrowserifyHelper {
      * @param additionalStreamPipes further transformations (i.e. [ (prevSrc) => prevSrc.pipe(vinyleSourceStream(...), (prevSrc) => prevSrc.pipe(gulp.dest(...)) ])
      * @param listeners various optional functions to call when bundle compile steps are completed, including a finishAll() function which passes back an object with stats about all the compiled bundles
      */
-    export function setupRebundleListener(rebuildOnSrcChange: boolean, verbose: boolean, bundler: browserify.BrowserifyObject,
-            getSourceStreams: (bundler: browserify.BrowserifyObject, updateEvent?: { [key: string]: any } | { [key: number]: any }) => MultiBundleStreams,
-            additionalStreamPipes: [string, (prevStream: NodeJS.ReadableStream, streamOpts: BundleDst) => NodeJS.ReadableStream][],
-            listeners: BuildListeners) {
+    export function setupRebundleListener<TBundler extends { on(event: "update", cb: (evt?: any) => void): void; pipeline: { on(event: "error", cb: (err?: any) => void): void } }>(
+        rebuildOnSrcChange: boolean,
+        verbose: boolean,
+        bundler: TBundler,
+        getSourceStreams: (bundler: TBundler, updateEvent?: { [key: string]: any } | { [key: number]: any }) => MultiBundleStreams,
+        additionalStreamPipes: [string, (prevStream: NodeJS.ReadableStream, streamOpts: BundleDst) => NodeJS.ReadableStream][],
+        listeners: BuildListeners
+    ) {
         listeners = listeners || <BuildListeners>{};
 
         function rebundle(updateEvent?: any) {

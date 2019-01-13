@@ -5,7 +5,6 @@ import vinylSourceStream = require("vinyl-source-stream");
 import BrowserifyHelper = require("./BrowserifyHelper");
 import TypeScriptHelper = require("./TypeScriptHelper");
 
-type BrowserifyObject = browserify.BrowserifyObject;
 type BrowserifyTransform = BrowserifyHelper.BrowserifyTransform;
 
 
@@ -14,6 +13,14 @@ type BrowserifyTransform = BrowserifyHelper.BrowserifyTransform;
  *   "browserify": "~14.3.0",
  */
 module BundleBuilder {
+
+    /** The basic shape of a browserify like object needed by this module
+     */
+    export interface BasicBundler {
+        transform(transform: (file: string, opts: { basedir?: string }) => NodeJS.ReadWriteStream, opts: any): any;
+        on(event: "update", cb: (evt?: any) => void): void;
+        pipeline: { on(event: "error", cb: (err?: any) => void): void; }
+    }
 
 
     /** A function which bundles/builds/compiles a bundler
@@ -77,8 +84,14 @@ module BundleBuilder {
      * @param dstDir the directory to write output bundle files to
      * @param bundleSourceCreator function which creates a MultiBundleStreams object containing Node 'ReadableStream' objects for the source and bundles
      */
-    export function compileBundle(transforms: BrowserifyHelper.BrowserifyTransform[], bundler: BrowserifyObject, bundleOpts: BundleOptions, dstDir: string,
-            bundleSourceCreator: BundleSourceCreator<BrowserifyObject>, listeners: BrowserifyHelper.BuildListeners): void {
+    export function compileBundle<TBundler extends BasicBundler>(
+        transforms: BrowserifyTransform[],
+        bundler: TBundler,
+        bundleOpts: BundleOptions,
+        dstDir: string,
+        bundleSourceCreator: BundleSourceCreator<TBundler>,
+        listeners: BrowserifyHelper.BuildListeners
+    ): void {
 
         for (var i = 0, size = transforms.length; i < size; i++) {
             var transform = transforms[i];
