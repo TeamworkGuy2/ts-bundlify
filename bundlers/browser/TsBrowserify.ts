@@ -19,83 +19,11 @@ import shasum = require("shasum");
 import syntaxError = require("syntax-error");
 import through = require("through2");
 
-interface RequireOptions {
-    basedir?: string;
-    entry?: boolean | string;
-    expose?: boolean | string;
-    external?: boolean;
-    file?: string;
-    transform?: boolean;
-}
-
-interface CreateDepsOptions extends mdeps.Options {
-    /** 'insert-module-globals@7.2.0' or equivalent */
-    insertModuleGlobals: typeof insertGlobals;
-
-    basedir?: string;
-    bundleExternal?: boolean;
-    builtins?: any;
-    commondir?: boolean;
-    debug?: boolean;
-    detectGlobals?: boolean;
-    extensions?: string[];
-    filter?: (id: any) => boolean;
-    insertGlobals?: boolean;
-    insertGlobalVars?: insertGlobals.VarsOption;
-    noParse?: any;
-    postFilter?: (id: any, file: any, pkg: any) => boolean;
-    preserveSymlinks?: boolean;
-    transformKey?: string[];
-}
-
-interface CreatePipelineOptions extends CreateDepsOptions {
-    /** 'browser-pack@6.1.0' or equivalent to pack modules */
-    browserPack: (opts?: browserPack.Options) => NodeJS.ReadWriteStream;
-    /** 'deps-sort@2.0.0' or equivalent to sort dependency output order */
-    depsSort: (opts?: depsSort.Options) => stream.Transform;
-    /** 'module-deps@6.2.0' or equivalent to parse module dependencies */
-    moduleDeps: (opts: mdeps.Options) => mdeps.ModuleDepsObject;
-
-    basedir ?: string;
-    debug?: any;
-    dedupe?: boolean;
-    exposeAll?: any;
-    fullPaths?: boolean;
-}
-
-interface StreamLike {
-    pipe: (...args: any[]) => any;
-    [prop: string]: any;
-}
-
-interface RowLike {
-    id?: any;
-    file?: any;
-    expose?: any;
-    entry?: any;
-    order?: number;
-    transform?: boolean;
-    [prop: string]: any;
-}
-
-interface BrowserifyOptions extends CreatePipelineOptions {
-    /** 'browser-resolve@1.11.3' or equivalent resolve() algorithm */
-    browserResolve?: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
-
-    bare?: boolean;
-    basedir?: string;
-    browserField?: boolean;
-    dedupe?: boolean;
-    entries?: any;
-    ignoreTransform?: any;
-    node?: boolean;
-    noParse?: any;
-    paths?: string[];
-    plugin?: any;
-    require?: any;
-    transform?: any;
-    [prop: string]: any;
-}
+type CreateDepsOptions = TsBrowserify.CreateDepsOptions;
+type CreatePipelineOptions = TsBrowserify.CreatePipelineOptions;
+type RowLike = TsBrowserify.RowLike;
+type RequireOptions = TsBrowserify.RequireOptions;
+type StreamLike = TsBrowserify.StreamLike;
 
 
 var lastCwd = process.cwd()
@@ -113,7 +41,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     };
 
     _bundled: boolean;
-    _options: BrowserifyOptions;
+    _options: TsBrowserify.Options;
     _extensions: string[];
     _external: any[];
     _exclude: any[];
@@ -135,11 +63,11 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     pipeline: splicer.Pipeline;
 
 
-    constructor(opts: BrowserifyOptions);
-    constructor(files: any, opts: BrowserifyOptions);
-    constructor(files: any, options?: BrowserifyOptions) {
+    constructor(opts: TsBrowserify.Options);
+    constructor(files: any, opts: TsBrowserify.Options);
+    constructor(files: any, options?: TsBrowserify.Options) {
         super();
-        options = (options != null ? options : <BrowserifyOptions>files);
+        options = (options != null ? options : <TsBrowserify.Options>files);
         if (options == null) throw new Error("'options' is required");
         if (options.browserPack == null) throw new Error("'options.browserPack' is required");
         if (options.depsSort == null) throw new Error("'options.depsSort' is required");
@@ -1061,6 +989,88 @@ function xtend(...args: any[]) {
     }
 
     return target;
+}
+
+module TsBrowserify {
+
+    export interface RequireOptions {
+        basedir?: string;
+        entry?: boolean | string;
+        expose?: boolean | string;
+        external?: boolean;
+        file?: string;
+        transform?: boolean;
+    }
+
+    export interface CreateDepsOptions extends mdeps.Options {
+        /** 'insert-module-globals@7.2.0' or equivalent */
+        insertModuleGlobals: typeof insertGlobals;
+
+        basedir?: string;
+        bundleExternal?: boolean;
+        builtins?: any;
+        commondir?: boolean;
+        debug?: boolean;
+        detectGlobals?: boolean;
+        extensions?: string[];
+        filter?: (id: any) => boolean;
+        insertGlobals?: boolean;
+        insertGlobalVars?: insertGlobals.VarsOption;
+        noParse?: any;
+        postFilter?: (id: any, file: any, pkg: any) => boolean;
+        preserveSymlinks?: boolean;
+        transformKey?: string[];
+    }
+
+    export interface CreatePipelineOptions extends CreateDepsOptions {
+        /** 'browser-pack@6.1.0' or equivalent to pack modules */
+        browserPack: (opts?: browserPack.Options) => NodeJS.ReadWriteStream;
+        /** 'deps-sort@2.0.0' or equivalent to sort dependency output order */
+        depsSort: (opts?: depsSort.Options) => stream.Transform;
+        /** 'module-deps@6.2.0' or equivalent to parse module dependencies */
+        moduleDeps: (opts: mdeps.Options) => mdeps.ModuleDepsObject;
+
+        basedir?: string;
+        debug?: any;
+        dedupe?: boolean;
+        exposeAll?: any;
+        fullPaths?: boolean;
+    }
+
+    export interface Options extends CreatePipelineOptions {
+        /** 'browser-resolve@1.11.3' or equivalent resolve() algorithm */
+        browserResolve?: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
+
+        bare?: boolean;
+        basedir?: string;
+        browserField?: boolean;
+        dedupe?: boolean;
+        entries?: any;
+        ignoreTransform?: any;
+        node?: boolean;
+        noParse?: any;
+        paths?: string[];
+        plugin?: any;
+        require?: any;
+        transform?: any;
+        [prop: string]: any;
+    }
+
+    export interface StreamLike {
+        pipe: (...args: any[]) => any;
+        [prop: string]: any;
+    }
+
+    export interface RowLike {
+        id?: any;
+        file?: any;
+        expose?: any;
+        entry?: any;
+        order?: number;
+        transform?: boolean;
+        [prop: string]: any;
+    }
+
 }
 
 export = TsBrowserify;

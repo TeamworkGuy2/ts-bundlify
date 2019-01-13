@@ -4,7 +4,6 @@ import vinylfs = require("vinyl-fs");
 import vinylSourceStream = require("vinyl-source-stream");
 import BrowserifyHelper = require("./BrowserifyHelper");
 import TypeScriptHelper = require("./TypeScriptHelper");
-import TsBrowserify = require("./browser/TsBrowserify");
 
 type BrowserifyObject = browserify.BrowserifyObject;
 type BrowserifyTransform = BrowserifyHelper.BrowserifyTransform;

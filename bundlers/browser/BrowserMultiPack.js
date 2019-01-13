@@ -104,7 +104,7 @@ var BrowserMultiPack;
             var multiBundleOpts = getMultiBundleOpts();
             var streamsToUpdate = bundlesToUpdate(multiBundleOpts, updateDeps);
             newBpack = BrowserMultiPack.createPackStreams(multiBundleOpts, streamsToUpdate);
-            this["_bpack"] = newBpack.baseStream;
+            this._bpack = newBpack.baseStream;
             packPipe.push(newBpack.baseStream);
             return pipeline;
         };

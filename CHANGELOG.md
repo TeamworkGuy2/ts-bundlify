@@ -4,7 +4,16 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.9.0](N/A) - 2019-01-12
+### [0.9.1](N/A) - 2019-01-12
+#### Changed
+* TsBrowserify` exposed interfaces: `CreateDepsOptions`, `CreatePipelineOptions`, `RowLike`, `RequireOptions`, `StreamLike`
+
+#### Fixed
+* `BrowserMultiPack.overrideBrowserifyPack()` `_browserify` parameter type incorrect
+
+
+--------
+### [0.9.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/4bd8c7896bb5bddf2ad390fc5f16e2b2250345a3) - 2019-01-12
 #### Changed
 * Cleaned up some documentation, change 'browserify' to 'browser-bundler'
 * Make `BundleBuilder` more generic to handle `browserify` and `TsBrowserify`:
