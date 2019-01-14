@@ -1,6 +1,15 @@
 "use strict";
 var StringUtil;
 (function (StringUtil) {
+    /** Count '\n' characters in the given string
+     */
+    function countNewlines(src) {
+        if (!src)
+            return 0;
+        var newlines = src.match(/\n/g);
+        return (newlines != null ? newlines.length : 0);
+    }
+    StringUtil.countNewlines = countNewlines;
     /** Add optional prefix and suffix strings to an array of strings as well as optional first line prefix and last line prefix to the first and last line
      * @return the input 'lines', now modified
      */

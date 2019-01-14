@@ -26,7 +26,7 @@ type RequireOptions = TsBrowserify.RequireOptions;
 type StreamLike = TsBrowserify.StreamLike;
 
 
-var lastCwd = process.cwd()
+var lastCwd = process.cwd();
 var cache: { [from: string]: { [to: string]: string } } = {};
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -40,6 +40,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
         empty: path.join(__dirname, "lib/_empty.js")
     };
 
+    /** whether bundle() has been called */
     _bundled: boolean;
     _options: TsBrowserify.Options;
     _extensions: string[];
@@ -50,14 +51,23 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     _expose: { [id: string]: string };
     _hashes: {};
     _pending: number;
+    /** used to track # of transform() calls and load async results into the '_transforms' array in the transform() call order */
     _transformOrder: number;
+    /** incremented and decremented when transform() gets called and the calls finish via the interal resolved() callback */
     _transformPending: number;
-    _transforms: any[];
+    _transforms: {
+        transform: string | ((file: string, opts: { basedir?: string }) => NodeJS.ReadWriteStream);
+        options: { _flags?: any; basedir?: string; global?: any };
+        global?: any;
+    }[];
+    /** used in 'require()' to name streams and set 'row.order' */
     _entryOrder: number;
+    /** whether '_recorder()' has been called and nextTick() has finished */
     _ticked: boolean;
-    _bresolve: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
+    /** tracks source file hashes from files with syntax errors */
     _syntaxCache: { [name: string]: boolean };
     _filterTransform: (tr: any) => boolean;
+    _bresolve: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
     _mdeps: mdeps.ModuleDepsObject;
     _bpack: NodeJS.ReadWriteStream & { hasExports?: boolean; standaloneModule?: any };
     pipeline: splicer.Pipeline;
@@ -73,8 +83,8 @@ class TsBrowserify extends EventEmitter.EventEmitter {
         if (options.depsSort == null) throw new Error("'options.depsSort' is required");
         if (options.insertModuleGlobals == null) throw new Error("'options.insertModuleGlobals' is required");
         if (options.moduleDeps == null) throw new Error("'options.moduleDeps' is required");
+        if (options.basedir !== undefined && typeof options.basedir !== "string") throw new Error("opts.basedir must be either undefined or a string.");
 
-        var self = this;
         var opts = options;
 
         if (typeof files === "string" || isArray(files) || isStream(files)) {
@@ -98,42 +108,39 @@ class TsBrowserify extends EventEmitter.EventEmitter {
             }
         }
 
-        self._options = opts;
-
-        if (opts.basedir !== undefined && typeof opts.basedir !== "string") {
-            throw new Error("opts.basedir must be either undefined or a string.");
-        }
-
         opts.dedupe = opts.dedupe === false ? false : true;
 
-        self._external = [];
-        self._exclude = [];
-        self._ignore = [];
-        self._expose = {};
-        self._hashes = {};
-        self._pending = 0;
-        self._transformOrder = 0;
-        self._transformPending = 0;
-        self._transforms = [];
-        self._entryOrder = 0;
-        self._ticked = false;
-        self._bresolve = opts.browserResolve || (opts.browserField === false
+        this._options = opts;
+        this._external = [];
+        this._exclude = [];
+        this._ignore = [];
+        this._expose = {};
+        this._hashes = {};
+        this._pending = 0;
+        this._transformOrder = 0;
+        this._transformPending = 0;
+        this._transforms = [];
+        this._entryOrder = 0;
+        this._ticked = false;
+        this._bresolve = opts.browserResolve || (opts.browserField === false
             ? function (id, opts, cb) {
                 if (!opts.basedir) opts.basedir = path.dirname(<string>opts.filename)
                 resolve(id, opts, <any>cb);
             }
             : bresolve);
-        self._syntaxCache = {};
+        this._syntaxCache = {};
 
         var ignoreTransform: any[] = [].concat(opts.ignoreTransform).filter(Boolean);
-        self._filterTransform = function (tr) {
+        this._filterTransform = function (tr) {
             if (isArray(tr)) {
                 return ignoreTransform.indexOf(tr[0]) === -1;
             }
             return ignoreTransform.indexOf(tr) === -1;
         };
 
-        self.pipeline = self._createPipeline(opts);
+        this.pipeline = this._createPipeline(opts);
+
+        var self = this;
 
         (<any[]>[]).concat(opts.transform).filter(Boolean).filter(self._filterTransform)
             .forEach(function (tr) {
@@ -244,10 +251,9 @@ class TsBrowserify extends EventEmitter.EventEmitter {
 
 
     public add(file: string | RowLike | StreamLike | (string | RowLike | StreamLike)[], opts: RequireOptions) {
-        var self = this;
         if (!opts) opts = {};
         if (isArray(file)) {
-            file.forEach(function (x) { self.add(x, opts) });
+            file.forEach((x) => this.add(x, opts));
             return this;
         }
         return this.require(file, xtend({ entry: true, expose: false }, opts));
@@ -316,10 +322,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     public exclude(file: any, opts?: { basedir?: string }) {
         if (!opts) opts = {};
         if (isArray(file)) {
-            var self = this;
-            file.forEach(function (file) {
-                self.exclude(file, opts);
-            });
+            file.forEach((file) => this.exclude(file, opts));
             return this;
         }
         var basedir = defined(opts.basedir, process.cwd());
@@ -332,10 +335,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     public ignore(file: string | string[], opts?: { basedir?: string }) {
         if (!opts) opts = {};
         if (isArray(file)) {
-            var self = this;
-            file.forEach(function (file) {
-                self.ignore(file, opts);
-            });
+            file.forEach((file) => this.ignore(file, opts));
             return this;
         }
         var basedir = defined(opts.basedir, process.cwd());
@@ -413,17 +413,18 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     }
 
 
-    public plugin(p: any, opts?: { basedir?: string }) {
+    public plugin(p: string | ((inst: TsBrowserify, opts: any) => any) | [string | ((inst: TsBrowserify, opts: any) => any), { basedir?: string }], opts?: { basedir?: string }) {
         if (isArray(p)) {
             opts = p[1];
             p = p[0];
         }
         if (!opts) opts = {};
-        var basedir = defined(opts.basedir, this._options.basedir, process.cwd());
+
         if (typeof p === "function") {
             p(this, opts);
         }
         else {
+            var basedir = defined(opts.basedir, this._options.basedir, process.cwd());
             var pfile = resolve.sync(String(p), { basedir: basedir });
             var f = require(pfile);
             if (typeof f !== "function") {
@@ -846,7 +847,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     }
 
 
-    public bundle(cb?: (...args: any[]) => void) {
+    public bundle(cb?: (err: Error | null, body?: any) => void) {
         var self = this;
 
         if (this._bundled) {

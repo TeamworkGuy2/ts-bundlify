@@ -89,9 +89,8 @@ interface BundleDst {
 
 
 interface MultiBundleOptions {
+    /** The array of bundle parameters, 'destinationPicker' must return values between [0, bundles.length - 1] */
     bundles: (BundleDst & BrowserPackOptions)[];
-    /** the max value + 1 of the indices returned by destinationPicker */
-    maxDestinations: number;
     /** given a file path (with forward slashes), return the destination bundle index it should be written to */
     destinationPicker: (row: string) => number;
 }

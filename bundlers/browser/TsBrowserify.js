@@ -47,7 +47,8 @@ var TsBrowserify = /** @class */ (function (_super) {
             throw new Error("'options.insertModuleGlobals' is required");
         if (options.moduleDeps == null)
             throw new Error("'options.moduleDeps' is required");
-        var self = _this;
+        if (options.basedir !== undefined && typeof options.basedir !== "string")
+            throw new Error("opts.basedir must be either undefined or a string.");
         var opts = options;
         if (typeof files === "string" || isArray(files) || isStream(files)) {
             opts.entries = [].concat(opts.entries || [], files);
@@ -68,38 +69,36 @@ var TsBrowserify = /** @class */ (function (_super) {
                 });
             }
         }
-        self._options = opts;
-        if (opts.basedir !== undefined && typeof opts.basedir !== "string") {
-            throw new Error("opts.basedir must be either undefined or a string.");
-        }
         opts.dedupe = opts.dedupe === false ? false : true;
-        self._external = [];
-        self._exclude = [];
-        self._ignore = [];
-        self._expose = {};
-        self._hashes = {};
-        self._pending = 0;
-        self._transformOrder = 0;
-        self._transformPending = 0;
-        self._transforms = [];
-        self._entryOrder = 0;
-        self._ticked = false;
-        self._bresolve = opts.browserResolve || (opts.browserField === false
+        _this._options = opts;
+        _this._external = [];
+        _this._exclude = [];
+        _this._ignore = [];
+        _this._expose = {};
+        _this._hashes = {};
+        _this._pending = 0;
+        _this._transformOrder = 0;
+        _this._transformPending = 0;
+        _this._transforms = [];
+        _this._entryOrder = 0;
+        _this._ticked = false;
+        _this._bresolve = opts.browserResolve || (opts.browserField === false
             ? function (id, opts, cb) {
                 if (!opts.basedir)
                     opts.basedir = path.dirname(opts.filename);
                 resolve(id, opts, cb);
             }
             : bresolve);
-        self._syntaxCache = {};
+        _this._syntaxCache = {};
         var ignoreTransform = [].concat(opts.ignoreTransform).filter(Boolean);
-        self._filterTransform = function (tr) {
+        _this._filterTransform = function (tr) {
             if (isArray(tr)) {
                 return ignoreTransform.indexOf(tr[0]) === -1;
             }
             return ignoreTransform.indexOf(tr) === -1;
         };
-        self.pipeline = self._createPipeline(opts);
+        _this.pipeline = _this._createPipeline(opts);
+        var self = _this;
         [].concat(opts.transform).filter(Boolean).filter(self._filterTransform)
             .forEach(function (tr) {
             self.transform(tr);
@@ -203,11 +202,11 @@ var TsBrowserify = /** @class */ (function (_super) {
         return self;
     };
     TsBrowserify.prototype.add = function (file, opts) {
-        var self = this;
+        var _this = this;
         if (!opts)
             opts = {};
         if (isArray(file)) {
-            file.forEach(function (x) { self.add(x, opts); });
+            file.forEach(function (x) { return _this.add(x, opts); });
             return this;
         }
         return this.require(file, xtend({ entry: true, expose: false }, opts));
@@ -266,13 +265,11 @@ var TsBrowserify = /** @class */ (function (_super) {
         return this;
     };
     TsBrowserify.prototype.exclude = function (file, opts) {
+        var _this = this;
         if (!opts)
             opts = {};
         if (isArray(file)) {
-            var self = this;
-            file.forEach(function (file) {
-                self.exclude(file, opts);
-            });
+            file.forEach(function (file) { return _this.exclude(file, opts); });
             return this;
         }
         var basedir = defined(opts.basedir, process.cwd());
@@ -281,13 +278,11 @@ var TsBrowserify = /** @class */ (function (_super) {
         return this;
     };
     TsBrowserify.prototype.ignore = function (file, opts) {
+        var _this = this;
         if (!opts)
             opts = {};
         if (isArray(file)) {
-            var self = this;
-            file.forEach(function (file) {
-                self.ignore(file, opts);
-            });
+            file.forEach(function (file) { return _this.ignore(file, opts); });
             return this;
         }
         var basedir = defined(opts.basedir, process.cwd());
@@ -363,11 +358,11 @@ var TsBrowserify = /** @class */ (function (_super) {
         }
         if (!opts)
             opts = {};
-        var basedir = defined(opts.basedir, this._options.basedir, process.cwd());
         if (typeof p === "function") {
             p(this, opts);
         }
         else {
+            var basedir = defined(opts.basedir, this._options.basedir, process.cwd());
             var pfile = resolve.sync(String(p), { basedir: basedir });
             var f = require(pfile);
             if (typeof f !== "function") {

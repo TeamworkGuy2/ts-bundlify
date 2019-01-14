@@ -3,6 +3,7 @@ import stream = require("stream");
 import CombineSourceMap = require("combine-source-map");
 import through2 = require("through2");
 import umd = require("umd");
+import StringUtil = require("../../utils/StringUtil");
 import BundleBuilder = require("../BundleBuilder");
 
 var ln = '\n';
@@ -81,20 +82,12 @@ module BrowserMultiPack {
     }
 
 
-    function newlinesIn(src: string) {
-        if (!src) return 0;
-        var newlines = src.match(/\n/g);
-        return (newlines != null ? newlines.length : 0);
-    }
-
-
     /** Override browserify's standard 'pack' pipeline step with a custom 'browser-pack' implementation that writes to multiple output bundles.
      * This requires overwriting browserif.prototype._createPipeline() and setting the 'bundleBldr' setBundleSourceCreator() callback
      * @param bundleBldr the bundle builder to modify
      * @param _bundler the browserify instance to modify to output multiple bundle streams
      * @param getMultiBundleOpts a function which returns a MultiBundleOptions object containing the options to build the bundle streams.
-     * This function gets called when browserify.bundle() is called, which happens right at the beginning of BundleBuilder.compileBundle() (which calls BrowserifyHelper.setupRebundleListener())
-     * @param getOpts options related to setting up the bundle streams
+     * This function gets called when browserify.bundle() is called, which happens in BundleBuilder.compileBundle() (which calls BrowserifyHelper.setupRebundleListener())
      */
     export function overrideBrowserifyPack<TBundler extends { bundle(): NodeJS.ReadableStream }>(
         bundleBldr: BundleBuilder.Builder<TBundler>,
@@ -123,7 +116,9 @@ module BrowserMultiPack {
 
         // Consume the browserify bundle and return the multiple pack bundles
         bundleBldr.setBundleSourceCreator(function multiBundleStreamCreator(bundler: TBundler, updateEvent?: { [key: string]: any }) {
-            if (updateEvent != null) { updateDeps = Object.keys(updateEvent).map((k) => updateEvent[k]); }
+            if (updateEvent != null) {
+                updateDeps = Object.keys(updateEvent).map((k) => updateEvent[k]);
+            }
             var brwsBundle = bundler.bundle();
             var res: any[] = [];
             // When the bundle stream has available data, read it so that the stream ends
@@ -144,7 +139,7 @@ module BrowserMultiPack {
     /** Return an array of booleans indicating which bundles should be updated based on an array of file names
      */
     function bundlesToUpdate(bundles: MultiBundleOptions, files: string[] | null | undefined): boolean[] {
-        var cnt = bundles.maxDestinations;
+        var cnt = bundles.bundles.length;
         var res: boolean[] = new Array(cnt);
         var updateAll = (files == null);
         for (var i = 0; i < cnt; i++) { res[i] = updateAll; }
@@ -161,8 +156,7 @@ module BrowserMultiPack {
 
     /** Create a stream which filters and redirects each 'module-deps' style object written to it into one of an array of output streams each of which bundles its source files using UMD and prelude.
      * @param bundles the MultiBundleOptions used to determine how many output streams to generate and used to map input data to the correct output streams
-     * @param opts options such as the project base directory, prelude string, prelude file path, etc.
-     * @param enabledStreams an array of flags, equal in length to 'bundles.maxDestinations', indicating which bundle streams should be created and written to.
+     * @param enabledStreams an array of flags, equal in length to 'bundles.bundles.length', indicating which bundle streams should be created and written to.
      * A way to skip outputing a bundle stream, the other piece of support for the null 'stream' is in 'BrowserifyHelper.setupRebundleListener()'.
      */
     export function createPackStreams(bundles: MultiBundleOptions, enabledStreams: boolean[]): { baseStream: stream.Transform; bundleStreams: BundleStream<stream.Transform>[] } {
@@ -178,7 +172,7 @@ module BrowserMultiPack {
             baseStream.push(null);
         });
 
-        var dstCount = bundles.maxDestinations;
+        var dstCount = bundles.bundles.length;
         // tracks whether each bundle stream has been written to yet
         var firsts = new Array<boolean>(dstCount);
         // tracks prelude entries for each bundle stream
@@ -223,7 +217,7 @@ module BrowserMultiPack {
             var opts = bundles.bundles[idx];
             var prelude = preludes[idx];
             var preludePath = preludePaths[idx];
-            if (lineNumAry[idx] == null) { lineNumAry[idx] = 1 + newlinesIn(prelude); }
+            if (lineNumAry[idx] == null) { lineNumAry[idx] = 1 + StringUtil.countNewlines(prelude); }
 
             var wrappedSrc: string[] = [];
 
@@ -274,7 +268,7 @@ module BrowserMultiPack {
 
             var fullSrc = wrappedSrc.join("");
             dst.push(Buffer.from(fullSrc));
-            lineNumAry[idx] += newlinesIn(fullSrc);
+            lineNumAry[idx] += StringUtil.countNewlines(fullSrc);
 
             firsts[idx] = first = false;
             if (row.entry && row.order !== undefined) {

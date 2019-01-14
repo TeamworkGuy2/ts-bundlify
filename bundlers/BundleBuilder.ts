@@ -39,8 +39,11 @@ module BundleBuilder {
     }
 
 
-    /** keep in sync with BrowserifyCompileFunc.bundleSourceCreator and BuilderSetupStep.setBundleSourceCreator(bundleSourceCreator) */
+    /** keep in sync with CompileFunc.bundleSourceCreator and Builder.setBundleSourceCreator(bundleSourceCreator) */
     type BundleSourceCreator<T> = (bundler: T, updateEvent?: { [key: string]: any } | { [key: number]: any }) => MultiBundleStreams;
+
+
+    type BuildBundlerOptions<T> = T & BundleOptions & { prelude?: string; typescriptHelpers?: string;[prop: string]: any };
 
 
     /** An interface that splits the process of building a JS code bundle into steps.
@@ -72,8 +75,9 @@ module BundleBuilder {
     export interface BuilderCompileStep<T> {
         /**
          * @param paths code paths for the bundle inputs and outputs
+         * @param defaultBundleOpts can be null if 'setBundleSourceCreator()' has been called
          */
-        compileBundle(paths: CodePaths, defaultBundleOpts: BundleDst): void;
+        compileBundle(paths: CodePaths, defaultBundleOpts: BundleDst | null): void;
     }
 
 
@@ -114,34 +118,22 @@ module BundleBuilder {
     /** Create a browser bundle builder using the provided options, paths, and bundle stream compiler.
      * Handles waiting for a promise, then creating options, creating an instance of 'browserBundler', running a bundle compiler, and waiting for the result.
      * @param browserBundler function which creates the browser-bundler to use (normally browserify)
-     * @param rebuilder the options 'plugin' to pass to 'browserBundler' if 'bundleOpts.rebuild' is true (normally watchify)
+     * @param rebuilder optional, plugin to pass to 'browserBundler' if 'bundleOpts.rebuild' is true (normally watchify)
      * @param bundleOpts options for how to compile the bundle, these are also passed along to 'compileBundle()'
      * @param compileBundle a function which takes a bundler, options, paths, and a bundle stream creator and compiles the bundle
      * @param optsModifier optional, function which can modify the browserBundler and browserPack options before they are passed to 'browserBundler' at the beginning of each 'compileBundle()' call
      */
     export function buildBundler<TBundler extends { bundle(): NodeJS.ReadableStream }, TOptions>(
         browserBundler: (opts: TOptions) => TBundler,
-        rebuilder: (b: TBundler, opts?: any) => TBundler,
-        bundleOpts: BundleOptions,
-        compileBundle: CompileFunc<TBundler>,
-        optsModifier?: (opts: TOptions & { debug?: boolean; prelude?: string; typescriptHelpers?: string }) => void
-    ): Builder<TBundler> {
-        var customOpts: TOptions & { debug?: boolean; prelude?: string; typescriptHelpers?: string } = <any>{ debug: bundleOpts.debug };
-
-        if (bundleOpts.typescript != null && bundleOpts.typescript.includeHelpers) {
-            var res = TypeScriptHelper.createPreludeStringWithTypeScriptHelpers(bundleOpts.typescript.includeHelpersComment != false);
-            customOpts = <any>{
-                debug: bundleOpts.debug,
-                prelude: res.preludeSrc,
-                typescriptHelpers: res.typeScriptHelpers
-            };
-        }
-
+        rebuilder: ((b: TBundler, opts?: any) => TBundler) | null,
+        bundleOpts: BuildBundlerOptions<TOptions>,
+        compileBundle: CompileFunc<TBundler>
+    ): Builder<TBundler> & { createOptions(opts: BuildBundlerOptions<TOptions>, paths: CodePaths): BuildBundlerOptions<TOptions> } {
         var _createTransforms = (bundler: TBundler): BrowserifyTransform[] => [];
         var _bundleSourceCreator: BundleSourceCreator<TBundler>;
         var _listeners: BrowserifyHelper.BuildListeners;
 
-        var inst: Builder<TBundler> = {
+        var inst: Builder<TBundler> & { createOptions(opts: BuildBundlerOptions<TOptions>, paths: CodePaths): BuildBundlerOptions<TOptions> } = {
 
             setBundleSourceCreator: (bundleSourceCreator) => {
                 _bundleSourceCreator = bundleSourceCreator;
@@ -159,9 +151,6 @@ module BundleBuilder {
             },
 
             compileBundle: (paths, defaultBundleOpts) => {
-                if (optsModifier != null) {
-                    optsModifier(customOpts);
-                }
                 if (_bundleSourceCreator == null) {
                     if (defaultBundleOpts == null) {
                         throw new Error("null argument 'defaultBundleOpts' and setBundleSourceCreator() has not been called, cannot create a bundle without bundle options");
@@ -180,14 +169,26 @@ module BundleBuilder {
                     };
                 }
 
-                // setup browser-bundler/browser-pack options
-                var plugins = bundleOpts.rebuild ? [rebuilder] : [];
-                var bundlerOpts = BrowserifyHelper.createOptions(customOpts, paths, plugins);
+                var bundlerOpts = inst.createOptions(bundleOpts, paths);
 
                 var bundler = browserBundler(bundlerOpts);
 
                 var transforms = _createTransforms(bundler);
                 compileBundle(transforms, bundler, bundleOpts, paths.dstDir, _bundleSourceCreator, _listeners);
+            },
+
+            createOptions: (opts, paths) => {
+                var plugins = opts.rebuild ? [rebuilder] : [];
+                var resOpts = BrowserifyHelper.createOptions(opts, paths, plugins);
+
+                // if requested and not already defined, load typescript helpers
+                if (resOpts.typescript != null && resOpts.typescript.includeHelpers && resOpts.prelude == null && resOpts.typescriptHelpers == null) {
+                    var res = TypeScriptHelper.createPreludeStringWithTypeScriptHelpers(resOpts.typescript.includeHelpersComment != false);
+                    resOpts.prelude = res.preludeSrc;
+                    resOpts.typescriptHelpers = res.typeScriptHelpers;
+                }
+
+                return resOpts;
             },
         };
         return inst;

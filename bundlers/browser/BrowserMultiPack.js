@@ -3,6 +3,7 @@ var path = require("path");
 var CombineSourceMap = require("combine-source-map");
 var through2 = require("through2");
 var umd = require("umd");
+var StringUtil = require("../../utils/StringUtil");
 var ln = '\n';
 var defaultPreludePath = path.join(__dirname, "_prelude.js");
 /*
@@ -77,19 +78,12 @@ var BrowserMultiPack;
         return defaultPrelude;
     }
     BrowserMultiPack.getPreludeSrc = getPreludeSrc;
-    function newlinesIn(src) {
-        if (!src)
-            return 0;
-        var newlines = src.match(/\n/g);
-        return (newlines != null ? newlines.length : 0);
-    }
     /** Override browserify's standard 'pack' pipeline step with a custom 'browser-pack' implementation that writes to multiple output bundles.
      * This requires overwriting browserif.prototype._createPipeline() and setting the 'bundleBldr' setBundleSourceCreator() callback
      * @param bundleBldr the bundle builder to modify
      * @param _bundler the browserify instance to modify to output multiple bundle streams
      * @param getMultiBundleOpts a function which returns a MultiBundleOptions object containing the options to build the bundle streams.
-     * This function gets called when browserify.bundle() is called, which happens right at the beginning of BundleBuilder.compileBundle() (which calls BrowserifyHelper.setupRebundleListener())
-     * @param getOpts options related to setting up the bundle streams
+     * This function gets called when browserify.bundle() is called, which happens in BundleBuilder.compileBundle() (which calls BrowserifyHelper.setupRebundleListener())
      */
     function overrideBrowserifyPack(bundleBldr, _bundler, getMultiBundleOpts) {
         var origCreatePipeline = _bundler.prototype["_createPipeline"];
@@ -132,7 +126,7 @@ var BrowserMultiPack;
     /** Return an array of booleans indicating which bundles should be updated based on an array of file names
      */
     function bundlesToUpdate(bundles, files) {
-        var cnt = bundles.maxDestinations;
+        var cnt = bundles.bundles.length;
         var res = new Array(cnt);
         var updateAll = (files == null);
         for (var i = 0; i < cnt; i++) {
@@ -148,8 +142,7 @@ var BrowserMultiPack;
     }
     /** Create a stream which filters and redirects each 'module-deps' style object written to it into one of an array of output streams each of which bundles its source files using UMD and prelude.
      * @param bundles the MultiBundleOptions used to determine how many output streams to generate and used to map input data to the correct output streams
-     * @param opts options such as the project base directory, prelude string, prelude file path, etc.
-     * @param enabledStreams an array of flags, equal in length to 'bundles.maxDestinations', indicating which bundle streams should be created and written to.
+     * @param enabledStreams an array of flags, equal in length to 'bundles.bundles.length', indicating which bundle streams should be created and written to.
      * A way to skip outputing a bundle stream, the other piece of support for the null 'stream' is in 'BrowserifyHelper.setupRebundleListener()'.
      */
     function createPackStreams(bundles, enabledStreams) {
@@ -163,7 +156,7 @@ var BrowserMultiPack;
             });
             baseStream.push(null);
         });
-        var dstCount = bundles.maxDestinations;
+        var dstCount = bundles.bundles.length;
         // tracks whether each bundle stream has been written to yet
         var firsts = new Array(dstCount);
         // tracks prelude entries for each bundle stream
@@ -206,7 +199,7 @@ var BrowserMultiPack;
             var prelude = preludes[idx];
             var preludePath = preludePaths[idx];
             if (lineNumAry[idx] == null) {
-                lineNumAry[idx] = 1 + newlinesIn(prelude);
+                lineNumAry[idx] = 1 + StringUtil.countNewlines(prelude);
             }
             var wrappedSrc = [];
             if (first) {
@@ -242,7 +235,7 @@ var BrowserMultiPack;
             wrappedSrc.push("}]");
             var fullSrc = wrappedSrc.join("");
             dst.push(Buffer.from(fullSrc));
-            lineNumAry[idx] += newlinesIn(fullSrc);
+            lineNumAry[idx] += StringUtil.countNewlines(fullSrc);
             firsts[idx] = first = false;
             if (row.entry && row.order !== undefined) {
                 entriesAry[idx][row.order] = row.id;

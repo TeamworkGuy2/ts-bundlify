@@ -6,8 +6,8 @@ import BrowserMultiPack = require("./browser/BrowserMultiPack");
 /** Helpers for compiling TypeScript to Javascript
  */
 module TypeScriptHelper {
-    // copied from TypeScript package: typescript/lib/tsserver.js
-    // used by compiled TypeScript code that utilizes 'extends' in classes, async functions, and decorators
+    /** copied from TypeScript package: typescript/lib/tsserver.js
+     * used by compiled TypeScript code that utilizes 'extends' in classes, async functions, and decorators */
     export var staticHelpers = {
         extendsHelper: "\nvar __extends = (this && this.__extends) || function (d, b) {\n  for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];\n  function __() { this.constructor = d; }\n  d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());\n};",
         decorateHelper: "\nvar __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {\n  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;\n  if (typeof Reflect === \"object\" && typeof Reflect.decorate === \"function\") r = Reflect.decorate(decorators, target, key, desc);\n  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;\n  return c > 3 && r && Object.defineProperty(target, key, r), r;\n};",
@@ -19,8 +19,7 @@ module TypeScriptHelper {
 
     /** NOTE: typescript (i.e. 'tsc') must be installed and available via the command line.
      * Example: "tsc -t ES5 -m commonjs --preserveConstEnums --forceConsistentCasingInFileNames --noEmitHelpers " + projectRelativeSrcPath
-     * @param projRelativeSrcPath
-     * @param callback
+     * @param tscCmd the typescript compiler command to execute
      */
     export function compileTypeScriptFile(tscCmd: string): Q.Promise<void> {
         var dfd = Q.defer<void>();
@@ -46,7 +45,7 @@ module TypeScriptHelper {
 
 
     /** Get the 'prelude.js' source string used by browser-pack, insert the TypeScript static helpers (required for 'extends', annotations, and other TypeScript features) into it, and return it
-     * @param [includeUsageComment=false] whether to include a comment in the source string explaining why the TypeScript static helpers are inserted
+     * @param includeUsageComment optional (default: true), whether to include a comment in the source string explaining why the TypeScript static helpers are inserted
      */
     export function createPreludeStringWithTypeScriptHelpers(includeUsageComment?: boolean): { prelude: string; typeScriptHelpers: string; preludeSrc: string; } {
         var preludeSrc = BrowserMultiPack.getPreludeSrc();

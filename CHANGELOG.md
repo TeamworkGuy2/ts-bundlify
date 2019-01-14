@@ -4,7 +4,25 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.9.3](N/A) - 2019-01-12
+### [0.9.4](N/A) - 2019-01-13
+#### Added
+* Unit test for `StringUtil`
+* Basic `BundleBuilderTest` unit test of full bundle build with [test/test-proj/] test files to be bundled
+* Added `insert-module-globals` and `module-deps` back to `package.json` for unit tests
+
+#### Changed
+* Updated README.md with up-to-date examples
+* Moved/renamed private method `BrowserMultiPack.newlinesIn()` -> `StringUtil.countNewlines()`
+* `TsBrowserify` - added documentation and cleaned up some code (`plugin()` and `bundle()` arguments stronger types)
+* `TsBrowserify.buildBundler()` return value has a new `createOptions()` function which can be replaced/wrapped to customize the `opts` passed to the `browserBundler` callback each time it is called
+
+#### Removed
+* Removed `TsBrowserify.buildBundler()` last optional `optsModifier` parameter. Simplified, just pass in all options via the `bundleOpts` parameter.
+* Removed `MultiBundleOptions.maxDestinations` (use `bundles.length` internally since it should be the same value)
+
+
+--------
+### [0.9.3](https://github.com/TeamworkGuy2/ts-bundlify/commit/7534839a5abb4f3e1845353d6175307c22126ad6) - 2019-01-12
 #### Fixed
 * `TsBrowserify` xtend() calls not correctly creating new objects
 
