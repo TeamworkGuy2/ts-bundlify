@@ -4,10 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.9.4](N/A) - 2019-01-13
+### [0.9.5](N/A) - 2019-01-14
+#### Added
+* Added `TsWatchify` (TypeScript conversion of `watchify@3.11.0`). Allows projects to switch from browserify to TsBrowserify since watchify requiring browserify as a dependency.
+* `RequireParser` which is a simple test of a `detective` replacement for TypeScript compiled js files where require calls must appear at the beginning of the file
+
+
+--------
+### [0.9.4](https://github.com/TeamworkGuy2/ts-bundlify/commit/e241f011873fad30aed3a2b64bf688231d8cf0ae) - 2019-01-13
 #### Added
 * Unit test for `StringUtil`
-* Basic `BundleBuilderTest` unit test of full bundle build with [test/test-proj/] test files to be bundled
+* Basic `BundleBuilderTest` unit test of full bundle build with [test/test-proj/](test/test-proj/) test files to be bundled
 * Added `insert-module-globals` and `module-deps` back to `package.json` for unit tests
 
 #### Changed
