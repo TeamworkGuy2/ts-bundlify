@@ -78,6 +78,45 @@ var BrowserMultiPack;
         return defaultPrelude;
     }
     BrowserMultiPack.getPreludeSrc = getPreludeSrc;
+    /** Creates a custom 'browser-pack' implementation that writes to multiple output streams ('bundles').
+     * @param getMultiBundleOpts a function which returns a MultiBundleOptions object containing the options to build the bundle streams.
+     * This function gets called when browserify.bundle() is called, which happens in BundleBuilder.compileBundle() (which calls BrowserifyHelper.setupRebundleListener())
+     * @returns two functions: 'createSplitPacker()' which builds a 'browser-pack' like stream and 'multiBundleSourceCreator()' which is meant to be passed to bundleBuilder.setBundleSourceCreator()'
+     */
+    function createPacker(getMultiBundleOpts) {
+        var inst = {
+            pack: null,
+            updateDeps: null,
+            // gets called when browser bundler instance is created or when reset() or bundle() are called
+            createPackStreams: function createPackStreams() {
+                var multiBundleOpts = getMultiBundleOpts();
+                var streamsToUpdate = bundlesToUpdate(multiBundleOpts, inst.updateDeps);
+                inst.pack = BrowserMultiPack.createPackStreams(multiBundleOpts, streamsToUpdate);
+                return inst.pack;
+            },
+            // Consume the browser bundle and return the multiple pack bundles
+            multiBundleSourceCreator: function multiBundleSourceCreator(bundler, updateEvent) {
+                if (updateEvent != null) {
+                    inst.updateDeps = Object.keys(updateEvent).map(function (k) { return updateEvent[k]; });
+                }
+                var brBundle = bundler.bundle();
+                var res = [];
+                // When the bundle stream has available data, read it so that the stream ends
+                brBundle.on("readable", function () {
+                    var rec;
+                    while ((rec = brBundle.read()) !== null) {
+                        res.push(rec);
+                    }
+                });
+                return {
+                    baseStream: brBundle,
+                    bundleStreams: inst.pack.bundleStreams
+                };
+            }
+        };
+        return inst;
+    }
+    BrowserMultiPack.createPacker = createPacker;
     /** Override browserify's standard 'pack' pipeline step with a custom 'browser-pack' implementation that writes to multiple output bundles.
      * This requires overwriting browserif.prototype._createPipeline() and setting the 'bundleBldr' setBundleSourceCreator() callback
      * @param bundleBldr the bundle builder to modify
@@ -87,40 +126,21 @@ var BrowserMultiPack;
      */
     function overrideBrowserifyPack(bundleBldr, _bundler, getMultiBundleOpts) {
         var origCreatePipeline = _bundler.prototype["_createPipeline"];
-        var newBpack;
-        var updateDeps = null;
+        var packer = createPacker(getMultiBundleOpts);
         // Override browserify._createPipeline() to replace the 'pack' pipeline step with a custom browser-pack implementation
         // gets called when browserify instance is created or when reset() or bundle() are called
         _bundler.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(createPipeOpts) {
             var pipeline = origCreatePipeline.call(this, createPipeOpts);
             var packPipe = pipeline.get("pack");
             var oldBpack = packPipe.pop();
-            var multiBundleOpts = getMultiBundleOpts();
-            var streamsToUpdate = bundlesToUpdate(multiBundleOpts, updateDeps);
-            newBpack = BrowserMultiPack.createPackStreams(multiBundleOpts, streamsToUpdate);
+            var newBpack = packer.createPackStreams();
             this._bpack = newBpack.baseStream;
             packPipe.push(newBpack.baseStream);
             return pipeline;
         };
         // Consume the browserify bundle and return the multiple pack bundles
-        bundleBldr.setBundleSourceCreator(function multiBundleStreamCreator(bundler, updateEvent) {
-            if (updateEvent != null) {
-                updateDeps = Object.keys(updateEvent).map(function (k) { return updateEvent[k]; });
-            }
-            var brwsBundle = bundler.bundle();
-            var res = [];
-            // When the bundle stream has available data, read it so that the stream ends
-            brwsBundle.on("readable", function () {
-                var rec;
-                while ((rec = brwsBundle.read()) !== null) {
-                    res.push(rec);
-                }
-            });
-            return {
-                baseStream: brwsBundle,
-                bundleStreams: newBpack.bundleStreams
-            };
-        });
+        bundleBldr.setBundleSourceCreator(packer.multiBundleSourceCreator);
+        return packer;
     }
     BrowserMultiPack.overrideBrowserifyPack = overrideBrowserifyPack;
     /** Return an array of booleans indicating which bundles should be updated based on an array of file names

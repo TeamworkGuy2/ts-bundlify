@@ -15,7 +15,7 @@ module RequireParser {
         var requires: string[] = [];
 
         // 0 =
-        // 1 = \n
+        // 1 = ;
         // 2 = \t \r\n
         // 3 = /
         // 4 = //
@@ -39,12 +39,18 @@ module RequireParser {
         main_loop:
         for (var i = 0, len = src.length; i < len; i++) {
             switch (ch = src[i]) {
-                case '\n': state = 1;
+                case ';': state = 1;
+                    break;
+                case ' ':
+                case '\t':
+                case '\r':
+                case '\n':
+                    state = 2;
                     break;
                 case '/': state = (state === 3 ? 4 : 3);
-                    //console.log("start single line comment @ " + i);
                     // single line comment
                     if (state === 4) {
+                        //console.log("start single line comment @ " + i);
                         i++; // next char after '//'
                         while (i < len && src[i] !== '\n') i++;
                         if (src[i] === '\n') { state = 0; i--; } // reset for next loop increment
@@ -52,9 +58,9 @@ module RequireParser {
                     }
                     break;
                 case '*':
-                    //console.log("start multi line comment @ " + i);
                     // multi-line comment
                     if (state === 3) {
+                        //console.log("start multi line comment @ " + i);
                         i++; // next char after '/*'
                         while (i < len) {
                             ch = src[i];
@@ -105,48 +111,38 @@ module RequireParser {
                     }
                     //console.log("finished backtick quote string @ " + i);
                     break;
-                case ' ':
-                case '\t':
-                case '\r':
-                case '\n':
-                    state = 2;
-                    break;
                 default:
-                    // 0 =
-                    // 1 = var
-                    // 2 = var identifier
-                    // 3 = var identifier =
-                    // 4 = var identifier = require(
-                    var dst = { token: "", endedWithSemicolon: false };
-                    i = nextToken(i, src, len, dst);
-                    var t = dst.token;
+                    var nextIdx = nextToken(i, src, len);
+                    var text = src.substring(i, nextIdx);
+                    i = nextIdx;
 
-                    //console.log("got token '" + t + "' @ " + i);
+                    //console.log("got token '" + text + "' @ " + i);
 
-                    if (t === "var") {
+                    if (text === "var") {
                         token = 1;
                     }
-                    else if (token === 1 && isIdentifier(t)) {
+                    else if (token === 1 && isIdentifier(text)) {
                         token = 2;
                     }
-                    else if (token === 2 && t === "=") {
+                    else if (token === 2 && text === "=") {
                         token = 3;
                     }
-                    else if (token === 3 && t === "require") {
+                    else if (token === 3 && text === "require") {
                         token = 4;
                     }
-                    else if (token === 3 && t.startsWith("require(")) {
-                        requires.push(trimQuotes(trimParens(t.substr("require".length))));
+                    else if (token === 3 && text.startsWith("require(")) {
+                        requires.push(trimSemicolonParensAndQuotes(text, "require".length, text.length));
                         token = 0;
                     }
-                    else if (token === 4) {
-                        requires.push(trimQuotes(trimParens(t)));
+                    else if (token === 4 && text.startsWith("(")) {
+                        requires.push(trimSemicolonParensAndQuotes(text, 0, text.length));
                         token = 0;
                     }
-                    else if (t === ';') {
+                    else if (text === ";") {
                         token = 0;
                     }
                     else {
+                        // does NOT match sequence: var identifier = require
                         break main_loop;
                     }
                     break;
@@ -159,43 +155,38 @@ module RequireParser {
 
     /** Starting at index 'i' in string 'src' up to length 'len', read until the next whitespace not inside a single or double quoted string.
      * Example: "value('1 2'); end();"
-     * Returns: 13 AND dst.token = "value('1 2')" AND dst.endedWithSemicolon = true
+     * Returns: 13 (i.e. "value('1 2');")
      * @param i the offset into 'src' at which to start reading
      * @param src the source string
      * @param len the length of 'src'
      * @param dst store results in this object
-     * @returns the new 'i' value at which parsing ended
+     * @returns the new 'i' index at which parsing ended
      */
-    export function nextToken(i: number, src: string, len: number, dst: { token: string; endedWithSemicolon: boolean }): number {
+    export function nextToken(i: number, src: string, len: number): number {
         var state = 0;
-        var token = "";
         while (i < len) {
             var ch = src[i];
             if (ch === '"') {
-                token += ch;
                 // double quote string
                 state = 7;
                 i++; // next char after '"'
                 while (i < len) {
                     ch = src[i];
                     if (ch === '\\') state = 8;
-                    else if (state === 7 && ch === '"') { token += ch; i++; break; }
+                    else if (state === 7 && ch === '"') { state = 0; i++; break; }
                     else state = 7;
-                    token += ch;
                     i++;
                 }
             }
             else if (ch === '\'') {
-                token += ch;
                 // single quote string
                 state = 9;
                 i++; // next char after '\''
                 while (i < len) {
                     ch = src[i];
                     if (ch === '\\') state = 10;
-                    else if (state === 9 && ch === '\'') { token += ch; i++; break; }
+                    else if (state === 9 && ch === '\'') { state = 0; i++; break; }
                     else state = 9;
-                    token += ch;
                     i++;
                 }
             }
@@ -204,11 +195,8 @@ module RequireParser {
             }
             else {
                 i++;
-                token += ch;
             }
         }
-        dst.endedWithSemicolon = (token[token.length - 1] === ';' ? (token = token.substr(0, token.length - 1)) != null : false);
-        dst.token = token;
         return i;
     }
 
@@ -219,10 +207,11 @@ module RequireParser {
         var len = token.length;
         if (len < 1) return false;
 
-        var ch = token[0];
+        var ch = token[0]; // tested with charCodeAt() and no notable performance difference
         if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch === '_' || ch === '$') {
             var i = 1;
             while (i < len) {
+                ch = token[i];
                 if ((ch < '0' && ch !== '$') || (ch > '9' && ch < 'A') || (ch > 'Z' && ch < 'a' && ch !== '_') || ch > 'z') {
                     return false;
                 }
@@ -234,25 +223,28 @@ module RequireParser {
     }
 
 
-    /** remove surrounding parenthesis '()' from a string
+    /** check if a string starts adn ends with parenthesis '()'. start = inclusive, end = exclusive
      */
-    export function trimParens(str: string) {
-        var len = str.length;
-        if (len < 2) return str;
-        var h = (str[0] === '(' && str[len - 1] === ')');
-        return (h ? str.substring(1, len - 1) : str);
+    export function hasParens(str: string, start: number, end: number) {
+        return end - start > 1 && (str[start] === '(' && str[end - 1] === ')');
     }
 
 
-    /** remove surrounding 'single', "double", or `backtick` quotes from a string
+    /** check if a string starts and ends with 'single' or "double" quotes. start = inclusive, end = exclusive
      */
-    export function trimQuotes(str: string) {
+    export function hasQuotes(str: string, start: number, end: number) {
+        return end - start > 1 && ((str[start] === '\'' && str[end - 1] === '\'') || (str[start] === '"' && str[end - 1] === '"'));
+    }
+
+
+    /** This messy function saves ~8% parsing performance by reducing 'require("...");' string extraction down to one operation
+     */
+    export function trimSemicolonParensAndQuotes(str: string, start: number, end: number) {
         var len = str.length;
-        if (len < 2) return str;
-        var h = (str[0] === '\'' && str[len - 1] === '\'') ||
-            (str[0] === '"' && str[len - 1] === '"') ||
-            (str[0] === '`' && str[len - 1] === '`');
-        return (h ? str.substring(1, len - 1) : str);
+        var semicolon = str[len - 1] === ';' ? 1 : 0;
+        var trimCnt = hasParens(str, start, len - semicolon) ? 1 : 0;
+        trimCnt += hasQuotes(str, start + trimCnt, len - trimCnt - semicolon) ? 1 : 0;
+        return (trimCnt > 0 || semicolon > 0 ? str.substring(start + trimCnt, len - trimCnt - semicolon) : str);
     }
 
 }

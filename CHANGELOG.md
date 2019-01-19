@@ -4,10 +4,29 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.9.5](N/A) - 2019-01-14
+### [0.10.0](N/A) - 2019-01-19
+#### Added
+* `BrowserMultiPack.createPacker()` with code from `overrideBrowserifyPack()`
+  * `var packer = createPacker(...); var browserPack = (opts) => packer.createPackStreams().baseStream` can be used as a `browserPack` replacement for `TsBrowserify`)
+
+#### Changed
+* Renamed `BundlifyHelper` -> `VinylConcat`
+* `BrowserMultiPack.overrideBrowserifyPack()` returns the underlying `createPacker()` object created
+* `RequireParser` performance improvement and unit tests added
+  * Added `hasQuotes()`, `hasParens()`, and `trimSemicolonParensAndQuotes()`
+
+#### Fixed
+* `RequireParser` support for `"use strict";` on first line before `require()` calls to parse
+
+#### Removed
+* `RequireParser` removed `trimQuotes()` and `trimParens()` (use `trimSemicolonParensAndQuotes()` or `hasQuotes()` and `hasParens()`)
+
+
+--------
+### [0.9.5](https://github.com/TeamworkGuy2/ts-bundlify/commit/6f05d1ac94de1fbaaf70f60447af078ab2a54f6d) - 2019-01-14
 #### Added
 * Added `TsWatchify` (TypeScript conversion of `watchify@3.11.0`). Allows projects to switch from browserify to TsBrowserify since watchify requiring browserify as a dependency.
-* `RequireParser` which is a simple test of a `detective` replacement for TypeScript compiled js files where require calls must appear at the beginning of the file
+* `RequireParser` which is a simple (not prod ready) replacement for `detective` to extract 'require()' calls from js files where require calls must appear at the beginning of the file
 
 
 --------
