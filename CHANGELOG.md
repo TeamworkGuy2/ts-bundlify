@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.10.0](N/A) - 2019-01-19
+### [0.10.1](N/A) - 2019-01-19
+#### Changed
+* Forgot to commit `package.json`
+
+
+--------
+### [0.10.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/f4deae8d1cad63249b84d68c5255bb6d5809fc25) - 2019-01-19
 #### Added
 * `BrowserMultiPack.createPacker()` with code from `overrideBrowserifyPack()`
   * `var packer = createPacker(...); var browserPack = (opts) => packer.createPackStreams().baseStream` can be used as a `browserPack` replacement for `TsBrowserify`)
