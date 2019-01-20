@@ -56,5 +56,21 @@ var TypeScriptHelper;
         };
     }
     TypeScriptHelper.createPreludeStringWithTypeScriptHelpers = createPreludeStringWithTypeScriptHelpers;
+    function skipTypeScriptHelpersWhenParsingRequire(src, i, state, text) {
+        // allow TypeScript helpers at top of file (see TypeScriptHelper)
+        if (state === 3 && text === "(this") {
+            var nextLnIdx = src.indexOf('\n', i);
+            // skip indented lines following the start of the TypeScript helper
+            while (nextLnIdx > -1 && (src[nextLnIdx + 1] === ' ' || src[nextLnIdx + 1] === '\t')) {
+                nextLnIdx = src.indexOf('\n', nextLnIdx + 1);
+            }
+            // loop ended, if more lines are available and closing brace of TypeScript helper found
+            if (nextLnIdx > -1 && src[nextLnIdx + 1] === '}') {
+                return src.indexOf('\n', nextLnIdx + 1); // skip the closing line and continue parsing at the next line start index
+            }
+        }
+        return -1;
+    }
+    TypeScriptHelper.skipTypeScriptHelpersWhenParsingRequire = skipTypeScriptHelpersWhenParsingRequire;
 })(TypeScriptHelper || (TypeScriptHelper = {}));
 module.exports = TypeScriptHelper;

@@ -2,6 +2,7 @@
 import chai = require("chai");
 import mocha = require("mocha");
 import RequireParser = require("../bundlers/RequireParser");
+import TypeScriptHelper = require("../bundlers/TypeScriptHelper");
 
 
 var asr = chai.assert;
@@ -11,7 +12,9 @@ suite("RequireParser", function RequireParserTest() {
     var ln = '\n';
 
     test("parse", function parseTest() {
-        var requires = RequireParser.parse(
+        var parse = (str: string) => RequireParser.parse(str, TypeScriptHelper.skipTypeScriptHelpersWhenParsingRequire);
+
+        var requires = parse(
             "// top" + ln +
             "/** main comment */" + ln +
             "var _ = require('req uire');" + ln +
@@ -20,7 +23,7 @@ suite("RequireParser", function RequireParserTest() {
         );
         asr.deepEqual(requires, ["req uire", "main/strings"]);
 
-        var requires = RequireParser.parse(
+        var requires = parse(
             "\"use strict\";" + ln +
             "/** pre import comment */" + ln +
             "var _ = require('/../req uire/stub blob');" + ln +
@@ -30,12 +33,32 @@ suite("RequireParser", function RequireParserTest() {
         );
         asr.deepEqual(requires, ["/../req uire/stub blob", "main/strings", "./package.json"]);
 
-        var requires = RequireParser.parse(
-            "// top" + ln +
+        var requires = parse(
+            "\"use strict\";" + ln +
+            "var __extends = (this && this.__extends) || (function () {" + ln +
+            "  var extendStatics = function (d, b) {" + ln +
+            "      extendStatics = Object.setPrototypeOf ||" + ln +
+            "          ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||" + ln +
+            "          function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };" + ln +
+            "      return extendStatics(d, b);" + ln +
+            "  };" + ln +
+            "  return function (d, b) {" + ln +
+            "      extendStatics(d, b);" + ln +
+            "      function __() { this.constructor = d; }" + ln +
+            "      d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());" + ln +
+            "  };" + ln +
+            "})();" + ln +
+            "" + ln +
             "/** main comment */" + ln +
             "var _ = require /*test*/(\"r\")" + ln +
             "var end = require (\"./main/end\");" + ln +
             "//a comment and/or other" + ln +
+            "var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {" + ln +
+            "    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;" + ln +
+            "    if (typeof Reflect === \"object\" && typeof Reflect.decorate === \"function\") r = Reflect.decorate(decorators, target, key, desc);" + ln +
+            "    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;" + ln +
+            "    return c > 3 && r && Object.defineProperty(target, key, r), r;" + ln +
+            "};" + ln +
             "var options = require ('./');" + ln +
             "var loader = require ('./../');" + ln +
             "var move = require('../data/move');" + ln +

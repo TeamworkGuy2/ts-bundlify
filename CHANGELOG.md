@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.10.1](N/A) - 2019-01-19
+### [0.10.2](N/A) - 2019-01-19
+#### Added
+* Add `RequireParser.parse()` callback parameter to allow control of unknown token handling
+* Add `TypeScriptHelper.skipTypeScriptHelpersWhenParsingRequire()` which can be passed to `RequireParser.parse()` to skip typescript helpers at the beginning of TypeScript compiled .js files
+
+#### Changed
+* Added unit test for RequireParser parsing of TypeScript helpers
+
+
+--------
+### [0.10.1](https://github.com/TeamworkGuy2/ts-bundlify/commit/58471dcbafc9072784ae04f3b67a095c588b2c82) - 2019-01-19
 #### Changed
 * Forgot to commit `package.json`
 

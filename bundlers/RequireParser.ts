@@ -9,31 +9,39 @@ module RequireParser {
      * example: "var a = require('a'); var b = require ("./b"); ..."
      * returns: ["a", "./b"]
      * @param src the string to parse
+     * @param unknownTokenHandler optional, function which is called when an unknown token is encountered while parsing 'require()' statements at the beginning of a file,
+     * this function receives the entire source string, current parsing position (at the end of the unknown token), state of the parse (internally documented), and the unknown token text,
+     * it may return a new parsing position greater than or equal to the current parsing position, if it returns anything else (-1, null, or other) parsing ends
      * @returns a list of the require("...") strings
      */
-    export function parse(src: string) {
+    export function parse(src: string, unknownTokenHandler?: (src: string, pos: number, state: number, tokenText: string) => number) {
         var requires: string[] = [];
 
-        // 0 =
-        // 1 = ;
-        // 2 = \t \r\n
-        // 3 = /
-        // 4 = //
-        // 5 = /*
-        // 6 = /* ... *
-        // 7 = "
-        // 8 = " ... \
-        // 9 = '
-        // 10 = ' ... \
-        // 11 = `
-        // 12 = ` ... \
+        /**
+         * 0 =
+         * 1 = ;
+         * 2 = \t \r\n
+         * 3 = /
+         * 4 = //
+         * 5 = /*
+         * 6 = /* ... *
+         * 7 = "
+         * 8 = " ... \
+         * 9 = '
+         * 10 = ' ... \
+         * 11 = `
+         * 12 = ` ... \
+         */
         var state = 0;
-        // 0 =
-        // 1 = var
-        // 2 = var identifier
-        // 3 = var identifier =
-        // 4 = var identifier = require
+        /**
+         * 0 =
+         * 1 = var
+         * 2 = var identifier
+         * 3 = var identifier =
+         * 4 = var identifier = require
+         */
         var token = 0;
+        // current character
         var ch = '\0';
 
         main_loop:
@@ -142,8 +150,15 @@ module RequireParser {
                         token = 0;
                     }
                     else {
-                        // does NOT match sequence: var identifier = require
-                        break main_loop;
+                        var nextIdx = (unknownTokenHandler != null ? unknownTokenHandler(src, i, token, text) : -1);
+                        if (nextIdx >= i) {
+                            state = 0;
+                            i = nextIdx;
+                        }
+                        else {
+                            // does NOT match sequence: var identifier = require
+                            break main_loop;
+                        }
                     }
                     break;
             }
