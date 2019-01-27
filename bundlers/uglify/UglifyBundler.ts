@@ -11,15 +11,21 @@ module UglifyBundler {
 
     /** Create a browserify transform which compiles source files using uglify-js
      */
-    export function createTransformer(uglify: typeof Uglify, filePattern?: { test(str: string): boolean; } | RegExp,
-            uglifyCompileOpts?: Uglify.MinifyOptions & UglifyToStream.UglifyToStreamOptions, transformOpts?: BrowserifyHelper.BrowserifyTransform["options"], verbose?: boolean) {
+    export function createTransformer(
+        uglify: typeof Uglify,
+        filePattern?: { test(str: string): boolean; } | RegExp,
+        uglifyCompileOpts?: Uglify.MinifyOptions & UglifyToStream.UglifyToStreamOptions,
+        transformOpts?: BrowserifyHelper.BrowserifyTransform["options"],
+        verbose?: boolean | ((...args: any[]) => void)
+    ) {
+        var log = (typeof verbose === "function" ? verbose : verbose == true ? console.log : null);
 
         var res: BrowserifyHelper.BrowserifyTransform = {
             transform: function uglifyTransform(file, opts) {
 
                 var strm = UglifyToStream.createStreamCompiler(uglify, file, BrowserifyHelper.combineOpts(opts, uglifyCompileOpts), filePattern, (file, data) => {
-                    if (verbose) {
-                        console.log("uglify: '" + PathUtil.toShortFileName(file) + "'");
+                    if (log != null) {
+                        log("uglify: ", PathUtil.toShortFileName(file));
                     }
                 });
                 return strm;

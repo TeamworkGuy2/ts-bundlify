@@ -30,7 +30,7 @@ var BundleBuilder;
     }
     BundleBuilder.compileBundle = compileBundle;
     function getMapFilePath(dstDir, fileName, mapFile) {
-        return mapFile != null ? mapFile : (dstDir + fileName + ".map");
+        return mapFile != null ? (dstDir + mapFile) : (dstDir + fileName + ".map");
     }
     /** Create a browser bundle builder using the provided options, paths, and bundle stream compiler.
      * Handles waiting for a promise, then creating options, creating an instance of 'browserBundler', running a bundle compiler, and waiting for the result.
@@ -70,7 +70,7 @@ var BundleBuilder;
                             bundleStreams: [{
                                     stream: baseStream,
                                     dstFileName: defaultBundleOpts.dstFileName,
-                                    dstMapFile: defaultBundleOpts.dstMapFile || (paths.dstDir + defaultBundleOpts.dstFileName + ".map")
+                                    dstMapFile: defaultBundleOpts.dstMapFile || (defaultBundleOpts.dstFileName + ".map")
                                 }]
                         };
                     };

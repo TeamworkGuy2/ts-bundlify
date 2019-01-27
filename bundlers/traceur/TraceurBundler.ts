@@ -11,15 +11,21 @@ module TraceurBundler {
 
     /** Create a browserify transform which compiles source files using traceur
      */
-    export function createTransformer(traceur: typeof Traceur, filePattern?: { test(str: string): boolean; } | RegExp,
-            traceurCompilerOpts?: any, transformOpts?: BrowserifyHelper.BrowserifyTransform["options"], verbose?: boolean) {
+    export function createTransformer(
+        traceur: typeof Traceur,
+        filePattern?: { test(str: string): boolean; } | RegExp,
+        traceurCompilerOpts?: any,
+        transformOpts?: BrowserifyHelper.BrowserifyTransform["options"],
+        verbose?: boolean | ((...args: any[]) => void)
+    ) {
+        var log = (typeof verbose === "function" ? verbose : verbose == true ? console.log : null);
 
         Es6ifyToStream.traceurOptions.global = true;
 
         // no file pattern, match all JS files
         var es6ifyCompile = Es6ifyToStream.createCompiler(traceur, filePattern, (file, data) => {
-            if (verbose) {
-                console.log("traceur: '" + PathUtil.toShortFileName(file) + "'");
+            if (log != null) {
+                log("traceur: ", PathUtil.toShortFileName(file));
             }
         });
 

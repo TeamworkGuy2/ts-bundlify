@@ -111,7 +111,7 @@ module BundleBuilder {
 
 
     function getMapFilePath(dstDir: string, fileName: string, mapFile: string | null | undefined) {
-        return mapFile != null ? mapFile : (dstDir + fileName + ".map");
+        return mapFile != null ? (dstDir + mapFile) : (dstDir + fileName + ".map");
     }
 
 
@@ -163,7 +163,7 @@ module BundleBuilder {
                             bundleStreams: [{
                                 stream: baseStream,
                                 dstFileName: defaultBundleOpts.dstFileName,
-                                dstMapFile: defaultBundleOpts.dstMapFile || (paths.dstDir + defaultBundleOpts.dstFileName + ".map")
+                                dstMapFile: defaultBundleOpts.dstMapFile || (defaultBundleOpts.dstFileName + ".map")
                             }]
                         };
                     };

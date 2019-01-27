@@ -11,11 +11,12 @@ var UglifyBundler;
     /** Create a browserify transform which compiles source files using uglify-js
      */
     function createTransformer(uglify, filePattern, uglifyCompileOpts, transformOpts, verbose) {
+        var log = (typeof verbose === "function" ? verbose : verbose == true ? console.log : null);
         var res = {
             transform: function uglifyTransform(file, opts) {
                 var strm = UglifyToStream.createStreamCompiler(uglify, file, BrowserifyHelper.combineOpts(opts, uglifyCompileOpts), filePattern, function (file, data) {
-                    if (verbose) {
-                        console.log("uglify: '" + PathUtil.toShortFileName(file) + "'");
+                    if (log != null) {
+                        log("uglify: ", PathUtil.toShortFileName(file));
                     }
                 });
                 return strm;

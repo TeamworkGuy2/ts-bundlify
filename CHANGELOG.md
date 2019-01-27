@@ -4,7 +4,20 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.10.2](N/A) - 2019-01-19
+### [0.10.3](N/A) - 2019-01-27
+#### Added
+* Bundle test for `BrowserMultiPack`
+* `BrowserPackOptions` comments
+
+#### Changed
+* `BabelBundler`, `TraceurBundler`, and `UglifyBundler` `verbose` parameters allow boolean flags or logging functions to be passed in (default is `console.log`)
+
+#### Fixed
+* `BundleBuilder.getMapFilePath()` - prepend 'dstDir' to 'mapFile' name which fixes a map file path issue with `compileBundle()`
+
+
+--------
+### [0.10.2](https://github.com/TeamworkGuy2/ts-bundlify/commit/948650734c658edff536b98f9801d2f7248ad6ee) - 2019-01-19
 #### Added
 * Add `RequireParser.parse()` callback parameter to allow control of unknown token handling
 * Add `TypeScriptHelper.skipTypeScriptHelpersWhenParsingRequire()` which can be passed to `RequireParser.parse()` to skip typescript helpers at the beginning of TypeScript compiled .js files

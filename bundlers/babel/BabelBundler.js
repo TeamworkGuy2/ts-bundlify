@@ -14,13 +14,14 @@ var BabelBundler;
     /** Create a browserify transform which compiles source files using babelify
      */
     function createTransformer(babelify, filePattern, babelCompilerOpts, transformOpts, verbose) {
+        var log = (typeof verbose === "function" ? verbose : verbose == true ? console.log : null);
         var res = {
             transform: function babelifyTransform(tr, opts) {
                 if (filePattern != null && !filePattern.test(tr)) {
                     return new stream.PassThrough();
                 }
-                if (verbose) {
-                    console.log("babelify: '" + PathUtil.toShortFileName(tr) + "'");
+                if (log != null) {
+                    log("babelify: ", PathUtil.toShortFileName(tr));
                 }
                 var strm = babelify(tr, BrowserifyHelper.combineOpts(opts, babelCompilerOpts));
                 return strm;
