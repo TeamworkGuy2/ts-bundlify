@@ -12,8 +12,11 @@ var TsBrowserify = require("../bundlers/browser/TsBrowserify");
 var BrowserMultiPack = require("../bundlers/browser/BrowserMultiPack");
 var RequireParser = require("../bundlers/RequireParser");
 var TypeScriptHelper = require("../bundlers/TypeScriptHelper");
+var BrowserifyHelper = require("../bundlers/BrowserifyHelper");
+var PathUtil = require("../utils/PathUtil");
 var asr = chai.assert;
 suite("BundleBuilder", function MemoryStoreTest() {
+    var doCleanup = true;
     test("buildBasic", function buildBasicTest(done) {
         this.timeout(3000);
         TsBrowserify.builtins = {
@@ -30,21 +33,25 @@ suite("BundleBuilder", function MemoryStoreTest() {
         }, BundleBuilder.compileBundle)
             .setBundleListeners({
             finishAll: function () {
+                var bundleMap;
                 asr.doesNotThrow(function () {
-                    var bundleMap = JSON.parse(fs.readFileSync("./test/tmp/bundle.js.map", { encoding: "utf8" }));
-                    asr.deepEqual(bundleMap.sources, [
-                        "node_modules/browser-pack/_prelude.js",
-                        "test/test-proj/App.js",
-                        "test/test-proj/DataSource.js",
-                        "test/test-proj/HelperUtil.js",
-                    ]);
-                    asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle.js"));
-                    asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle.js.map"));
-                    fs.unlinkSync("./test/tmp/bundle.js");
-                    fs.unlinkSync("./test/tmp/bundle.js.map");
-                    fs.rmdirSync("./test/tmp");
-                    asr.isNotTrue(FileUtil.existsDirSync("./test/tmp"));
+                    bundleMap = JSON.parse(fs.readFileSync("./test/tmp/bundle.js.map", { encoding: "utf8" }));
+                    if (doCleanup) {
+                        asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle.js"));
+                        asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle.js.map"));
+                        fs.unlinkSync("./test/tmp/bundle.js");
+                        fs.unlinkSync("./test/tmp/bundle.js.map");
+                        fs.rmdirSync("./test/tmp");
+                        asr.isNotTrue(FileUtil.existsDirSync("./test/tmp"));
+                    }
                 });
+                asr.deepEqual(bundleMap.sources, [
+                    "node_modules/browser-pack/_prelude.js",
+                    "test/test-proj/App.js",
+                    "test/test-proj/DataSource.js",
+                    "test/test-proj/WidgetUi.js",
+                    "test/test-proj/helpers/HelperUtil.js",
+                ]);
                 done();
             },
         })
@@ -80,9 +87,14 @@ suite("BundleBuilder", function MemoryStoreTest() {
                 },
             });
         });
+        var allDeps;
         var bOpts;
         var savedDeps = [];
-        var bundleBldr = BundleBuilder.buildBundler(function (opts) { return new TsBrowserify(bOpts = opts); }, null /*(b, opts) => TsWatchify(b, { delay: 500 })*/, {
+        var bundleBldr = BundleBuilder.buildBundler(function (opts) {
+            var bundler = new TsBrowserify(bOpts = opts);
+            allDeps = BrowserifyHelper.addDependencyTracker(process.cwd() + "\\test\\", bundler).allDeps;
+            return bundler;
+        }, null /*(b, opts) => TsWatchify(b, { delay: 500 })*/, {
             debug: true,
             rebuild: false,
             verbose: true,
@@ -104,30 +116,41 @@ suite("BundleBuilder", function MemoryStoreTest() {
         })
             .setBundleListeners({
             finishAll: function () {
-                //savedDeps = savedDeps.sort((a, b) => (<string>a.file).localeCompare(b.file));
-                //savedDeps.forEach((a) => console.log(a));
+                //console.log("deps", JSON.stringify(allDeps, undefined, "  "));
+                var bundleDataSourceMap;
+                var bundleMap;
                 asr.doesNotThrow(function () {
-                    var bundleDataSourceMap = JSON.parse(fs.readFileSync("./test/tmp/bundle-data-access.js.map", { encoding: "utf8" }));
-                    asr.deepEqual(bundleDataSourceMap.sources, [
-                        "./_prelude-with-typescript-helpers.js",
-                        "test/test-proj/DataSource.js",
-                    ]);
-                    var bundleMap = JSON.parse(fs.readFileSync("./test/tmp/bundle.js.map", { encoding: "utf8" }));
-                    asr.deepEqual(bundleMap.sources, [
-                        "bundlers/browser/_prelude.js",
-                        "test/test-proj/App.js",
-                        "test/test-proj/HelperUtil.js"
-                    ]);
-                    asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle.js"));
-                    asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle.js.map"));
-                    asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle-data-access.js"));
-                    asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle-data-access.js.map"));
-                    fs.unlinkSync("./test/tmp/bundle.js");
-                    fs.unlinkSync("./test/tmp/bundle.js.map");
-                    fs.unlinkSync("./test/tmp/bundle-data-access.js");
-                    fs.unlinkSync("./test/tmp/bundle-data-access.js.map");
-                    fs.rmdirSync("./test/tmp");
-                    asr.isNotTrue(FileUtil.existsDirSync("./test/tmp"));
+                    bundleDataSourceMap = JSON.parse(fs.readFileSync("./test/tmp/bundle-data-access.js.map", { encoding: "utf8" }));
+                    bundleMap = JSON.parse(fs.readFileSync("./test/tmp/bundle.js.map", { encoding: "utf8" }));
+                    if (doCleanup) {
+                        asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle.js"));
+                        asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle.js.map"));
+                        asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle-data-access.js"));
+                        asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle-data-access.js.map"));
+                        fs.unlinkSync("./test/tmp/bundle.js");
+                        fs.unlinkSync("./test/tmp/bundle.js.map");
+                        fs.unlinkSync("./test/tmp/bundle-data-access.js");
+                        fs.unlinkSync("./test/tmp/bundle-data-access.js.map");
+                        fs.rmdirSync("./test/tmp");
+                        asr.isNotTrue(FileUtil.existsDirSync("./test/tmp"));
+                    }
+                });
+                asr.deepEqual(bundleDataSourceMap.sources, [
+                    "./_prelude-with-typescript-helpers.js",
+                    "test/test-proj/DataSource.js",
+                ]);
+                asr.deepEqual(bundleMap.sources, [
+                    "bundlers/browser/_prelude.js",
+                    "test/test-proj/App.js",
+                    "test/test-proj/WidgetUi.js",
+                    "test/test-proj/helpers/HelperUtil.js",
+                ]);
+                var sortedDeps = Object.keys(allDeps).reduce(function (map, k) { map[k] = allDeps[k].sort(); return map; }, {}); // must sort for stable test results
+                asr.deepEqual(sortedDeps, {
+                    "test-proj\\App": ["test-proj\\DataSource", "test-proj\\WidgetUi", "test-proj\\helpers\\HelperUtil"],
+                    "test-proj\\DataSource": [],
+                    "test-proj\\WidgetUi": ["test-proj\\helpers\\HelperUtil"],
+                    "test-proj\\helpers\\HelperUtil": ["test-proj\\WidgetUi"],
                 });
                 done();
             }
@@ -138,5 +161,34 @@ suite("BundleBuilder", function MemoryStoreTest() {
             srcPaths: ["./test-proj", "node_modules"],
             projectRoot: process.cwd() + "/test"
         }, null);
+    });
+    test("detectCircularDependencies", function detectCircularDependenciesTest() {
+        var allDeps = {
+            "A": ["B"],
+            "B": ["C"],
+            "C": ["D"],
+            "D": ["E"],
+            "E": ["F"],
+        };
+        var circularPath = BrowserifyHelper.detectCircularDependencies("A", allDeps);
+        asr.isNull(circularPath);
+        allDeps = {
+            "A": ["B", "F"],
+            "B": ["C"],
+            "C": ["D"],
+            "D": ["E"],
+            "E": ["F"],
+            "F": ["A"],
+        };
+        circularPath = BrowserifyHelper.detectCircularDependencies("A", allDeps);
+        asr.deepEqual(circularPath, ["A", "B", "C", "D", "E", "F", "A"]);
+        allDeps = {
+            "test-proj\\App": ["test-proj\\DataSource", "test-proj\\WidgetUi", "test-proj\\helpers\\HelperUtil"],
+            "test-proj\\DataSource": [],
+            "test-proj\\WidgetUi": ["test-proj\\helpers\\HelperUtil"],
+            "test-proj\\helpers\\HelperUtil": ["test-proj\\WidgetUi"],
+        };
+        circularPath = BrowserifyHelper.detectCircularDependencies(PathUtil.getFileNameWithoutExt("test-proj\\App.js"), allDeps);
+        asr.deepEqual(circularPath, ["test-proj\\App", "test-proj\\WidgetUi", "test-proj\\helpers\\HelperUtil", "test-proj\\WidgetUi"]);
     });
 });

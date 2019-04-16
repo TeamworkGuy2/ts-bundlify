@@ -3,9 +3,7 @@ import chai = require("chai");
 import mocha = require("mocha");
 import StringUtil = require("../utils/StringUtil");
 
-
 var asr = chai.assert;
-
 
 suite("StringUtil", function StringUtilTest() {
     // random string data for test

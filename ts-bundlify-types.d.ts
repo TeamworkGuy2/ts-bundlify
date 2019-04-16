@@ -27,11 +27,13 @@ interface ModuleDepRow {
     index: string | number;
     indexDeps: { [name: string]: string | number };
     source: string;
-    sourceFile: string;
-    sourceRoot: string;
-    entry?: string | number;
+    basedir?: string | undefined;
+    entry?: boolean;
+    expose?: boolean;
     order?: string | number;
     nomap?: boolean;
+    sourceFile?: string;
+    sourceRoot?: string;
 }
 
 

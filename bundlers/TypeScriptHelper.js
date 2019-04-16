@@ -56,6 +56,8 @@ var TypeScriptHelper;
         };
     }
     TypeScriptHelper.createPreludeStringWithTypeScriptHelpers = createPreludeStringWithTypeScriptHelpers;
+    /** Can be passed to 'RequireParser.parse()' to skip typescript helpers at the beginning of a file when parsing imports
+     */
     function skipTypeScriptHelpersWhenParsingRequire(src, i, state, text) {
         // allow TypeScript helpers at top of file (see TypeScriptHelper)
         if (state === 3 && text === "(this") {

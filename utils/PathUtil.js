@@ -1,4 +1,5 @@
 "use strict";
+var path = require("path");
 var process = require("process");
 var StringUtil = require("./StringUtil");
 /** File system path utilities (some overlap with Node 'path' module).
@@ -50,5 +51,9 @@ var PathUtil;
         return regex;
     }
     PathUtil.createRegexInspector = createRegexInspector;
+    function getFileNameWithoutExt(file) {
+        return file.substr(0, file.length - path.extname(file).length);
+    }
+    PathUtil.getFileNameWithoutExt = getFileNameWithoutExt;
 })(PathUtil || (PathUtil = {}));
 module.exports = PathUtil;

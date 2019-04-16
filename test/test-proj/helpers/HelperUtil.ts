@@ -1,4 +1,5 @@
 ﻿import fs = require("fs");
+import WidgetUi = require("../WidgetUi");
 
 module HelperUtil {
 
@@ -13,6 +14,7 @@ module HelperUtil {
 
 
     export var App: PackageLike;
+    export var Ui: typeof WidgetUi = WidgetUi;
 
 }
 

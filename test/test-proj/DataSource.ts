@@ -1,4 +1,4 @@
-﻿import HelperUtil = require("./HelperUtil");
+﻿import HelperUtil = require("./helpers/HelperUtil");
 
 module DataSource {
     export var collectionCache: { [name: string]: Collection<any> } = {};

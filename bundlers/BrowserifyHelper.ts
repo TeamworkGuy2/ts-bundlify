@@ -1,4 +1,5 @@
 ﻿import log = require("fancy-log");
+import path = require("path");
 import stream = require("stream");
 import util = require("util");
 import Q = require("q");
@@ -101,7 +102,7 @@ module BrowserifyHelper {
         getSourceStreams: (bundler: TBundler, updateEvent?: { [key: string]: any } | { [key: number]: any }) => MultiBundleStreams,
         additionalStreamPipes: [string, (prevStream: NodeJS.ReadableStream, streamOpts: BundleDst) => NodeJS.ReadableStream][],
         listeners: BuildListeners
-    ) {
+    ): void {
         listeners = listeners || <BuildListeners>{};
 
         function rebundle(updateEvent?: any) {
@@ -227,10 +228,10 @@ module BrowserifyHelper {
      * @param optionalTransforms
      */
     export function createStreamTransformer(optionalTransforms: {
-                prependInitial?: BufferTransformFunc;
-                prependEach?: BufferTransformFunc,
-                appendEach?: BufferTransformFunc,
-            }): stream.Transform {
+        prependInitial?: BufferTransformFunc;
+        prependEach?: BufferTransformFunc,
+        appendEach?: BufferTransformFunc,
+    }): stream.Transform {
 
         function SimpleStreamView(this: stream.Transform, opts?: stream.TransformOptions) {
             stream.Transform.call(this, opts);
@@ -253,6 +254,76 @@ module BrowserifyHelper {
         var i = 0;
 
         return <stream.Transform>new (<any>SimpleStreamView)();
+    }
+
+
+    export function addDependencyTracker<TBundler extends { on(event: "dep", cb: (evt?: any) => void): void }>(
+        baseDir: string,
+        bundler: TBundler,
+    ): { bundler: TBundler, allDeps: { [name: string]: string[] } } {
+        var res = { bundler, allDeps: <{ [name: string]: string[] }>{} };
+
+        bundler.on("dep", function (evt: ModuleDepRow) {
+            // relativize file absolute path to project directory
+            var file = path.relative(baseDir, evt.file);
+            // remove file extension
+            file = file.substr(0, file.length - path.extname(file).length);
+            // relative directory
+            var fileDir = path.dirname(file);
+             // resolve dependencies based on file directory relative to project directory
+            var deps = Object.keys(evt.deps).map((d) => path.join(fileDir, d));
+            // save the dependencies
+            if (!res.allDeps[file]) {
+                res.allDeps[file] = deps;
+            }
+        });
+
+        return res;
+    }
+
+
+    /** Check for circular dependencies in the 'allDeps' map
+     * @param entryFile the 'allDeps' key at which to start walking dependencies
+     * @param allDeps a map of relative file names to dependencies
+     * @returns an array of 'allDeps' keys forming a circular dependency path if one is found, null if not
+     */
+    export function detectCircularDependencies(entryFile: string, allDeps: { [name: string]: string[] }): string[] | null {
+        var paths: string[] = [entryFile];
+        var entryDeps = allDeps[entryFile];
+        if (entryDeps != null) {
+            if (walkDeps(allDeps[entryFile], paths, allDeps)) {
+                return paths;
+            }
+        }
+        else {
+            // helpful error for common function call mistake when using this with TsBrowserify or similar tool that mixes file paths containing extensions with require(...) paths without extensions
+            throw new Error("No dependencies found for entry file '" + entryFile + "'");
+        }
+        return null;
+    }
+
+
+    // recursively walk children, building a parent path as we go, return true when a circular path is encountered
+    function walkDeps(childs: string[], path: string[], tree: { [name: string]: string[] }): boolean {
+        for (var i = 0, size = childs.length; i < size; i++) {
+            var cur = childs[i];
+            // check if the path contains the child (a circular dependency)
+            if (path.indexOf(cur) > -1) {
+                path.push(cur);
+                return true;
+            }
+            // walk the children of this child
+            var curChilds = tree[cur];
+            if (curChilds != null) {
+                // push and pop the child before and after the sub-walk
+                path.push(cur);
+                // recursively walk children
+                var res = walkDeps(curChilds, path, tree);
+                if (res) return res;
+                path.pop();
+            }
+        }
+        return false;
     }
 
 
@@ -294,7 +365,7 @@ module BrowserifyHelper {
     }
 
 
-    function runFuncResultToBuffer(chunk: Buffer, append: boolean, func: ((buf?: Buffer) => void | string | Buffer) | null | undefined): Buffer | undefined {
+    function runFuncResultToBuffer(chunk: Buffer, append: boolean, func: ((buf?: Buffer) => void | string | Buffer) | null | undefined): Buffer {
         if (func != null) {
             var res = func(chunk);
             if (res != null) {
@@ -306,9 +377,8 @@ module BrowserifyHelper {
                     chunk = Buffer.concat(bufs);
                 }
             }
-            return chunk;
         }
-        return undefined;
+        return chunk;
     }
 
 

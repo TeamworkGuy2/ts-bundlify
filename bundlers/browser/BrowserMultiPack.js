@@ -169,7 +169,7 @@ var BrowserMultiPack;
         var baseStream = through2.obj(write, function () {
             bundleStreams.forEach(function (s, i) {
                 if (enabledStreams[i] !== false) {
-                    var src = toUmdSource(bundles.bundles[i], firsts[i], entriesAry[i], preludes[i], sourcemaps[i]);
+                    var src = toUmdSource(bundles.bundles[i], firsts[i], entriesAry[i], preludes[i], sourceMaps[i]);
                     s.stream.push(Buffer.from(src));
                     s.stream.push(null);
                 }
@@ -184,7 +184,7 @@ var BrowserMultiPack;
         // tracks source map line number offsets for each bundle stream
         var lineNumAry = new Array(dstCount);
         // source maps for each bundle stream
-        var sourcemaps = new Array(dstCount);
+        var sourceMaps = new Array(dstCount);
         // prelude strings for each bundle stream
         var preludes = Array(dstCount);
         // prelude paths for each bundle stream (mostly for source maps)
@@ -214,7 +214,7 @@ var BrowserMultiPack;
             }
             var dst = bundleStreams[idx].stream;
             var first = firsts[idx];
-            var sourcemap = sourcemaps[idx];
+            var sourceMap = sourceMaps[idx];
             var opts = bundles.bundles[idx];
             var prelude = preludes[idx];
             var preludePath = preludePaths[idx];
@@ -237,11 +237,11 @@ var BrowserMultiPack;
                 wrappedSrc.push(',');
             }
             if (row.sourceFile && !row.nomap) {
-                if (!sourcemap) {
-                    sourcemaps[idx] = sourcemap = CombineSourceMap.create();
-                    sourcemap.addFile({ sourceFile: preludePath, source: prelude }, { line: 0 });
+                if (!sourceMap) {
+                    sourceMaps[idx] = sourceMap = CombineSourceMap.create();
+                    sourceMap.addFile({ sourceFile: preludePath, source: prelude }, { line: 0 });
                 }
-                sourcemap.addFile({ sourceFile: row.sourceFile, source: row.source }, { line: lineNumAry[idx] });
+                sourceMap.addFile({ sourceFile: row.sourceFile, source: row.source }, { line: lineNumAry[idx] });
             }
             wrappedSrc.push(JSON.stringify(row.id), ":[", "function(require,module,exports){\n", CombineSourceMap.removeComments(row.source), "\n},", '{');
             if (row.deps) {

@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.10.3](N/A) - 2019-01-27
+### [0.10.4](N/A) - 2019-04-15
+#### Added
+* `BrowserifyHelper` `addDependencyTracker()` and `detectCircularDependencies()` (see `BundleBuilderTest` for examples of how to use these functions)
+* `PathUtil.getFileNameWithoutExt()`
+
+#### Changed
+* `BrowserifyHelper.runFuncResultToBuffer()` now always returns the `chunk` argument
+
+
+--------
+### [0.10.3](https://github.com/TeamworkGuy2/ts-bundlify/commit/e7a5fadf714ae314cb69c002eb4a5605558fc416) - 2019-01-27
 #### Added
 * Bundle test for `BrowserMultiPack`
 * `BrowserPackOptions` comments

@@ -190,7 +190,7 @@ module BrowserMultiPack {
         var baseStream = <stream.Transform>through2.obj(write, () => {
             bundleStreams.forEach((s, i) => {
                 if (enabledStreams[i] !== false) {
-                    var src = toUmdSource(bundles.bundles[i], firsts[i], entriesAry[i], preludes[i], sourcemaps[i]);
+                    var src = toUmdSource(bundles.bundles[i], firsts[i], entriesAry[i], preludes[i], sourceMaps[i]);
                     s.stream.push(Buffer.from(src));
                     s.stream.push(null);
                 }
@@ -206,7 +206,7 @@ module BrowserMultiPack {
         // tracks source map line number offsets for each bundle stream
         var lineNumAry = new Array<number>(dstCount);
         // source maps for each bundle stream
-        var sourcemaps = new Array<CombineSourceMap>(dstCount);
+        var sourceMaps = new Array<CombineSourceMap>(dstCount);
         // prelude strings for each bundle stream
         var preludes = Array<string>(dstCount);
         // prelude paths for each bundle stream (mostly for source maps)
@@ -239,7 +239,7 @@ module BrowserMultiPack {
             }
             var dst = bundleStreams[idx].stream;
             var first = firsts[idx];
-            var sourcemap = sourcemaps[idx];
+            var sourceMap = sourceMaps[idx];
             var opts = bundles.bundles[idx];
             var prelude = preludes[idx];
             var preludePath = preludePaths[idx];
@@ -263,14 +263,14 @@ module BrowserMultiPack {
             }
 
             if (row.sourceFile && !row.nomap) {
-                if (!sourcemap) {
-                    sourcemaps[idx] = sourcemap = CombineSourceMap.create();
-                    sourcemap.addFile(
+                if (!sourceMap) {
+                    sourceMaps[idx] = sourceMap = CombineSourceMap.create();
+                    sourceMap.addFile(
                         { sourceFile: preludePath, source: prelude },
                         { line: 0 }
                     );
                 }
-                sourcemap.addFile(
+                sourceMap.addFile(
                     { sourceFile: row.sourceFile, source: row.source },
                     { line: lineNumAry[idx] }
                 );

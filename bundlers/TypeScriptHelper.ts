@@ -63,6 +63,8 @@ module TypeScriptHelper {
     }
 
 
+    /** Can be passed to 'RequireParser.parse()' to skip typescript helpers at the beginning of a file when parsing imports
+     */
     export function skipTypeScriptHelpersWhenParsingRequire(src: string, i: number, state: number, text: string): number {
         // allow TypeScript helpers at top of file (see TypeScriptHelper)
         if (state === 3 && text === "(this") {

@@ -1,5 +1,6 @@
 "use strict";
 var log = require("fancy-log");
+var path = require("path");
 var stream = require("stream");
 var util = require("util");
 /** Helpers for building JS bundles using 'browserify'
@@ -166,6 +167,68 @@ var BrowserifyHelper;
         return new SimpleStreamView();
     }
     BrowserifyHelper.createStreamTransformer = createStreamTransformer;
+    function addDependencyTracker(baseDir, bundler) {
+        var res = { bundler: bundler, allDeps: {} };
+        bundler.on("dep", function (evt) {
+            // relativize file absolute path to project directory
+            var file = path.relative(baseDir, evt.file);
+            // remove file extension
+            file = file.substr(0, file.length - path.extname(file).length);
+            // relative directory
+            var fileDir = path.dirname(file);
+            // resolve dependencies based on file directory relative to project directory
+            var deps = Object.keys(evt.deps).map(function (d) { return path.join(fileDir, d); });
+            // save the dependencies
+            if (!res.allDeps[file]) {
+                res.allDeps[file] = deps;
+            }
+        });
+        return res;
+    }
+    BrowserifyHelper.addDependencyTracker = addDependencyTracker;
+    /** Check for circular dependencies in the 'allDeps' map
+     * @param entryFile the 'allDeps' key at which to start walking dependencies
+     * @param allDeps a map of relative file names to dependencies
+     * @returns an array of 'allDeps' keys forming a circular dependency path if one is found, null if not
+     */
+    function detectCircularDependencies(entryFile, allDeps) {
+        var paths = [entryFile];
+        var entryDeps = allDeps[entryFile];
+        if (entryDeps != null) {
+            if (walkDeps(allDeps[entryFile], paths, allDeps)) {
+                return paths;
+            }
+        }
+        else {
+            // helpful error for common function call mistake when using this with TsBrowserify or similar tool that mixes file paths containing extensions with require(...) paths without extensions
+            throw new Error("No dependencies found for entry file '" + entryFile + "'");
+        }
+        return null;
+    }
+    BrowserifyHelper.detectCircularDependencies = detectCircularDependencies;
+    // recursively walk children, building a parent path as we go, return true when a circular path is encountered
+    function walkDeps(childs, path, tree) {
+        for (var i = 0, size = childs.length; i < size; i++) {
+            var cur = childs[i];
+            // check if the path contains the child (a circular dependency)
+            if (path.indexOf(cur) > -1) {
+                path.push(cur);
+                return true;
+            }
+            // walk the children of this child
+            var curChilds = tree[cur];
+            if (curChilds != null) {
+                // push and pop the child before and after the sub-walk
+                path.push(cur);
+                // recursively walk children
+                var res = walkDeps(curChilds, path, tree);
+                if (res)
+                    return res;
+                path.pop();
+            }
+        }
+        return false;
+    }
     /** Given a set of 'options' objects, create a shallow copy, left-to-right, of the non-null objects, or return the non-null object if only one non-null parameter is provided
      */
     function combineOpts() {
@@ -220,9 +283,8 @@ var BrowserifyHelper;
                     chunk = Buffer.concat(bufs);
                 }
             }
-            return chunk;
         }
-        return undefined;
+        return chunk;
     }
     function isPromise(p) {
         return p != null && typeof p.then === "function";

@@ -4,9 +4,7 @@ import mocha = require("mocha");
 import RequireParser = require("../bundlers/RequireParser");
 import TypeScriptHelper = require("../bundlers/TypeScriptHelper");
 
-
 var asr = chai.assert;
-
 
 suite("RequireParser", function RequireParserTest() {
     var ln = '\n';

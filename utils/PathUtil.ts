@@ -1,4 +1,5 @@
-﻿import process = require("process");
+﻿import path = require("path");
+import process = require("process");
 import StringUtil = require("./StringUtil");
 
 /** File system path utilities (some overlap with Node 'path' module).
@@ -54,6 +55,11 @@ module PathUtil {
             return res;
         };
         return regex;
+    }
+
+
+    export function getFileNameWithoutExt(file: string) {
+        return file.substr(0, file.length - path.extname(file).length);
     }
 
 }
