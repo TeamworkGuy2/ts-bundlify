@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.10.4](N/A) - 2019-04-15
+### [0.10.5](N/A) - 2019-04-16
+#### Added
+* Optional `BrowserifyHelper.addDependencyTracker()` `filter` parameter to allow for control over which dependencies get tracked
+
+#### Fixed
+* `BrowserifyHelper.addDependencyTracker()` was ignoring repeat updates to the same file dependency mapping, adjusted to always save so that re-bundling works
+* `BrowserifyHelper.detectCircularDependencies()` returns an empty array instead of null when no circular dependencies are detected
+
+
+--------
+### [0.10.4](https://github.com/TeamworkGuy2/ts-bundlify/commit/da17b4e9d87fa9b41ee86d5b4fc7cea2b74efe71) - 2019-04-15
 #### Added
 * `BrowserifyHelper` `addDependencyTracker()` and `detectCircularDependencies()` (see `BundleBuilderTest` for examples of how to use these functions)
 * `PathUtil.getFileNameWithoutExt()`

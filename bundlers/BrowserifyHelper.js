@@ -167,9 +167,17 @@ var BrowserifyHelper;
         return new SimpleStreamView();
     }
     BrowserifyHelper.createStreamTransformer = createStreamTransformer;
-    function addDependencyTracker(baseDir, bundler) {
+    /** Add a dependency tracker to the provided 'bundler'
+     * @param baseDir the base project directory to resolve relative file paths against
+     * @param bundler the bundler to listen for file stream events from
+     * @param filter optional function to filter the bundler files, return false to skip a file
+     */
+    function addDependencyTracker(baseDir, bundler, filter) {
         var res = { bundler: bundler, allDeps: {} };
         bundler.on("dep", function (evt) {
+            if (filter != null && !filter(evt)) {
+                return;
+            }
             // relativize file absolute path to project directory
             var file = path.relative(baseDir, evt.file);
             // remove file extension
@@ -179,9 +187,7 @@ var BrowserifyHelper;
             // resolve dependencies based on file directory relative to project directory
             var deps = Object.keys(evt.deps).map(function (d) { return path.join(fileDir, d); });
             // save the dependencies
-            if (!res.allDeps[file]) {
-                res.allDeps[file] = deps;
-            }
+            res.allDeps[file] = deps;
         });
         return res;
     }
@@ -189,7 +195,7 @@ var BrowserifyHelper;
     /** Check for circular dependencies in the 'allDeps' map
      * @param entryFile the 'allDeps' key at which to start walking dependencies
      * @param allDeps a map of relative file names to dependencies
-     * @returns an array of 'allDeps' keys forming a circular dependency path if one is found, null if not
+     * @returns an array of 'allDeps' keys forming a circular dependency path if one is found, empty array if not
      */
     function detectCircularDependencies(entryFile, allDeps) {
         var paths = [entryFile];
@@ -203,7 +209,7 @@ var BrowserifyHelper;
             // helpful error for common function call mistake when using this with TsBrowserify or similar tool that mixes file paths containing extensions with require(...) paths without extensions
             throw new Error("No dependencies found for entry file '" + entryFile + "'");
         }
-        return null;
+        return [];
     }
     BrowserifyHelper.detectCircularDependencies = detectCircularDependencies;
     // recursively walk children, building a parent path as we go, return true when a circular path is encountered

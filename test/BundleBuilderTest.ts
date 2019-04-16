@@ -194,7 +194,7 @@ suite("BundleBuilder", function MemoryStoreTest() {
             "E": ["F"],
         };
         var circularPath = BrowserifyHelper.detectCircularDependencies("A", allDeps);
-        asr.isNull(circularPath);
+        asr.deepEqual(circularPath, []);
 
         allDeps = {
             "A": ["B", "F"],
