@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.11.0](N/A) - 2019-05-08
+### [0.12.0](N/A) - 2019-05-09
+#### Changed
+* Update `package.json` dependencies: correctly move devDependependencies -> dependencies, @types/node@12.0.0, remove @types/chokidar since chokidar bundles types with it now.
+
+
+--------
+### [0.11.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/9ca0e9401bbb126c6a4210a695fd04f017730fee) - 2019-05-08
 #### Changed
 * Added `read-only-stream` directly into `TsBrowserify` and switched `read-only-stream@^2.0.0` dependency in package.json to `readable-stream@^2.0.0`
 
