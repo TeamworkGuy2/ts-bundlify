@@ -1,6 +1,5 @@
 /// <reference types="node" />
 /// <reference path="./labeled-stream-splicer.d.ts" />
-/// <reference path="./read-only-stream.d.ts" />
 
 // based on browserify@14.4.0
 import fs = require("fs");
@@ -13,7 +12,7 @@ import EventEmitter = require("events");
 import insertGlobals = require("insert-module-globals");
 import splicer = require("labeled-stream-splicer");
 import mdeps = require("module-deps");
-import readonly = require("read-only-stream");
+import readableStream = require("readable-stream");
 import resolve = require("resolve");
 import shasum = require("shasum");
 import syntaxError = require("syntax-error");
@@ -884,114 +883,6 @@ class TsBrowserify extends EventEmitter.EventEmitter {
 
 }
 
-
-// ==== htmlescape@1.1.1 ====
-var ESCAPE_LOOKUP = {
-    '&': '\\u0026',
-    '>': '\\u003e',
-    '<': '\\u003c',
-    '\u2028': '\\u2028',
-    '\u2029': '\\u2029'
-};
-
-var ESCAPE_REGEX = /[&><\u2028\u2029]/g;
-
-var TERMINATORS_LOOKUP = {
-    '\u2028': '\\u2028',
-    '\u2029': '\\u2029'
-};
-
-var TERMINATORS_REGEX = /[\u2028\u2029]/g;
-
-function htmlescape(obj: any) {
-    return JSON.stringify(obj).replace(ESCAPE_REGEX, escaper);
-}
-
-
-function htmlsanitize(str: string) {
-    return str.replace(TERMINATORS_REGEX, sanitizer);
-}
-
-
-function escaper(match: string): string {
-    return (<any>ESCAPE_LOOKUP)[match];
-}
-
-
-function sanitizer(match: string): string {
-    return (<any>TERMINATORS_LOOKUP)[match];
-}
-// ==== end htmlescape ====
-
-
-function cachedPathRelative(from: string, to: string) {
-  // If the current working directory changes, we invalidate the cache
-  var cwd = process.cwd();
-  if (cwd !== lastCwd) {
-      cache = {};
-      lastCwd = cwd;
-  }
-
-  if (cache[from] && cache[from][to]) return cache[from][to];
-
-  var result = path.relative.call(path, from, to);
-
-  cache[from] = cache[from] || {};
-  cache[from][to] = result;
-
-  return result;
-}
-
-function isStream(s: any): s is StreamLike {
-	return s && typeof s.pipe === "function";
-}
-
-function isAbsolutePath(file: string) {
-    var regexp = process.platform === "win32" ?
-        /^\w:/ :
-        /^\//;
-    return regexp.test(file);
-}
-
-function isExternalModule(file: string) {
-    var regexp = process.platform === "win32" ?
-        /^(\.|\w:)/ :
-        /^[\/.]/;
-    return !regexp.test(file);
-}
-
-function relativePath(from: string, to: string) {
-    // Replace \ with / for OS-independent behavior
-    return cachedPathRelative(from, to).replace(/\\/g, '/');
-}
-
-function defined<T>(a: T | null | undefined, b: T): T;
-function defined<T>(a: T | null | undefined, b: T | null | undefined, c: T): T;
-function defined<T>(a: T | null | undefined, b: T | null | undefined, c: T | null | undefined, d: T): T;
-function defined<T>(...args: T[]): T {
-    for (var i = 0; i < arguments.length; i++) {
-        if (arguments[i] !== undefined) return arguments[i];
-    }
-    return <T><any>undefined;
-}
-
-//function xtend<T1, T2>(t1: T1, t2: T2): { [P in (keyof T1 | keyof T2)]: (T2[P & keyof T2] extends void ? T1[P & keyof T1] : T2[P & keyof T2]) };
-//function xtend(...args: any[]): any;
-function xtend(...args: any[]) {
-    var target = arguments[0];
-    for (var i = 1; i < arguments.length; i++) {
-        var source = arguments[i]
-
-        for (var key in source) {
-            if (hasOwnProperty.call(source, key)) {
-                target[key] = source[key]
-            }
-        }
-    }
-
-    return target;
-}
-
 module TsBrowserify {
 
     export interface RequireOptions {
@@ -1072,6 +963,146 @@ module TsBrowserify {
         [prop: string]: any;
     }
 
+}
+
+
+// ==== htmlescape@1.1.1 ====
+var ESCAPE_LOOKUP = {
+    '&': '\\u0026',
+    '>': '\\u003e',
+    '<': '\\u003c',
+    '\u2028': '\\u2028',
+    '\u2029': '\\u2029'
+};
+
+var ESCAPE_REGEX = /[&><\u2028\u2029]/g;
+
+var TERMINATORS_LOOKUP = {
+    '\u2028': '\\u2028',
+    '\u2029': '\\u2029'
+};
+
+var TERMINATORS_REGEX = /[\u2028\u2029]/g;
+
+function htmlescape(obj: any) {
+    return JSON.stringify(obj).replace(ESCAPE_REGEX, escaper);
+}
+
+
+function htmlsanitize(str: string) {
+    return str.replace(TERMINATORS_REGEX, sanitizer);
+}
+
+
+function escaper(match: string): string {
+    return (<any>ESCAPE_LOOKUP)[match];
+}
+
+
+function sanitizer(match: string): string {
+    return (<any>TERMINATORS_LOOKUP)[match];
+}
+// ==== end htmlescape ====
+
+
+// ==== read-only-stream@2.0.0 ====
+function readonly(stream: NodeJS.ReadableStream): readableStream.Readable {
+    var opts = <readableStream.ReadableStateOptions>(<readableStream.Readable>stream)._readableState;
+    if (typeof stream.read !== "function") {
+        stream = new readableStream.Readable(opts).wrap(stream);
+    }
+
+    var ro = new readableStream.Readable({ objectMode: opts && opts.objectMode });
+    var waiting = false;
+
+    stream.on("readable", function () {
+        if (waiting) {
+            waiting = false;
+            (<(n?: number) => void>ro._read)();
+        }
+    });
+
+    ro._read = function () {
+        var buf, reads = 0;
+        while ((buf = stream.read()) !== null) {
+            ro.push(buf);
+            reads++;
+        }
+        if (reads === 0) waiting = true;
+    };
+    stream.once("end", function () { ro.push(null) });
+    stream.on("error", function (err) { ro.emit("error", err) });
+    return ro;
+}
+// ==== end read-only-stream ====
+
+
+function cachedPathRelative(from: string, to: string) {
+    // If the current working directory changes, we invalidate the cache
+    var cwd = process.cwd();
+    if (cwd !== lastCwd) {
+        cache = {};
+        lastCwd = cwd;
+    }
+
+    if (cache[from] && cache[from][to]) return cache[from][to];
+
+    var result = path.relative.call(path, from, to);
+
+    cache[from] = cache[from] || {};
+    cache[from][to] = result;
+
+    return result;
+}
+
+function isStream(s: any): s is StreamLike {
+    return s && typeof s.pipe === "function";
+}
+
+function isAbsolutePath(file: string) {
+    var regexp = process.platform === "win32" ?
+        /^\w:/ :
+        /^\//;
+    return regexp.test(file);
+}
+
+function isExternalModule(file: string) {
+    var regexp = process.platform === "win32" ?
+        /^(\.|\w:)/ :
+        /^[\/.]/;
+    return !regexp.test(file);
+}
+
+function relativePath(from: string, to: string) {
+    // Replace \ with / for OS-independent behavior
+    return cachedPathRelative(from, to).replace(/\\/g, '/');
+}
+
+function defined<T>(a: T | null | undefined, b: T): T;
+function defined<T>(a: T | null | undefined, b: T | null | undefined, c: T): T;
+function defined<T>(a: T | null | undefined, b: T | null | undefined, c: T | null | undefined, d: T): T;
+function defined<T>(...args: T[]): T {
+    for (var i = 0; i < arguments.length; i++) {
+        if (arguments[i] !== undefined) return arguments[i];
+    }
+    return <T><any>undefined;
+}
+
+//function xtend<T1, T2>(t1: T1, t2: T2): { [P in (keyof T1 | keyof T2)]: (T2[P & keyof T2] extends void ? T1[P & keyof T1] : T2[P & keyof T2]) };
+function xtend(...args: any[]): any;
+function xtend() {
+    var target = arguments[0];
+    for (var i = 1; i < arguments.length; i++) {
+        var source = arguments[i]
+
+        for (var key in source) {
+            if (hasOwnProperty.call(source, key)) {
+                target[key] = source[key]
+            }
+        }
+    }
+
+    return target;
 }
 
 export = TsBrowserify;

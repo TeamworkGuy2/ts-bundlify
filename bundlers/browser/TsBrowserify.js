@@ -1,7 +1,6 @@
 "use strict";
 /// <reference types="node" />
 /// <reference path="./labeled-stream-splicer.d.ts" />
-/// <reference path="./read-only-stream.d.ts" />
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -22,7 +21,7 @@ var bresolve = require("browser-resolve");
 var concat = require("concat-stream");
 var EventEmitter = require("events");
 var splicer = require("labeled-stream-splicer");
-var readonly = require("read-only-stream");
+var readableStream = require("readable-stream");
 var resolve = require("resolve");
 var shasum = require("shasum");
 var syntaxError = require("syntax-error");
@@ -818,6 +817,34 @@ function sanitizer(match) {
     return TERMINATORS_LOOKUP[match];
 }
 // ==== end htmlescape ====
+// ==== read-only-stream@2.0.0 ====
+function readonly(stream) {
+    var opts = stream._readableState;
+    if (typeof stream.read !== "function") {
+        stream = new readableStream.Readable(opts).wrap(stream);
+    }
+    var ro = new readableStream.Readable({ objectMode: opts && opts.objectMode });
+    var waiting = false;
+    stream.on("readable", function () {
+        if (waiting) {
+            waiting = false;
+            ro._read();
+        }
+    });
+    ro._read = function () {
+        var buf, reads = 0;
+        while ((buf = stream.read()) !== null) {
+            ro.push(buf);
+            reads++;
+        }
+        if (reads === 0)
+            waiting = true;
+    };
+    stream.once("end", function () { ro.push(null); });
+    stream.on("error", function (err) { ro.emit("error", err); });
+    return ro;
+}
+// ==== end read-only-stream ====
 function cachedPathRelative(from, to) {
     // If the current working directory changes, we invalidate the cache
     var cwd = process.cwd();
@@ -862,13 +889,7 @@ function defined() {
     }
     return undefined;
 }
-//function xtend<T1, T2>(t1: T1, t2: T2): { [P in (keyof T1 | keyof T2)]: (T2[P & keyof T2] extends void ? T1[P & keyof T1] : T2[P & keyof T2]) };
-//function xtend(...args: any[]): any;
 function xtend() {
-    var args = [];
-    for (var _i = 0; _i < arguments.length; _i++) {
-        args[_i] = arguments[_i];
-    }
     var target = arguments[0];
     for (var i = 1; i < arguments.length; i++) {
         var source = arguments[i];

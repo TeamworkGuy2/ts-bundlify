@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.10.5](N/A) - 2019-04-16
+### [0.11.0](N/A) - 2019-05-08
+#### Changed
+* Added `read-only-stream` directly into `TsBrowserify` and switched `read-only-stream@^2.0.0` dependency in package.json to `readable-stream@^2.0.0`
+
+#### Removed
+* `read-only-stream.d.ts` since the package is only 30 lines, added directly into `TsBrowserify`
+* `browserify-14.4.0.js` and `stream-splicer.d.ts-unused` accidentally committed previously
+
+
+--------
+### [0.10.5](https://github.com/TeamworkGuy2/ts-bundlify/commit/d9c93d60e5fa973aeedc33a0269ab46ecd18084b) - 2019-04-16
 #### Added
 * Optional `BrowserifyHelper.addDependencyTracker()` `filter` parameter to allow for control over which dependencies get tracked
 
