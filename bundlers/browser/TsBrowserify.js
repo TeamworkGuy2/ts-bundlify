@@ -241,7 +241,9 @@ var TsBrowserify = /** @class */ (function (_super) {
                 next();
             }));
             self.on("dep", function (row) {
-                Object.keys(row.deps).forEach(function (key) {
+                var depKeys = Object.keys(row.deps);
+                for (var i = 0, size = depKeys.length; i < size; i++) {
+                    var key = depKeys[i];
                     var prev = bdeps[key];
                     if (prev) {
                         var id = blabels[prev];
@@ -249,7 +251,7 @@ var TsBrowserify = /** @class */ (function (_super) {
                             row.indexDeps[key] = id;
                         }
                     }
-                });
+                }
             });
             b.pipeline.get("label").once("end", function () {
                 if (--self._pending === 0)
@@ -418,9 +420,11 @@ var TsBrowserify = /** @class */ (function (_super) {
                 if (isAbsolutePath(row.id)) {
                     row.id = '/' + relativePath(basedir, row.file);
                 }
-                Object.keys(row.deps || {}).forEach(function (key) {
+                var depKeys = Object.keys(row.deps || {});
+                for (var i = 0, size = depKeys.length; i < size; i++) {
+                    var key = depKeys[i];
                     row.deps[key] = '/' + relativePath(basedir, row.deps[key]);
-                });
+                }
                 this.push(row);
                 next();
             }));

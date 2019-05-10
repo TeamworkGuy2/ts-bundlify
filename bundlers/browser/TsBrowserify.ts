@@ -294,7 +294,9 @@ class TsBrowserify extends EventEmitter.EventEmitter {
             }));
 
             self.on("dep", function (row) {
-                Object.keys(row.deps).forEach(function (key) {
+                var depKeys = <string[]>Object.keys(row.deps);
+                for (var i = 0, size = depKeys.length; i < size; i++) {
+                    var key = depKeys[i];
                     var prev = bdeps[key];
                     if (prev) {
                         var id = blabels[prev];
@@ -302,7 +304,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
                             row.indexDeps[key] = id;
                         }
                     }
-                });
+                }
             });
 
             b.pipeline.get("label").once("end", function () {
@@ -483,9 +485,11 @@ class TsBrowserify extends EventEmitter.EventEmitter {
                 if (isAbsolutePath(row.id)) {
                     row.id = '/' + relativePath(basedir, row.file);
                 }
-                Object.keys(row.deps || {}).forEach(function (key) {
+                var depKeys = <string[]>Object.keys(row.deps || {});
+                for (var i = 0, size = depKeys.length; i < size; i++) {
+                    var key = depKeys[i];
                     row.deps[key] = '/' + relativePath(basedir, row.deps[key]);
-                });
+                }
                 this.push(row);
                 next();
             }));
@@ -777,7 +781,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
             self.emit("label", prev, row.id);
             if (row.indexDeps) row.deps = row.indexDeps || {};
 
-            Object.keys(row.deps).forEach(function (key) {
+            (<string[]>Object.keys(row.deps)).forEach(function (key: string) {
                 if (self._expose[key]) {
                     row.deps[key] = key;
                     return;

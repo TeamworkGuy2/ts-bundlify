@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.1](N/A) - 2019-05-09
+### [0.12.2](N/A) - 2019-05-09
+#### Fixed
+* Fix `TsBrowserify` strict compile errors that don't show in this project until it's required in another strict TypeScript project
+
+
+--------
+### [0.12.1](https://github.com/TeamworkGuy2/ts-bundlify/commit/9290401120e1580be541160fe461c4d7b13a4e16) - 2019-05-09
 #### Changed
 * Enable `tsconfig.json` `strict` so package works with strict projects
 * Fixed related code errors from enabling TypeScript `strict`
