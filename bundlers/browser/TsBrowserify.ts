@@ -42,11 +42,11 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     /** whether bundle() has been called */
     _bundled: boolean;
     _options: TsBrowserify.Options;
-    _extensions: string[];
+    _extensions!: string[];
     _external: any[];
     _exclude: any[];
     _ignore: any[];
-    _recorded: any[];
+    _recorded!: any[];
     _expose: { [id: string]: string };
     _hashes: {};
     _pending: number;
@@ -67,8 +67,8 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     _syntaxCache: { [name: string]: boolean };
     _filterTransform: (tr: any) => boolean;
     _bresolve: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
-    _mdeps: mdeps.ModuleDepsObject;
-    _bpack: NodeJS.ReadWriteStream & { hasExports?: boolean; standaloneModule?: any };
+    _mdeps!: mdeps.ModuleDepsObject;
+    _bpack!: NodeJS.ReadWriteStream & { hasExports?: boolean; standaloneModule?: any };
     pipeline: splicer.Pipeline;
 
 
@@ -109,6 +109,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
 
         opts.dedupe = opts.dedupe === false ? false : true;
 
+        this._bundled = false;
         this._options = opts;
         this._external = [];
         this._exclude = [];

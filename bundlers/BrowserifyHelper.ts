@@ -336,24 +336,27 @@ module BrowserifyHelper {
 
     /** Given a set of 'options' objects, create a shallow copy, left-to-right, of the non-null objects, or return the non-null object if only one non-null parameter is provided
      */
-    export function combineOpts(...opts: any[]) {
+    export function combineOpts(...opts: [any, ...any[]]) {
         var validOpts: any[] = [];
         for (var i = 0, size = opts.length; i < size; i++) {
             if (opts[i] != null) {
                 validOpts.push(opts[i]);
             }
         }
-        if (validOpts.length === 1) {
+        if (validOpts.length < 2) {
             return validOpts[0];
         }
         else {
             validOpts.unshift({});
-            return Object.assign.apply(null, validOpts);
+            return Object.assign.apply(null, <[any, ...any[]]>validOpts);
         }
     }
 
 
-    function tryCall<T1, T2, T3>(func: (arg1: T1, arg2?: T2, arg3?: T3) => void, arg1: T1, arg2?: T2, arg3?: T3) {
+    function tryCall<T1>(func: (arg1: T1) => void, arg1: T1): void;
+    function tryCall<T1, T2>(func: (arg1: T1, arg2: T2) => void, arg1: T1, arg2: T2): void;
+    function tryCall<T1, T2, T3>(func: (arg1: T1, arg2: T2, arg3: T3) => void, arg1: T1, arg2: T2, arg3: T3): void;
+    function tryCall<T1, T2, T3>(func: (arg1: T1, arg2?: T2, arg3?: T3) => void, arg1: T1, arg2?: T2, arg3?: T3): void {
         if (func == null) { return; }
         try {
             switch(arguments.length - 1) {

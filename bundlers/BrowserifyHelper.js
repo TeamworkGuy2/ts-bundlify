@@ -248,7 +248,7 @@ var BrowserifyHelper;
                 validOpts.push(opts[i]);
             }
         }
-        if (validOpts.length === 1) {
+        if (validOpts.length < 2) {
             return validOpts[0];
         }
         else {

@@ -3,7 +3,6 @@
 /// <reference types="node" />
 /// <reference types="q" />
 
-
 declare module "traceur" {
 
     export class NodeCompiler implements TraceurCompiler {

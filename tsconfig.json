@@ -5,13 +5,10 @@
     "lib": [ "es2017" ],
     "module": "commonjs",
     "noEmitOnError": true,
-    "noImplicitAny": true,
     "noImplicitReturns": true,
-    "noImplicitThis": true,
     "removeComments": false,
     "sourceMap": false,
-    "strictBindCallApply": true,
-    "strictNullChecks": true,
+    "strict": true,
     "target": "es5"
   }
 }

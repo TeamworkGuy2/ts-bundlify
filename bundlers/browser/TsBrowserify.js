@@ -69,6 +69,7 @@ var TsBrowserify = /** @class */ (function (_super) {
             }
         }
         opts.dedupe = opts.dedupe === false ? false : true;
+        _this._bundled = false;
         _this._options = opts;
         _this._external = [];
         _this._exclude = [];

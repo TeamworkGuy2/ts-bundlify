@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.0](N/A) - 2019-05-09
+### [0.12.1](N/A) - 2019-05-09
+#### Changed
+* Enable `tsconfig.json` `strict` so package works with strict projects
+* Fixed related code errors from enabling TypeScript `strict`
+
+
+--------
+### [0.12.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/bc703a4cff96c093b9e4a870360aece465250214) - 2019-05-09
 #### Changed
 * Update `package.json` dependencies: correctly move devDependependencies -> dependencies, @types/node@12.0.0, remove @types/chokidar since chokidar bundles types with it now.
 
