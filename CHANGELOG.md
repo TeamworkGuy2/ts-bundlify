@@ -4,7 +4,12 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.2](N/A) - 2019-05-09
+### [0.12.3](N/A) - 2019-07-06
+#### Changed
+* Update to TypeScript 3.5
+
+--------
+### [0.12.2](https://github.com/TeamworkGuy2/ts-bundlify/commit/7aef9a703c774f0fecad2b45564c1b4ae9fb39ec) - 2019-05-09
 #### Fixed
 * Fix `TsBrowserify` strict compile errors that don't show in this project until it's required in another strict TypeScript project
 

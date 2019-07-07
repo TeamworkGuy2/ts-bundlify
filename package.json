@@ -1,6 +1,6 @@
 {
   "name": "ts-bundlify",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "TypeScript-to-Javascript build helpers for creating bundles using Gulp, Browserify, Traceur, Babel, and Node-Sass",
   "author": "TeamworkGuy2",
   "homepage": "https://github.com/TeamworkGuy2/ts-bundlify",
@@ -72,7 +72,7 @@
     "@types/mocha": "~5.2.5",
     "chai": "^4.2.0",
     "mocha": "^5.2.0",
-    "typescript": "~3.2.2"
+    "typescript": "~3.5.2"
   },
   "scripts": {
     "test": "node node_modules/mocha/bin/_mocha -u tdd --recursive ./test/**/*Test.js",
