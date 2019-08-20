@@ -15,6 +15,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 // based on browserify@14.4.0
+var crypto = require("crypto");
 var fs = require("fs");
 var path = require("path");
 var bresolve = require("browser-resolve");
@@ -23,7 +24,6 @@ var EventEmitter = require("events");
 var splicer = require("labeled-stream-splicer");
 var readableStream = require("readable-stream");
 var resolve = require("resolve");
-var shasum = require("shasum");
 var syntaxError = require("syntax-error");
 var through = require("through2");
 var lastCwd = process.cwd();
@@ -905,5 +905,11 @@ function xtend() {
         }
     }
     return target;
+}
+function shasum(str, alg, format) {
+    str = typeof str === "string" ? str : (Buffer.isBuffer(str) ? str : String(str));
+    return crypto.createHash(alg || "sha1")
+        .update(str, Buffer.isBuffer(str) ? null : "utf8")
+        .digest(format || "hex");
 }
 module.exports = TsBrowserify;

@@ -1,7 +1,7 @@
 ts-bundlify
 ==============
 
-Are you trying to compile JS (or TS, JSX, coffee, etc.) files into multiple bundle files with the ability to require() any file from one bundle in another bundle without asynchronous waits?
+Are you trying to compile JS (or TS, JSX, etc.) files into multiple bundle files with the ability to require() any file from one bundle in another bundle without asynchronous waits?
 
 Been having trouble getting [browserify](https://www.npmjs.com/package/browserify) to output bundles exactly the way you want?
 
@@ -9,7 +9,7 @@ __ts-bundlify__ aims to solve two issues:
 1. reduce the amount of code required to setup a simple browserify build process
 2. easily generate multiple, customizable, bundles from browserify
 
-ts-bundlify includes several default bundle transformers, including uglify-js, babel, and traceur, but you can easily plug your own transform in via `BundleBuilder.buildBundle(...).transforms()`.
+ts-bundlify includes several default bundle transformers, including uglify-js and babel, but you can easily plug your own transform in via `BundleBuilder.buildBundle(...).transforms()`.
 ts-bundlify can use this projects own [TsBrowserify](bundlers/browser/TsBrowserify.ts) class or a custom browserify-like implementation along with gulp.js to do the actual bundling with a little magic (see [bundlers/browser/BrowserMultiPack.ts](bundlers/browser/BrowserMultiPack.ts)).
 
 See each of the `bundlers/` sub-directories as well as the [test/](test/) folder for examples.

@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.4](N/A) - 2019-08-19
+### [0.13.0](N/A) - 2019-08-19
+#### Removed
+* `traceur/`: `Es6ifyToStream` and `TraceurBundler` since traceur has not been updated in over 2 years
+* `shasum` dependency in favor of placing simplified code directly in `TsBrowserify`
+
+
+--------
+### [0.12.4](https://github.com/TeamworkGuy2/ts-bundlify/commit/83045313e00b4765c880c9c4f8a08586da9f7430) - 2019-08-19
 #### Changed
 * Add latest TypeScript helpers code to `TypeScriptHelper`
 

@@ -2,6 +2,7 @@
 /// <reference path="./labeled-stream-splicer.d.ts" />
 
 // based on browserify@14.4.0
+import crypto = require("crypto");
 import fs = require("fs");
 import path = require("path");
 import stream = require("stream");
@@ -14,7 +15,6 @@ import splicer = require("labeled-stream-splicer");
 import mdeps = require("module-deps");
 import readableStream = require("readable-stream");
 import resolve = require("resolve");
-import shasum = require("shasum");
 import syntaxError = require("syntax-error");
 import through = require("through2");
 
@@ -1108,6 +1108,13 @@ function xtend() {
     }
 
     return target;
+}
+
+function shasum(str: any, alg?: string | null, format?: string | null): string {
+    str = typeof str === "string" ? str : (Buffer.isBuffer(str) ? str : String(str));
+    return crypto.createHash(alg || "sha1")
+        .update(str, Buffer.isBuffer(str) ? <any>null : "utf8")
+        .digest(<any>format || "hex");
 }
 
 export = TsBrowserify;

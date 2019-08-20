@@ -3,21 +3,6 @@
 /// <reference types="node" />
 /// <reference types="q" />
 
-declare module "traceur" {
-
-    export class NodeCompiler implements TraceurCompiler {
-        constructor(opts?: any);
-
-        compile(contents: string, file: string, opts: any): any;
-    }
-
-}
-
-interface TraceurCompiler {
-    compile(contents: string, file: string, opts: any): any;
-}
-
-
 /** Type of data row that comes out of browserify */
 interface ModuleDepRow {
     deps: { [name: string]: string | number };
