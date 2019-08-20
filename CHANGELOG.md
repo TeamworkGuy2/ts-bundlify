@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.3](N/A) - 2019-07-06
+### [0.12.4](N/A) - 2019-08-19
+#### Changed
+* Add latest TypeScript helpers code to `TypeScriptHelper`
+
+
+--------
+### [0.12.3](https://github.com/TeamworkGuy2/ts-bundlify/commit/afd1e0ff680b731fcc89f5d5ed23076935ea12c9) - 2019-07-06
 #### Changed
 * Update to TypeScript 3.5
 
