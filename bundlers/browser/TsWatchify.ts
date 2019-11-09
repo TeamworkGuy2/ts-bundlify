@@ -12,7 +12,7 @@ interface Watchable extends NodeJS.EventEmitter {
 // watchify@3.11.0
 function watchify<T extends Watchable>(br: T, opts?: { delay?: number; ignoreWatch?: boolean | string; poll?: boolean | number; anymatch?: typeof anymatch, chokidar?: typeof chokidar }): T & { close(): void; _watcher(file: any, opts?: any): chokidar.FSWatcher } {
     if (!opts) opts = {};
-    var _anymatch = opts.anymatch || anymatch;
+    var _anymatch = <typeof anymatch & Function>(opts.anymatch || anymatch);
     var _chokidar = opts.chokidar || chokidar;
     var b = <T & { close(): void; _watcher(file: any, opts?: any): chokidar.FSWatcher }>br;
     var cache = b._options.cache;

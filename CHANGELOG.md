@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.13.0](N/A) - 2019-08-19
+### [0.13.1](N/A) - 2019-11-08
+#### Changed
+* Update to TypeScript 3.7 and `chokidar@~3.3.0` and `anymatch@~3.1.1`
+
+
+--------
+### [0.13.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/9868b8c54b8cd41555d6f5a9a6f6f1e28d2ccc10) - 2019-08-19
 #### Removed
 * `traceur/`: `Es6ifyToStream` and `TraceurBundler` since traceur has not been updated in over 2 years
 * `shasum` dependency in favor of placing simplified code directly in `TsBrowserify`

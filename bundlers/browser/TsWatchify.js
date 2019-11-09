@@ -7,7 +7,7 @@ var anymatch = require("anymatch");
 function watchify(br, opts) {
     if (!opts)
         opts = {};
-    var _anymatch = opts.anymatch || anymatch;
+    var _anymatch = (opts.anymatch || anymatch);
     var _chokidar = opts.chokidar || chokidar;
     var b = br;
     var cache = b._options.cache;
