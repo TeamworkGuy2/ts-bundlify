@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.13.1](N/A) - 2019-11-08
+### [0.14.0](N/A) - 2020-09-04
+#### Changed
+* Update to TypeScript 4.0
+
+
+--------
+### [0.13.1](https://github.com/TeamworkGuy2/ts-bundlify/commit/4fe3743d0849ad133005a410847c118cd64baa22) - 2019-11-08
 #### Changed
 * Update to TypeScript 3.7 and `chokidar@~3.3.0` and `anymatch@~3.1.1`
 
@@ -26,6 +32,7 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 ### [0.12.3](https://github.com/TeamworkGuy2/ts-bundlify/commit/afd1e0ff680b731fcc89f5d5ed23076935ea12c9) - 2019-07-06
 #### Changed
 * Update to TypeScript 3.5
+
 
 --------
 ### [0.12.2](https://github.com/TeamworkGuy2/ts-bundlify/commit/7aef9a703c774f0fecad2b45564c1b4ae9fb39ec) - 2019-05-09

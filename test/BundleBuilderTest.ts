@@ -80,7 +80,7 @@ suite("BundleBuilder", function MemoryStoreTest() {
     test("buildMultiBundle", function buildMultiBundleTest(done) {
         this.timeout(3000);
 
-        delete insertModuleGlobals.vars["global"]; // causes lokijs-collections and ts-local-storage-manager use 'global' to detect node.js runtime, shouldn't try to fake it in browser
+        delete (<any>insertModuleGlobals.vars)["global"]; // causes lokijs-collections and ts-local-storage-manager use 'global' to detect node.js runtime, shouldn't try to fake it in browser
 
         TsBrowserify.builtins = {
             fs: require.resolve("fs"),
