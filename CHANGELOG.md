@@ -4,7 +4,20 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.14.0](N/A) - 2020-09-04
+### [0.15.0](N/A) - 2020-11-14
+#### Added
+* Add/port `LabeledStreamSplicer` and `StreamSplicer` classes into this project based on `labeled-stream-splicer@2.0.2` and `stream-splicer@2.0.1`
+  * Adjust API `getGroup()` method added to handle the return type difference between a stream and a stream-splicer
+
+#### Changed
+* Update dependencies: `browser-resolve@2.0.0`, `resolve@1.17.1`, and `concat-stream@2.0.0`
+
+#### Removed
+* Remove `labeled-stream-splicer@2.0.1` dependency and `labeled-stream-splicer.d.ts` definition since the library is now included in this project
+
+
+--------
+### [0.14.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/d4edda9bb7d5a2d0d2324c09546f42d1c17dcb03) - 2020-09-04
 #### Changed
 * Update to TypeScript 4.0
 

@@ -1,6 +1,5 @@
 "use strict";
 /// <reference types="node" />
-/// <reference path="./labeled-stream-splicer.d.ts" />
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -21,11 +20,11 @@ var path = require("path");
 var bresolve = require("browser-resolve");
 var concat = require("concat-stream");
 var EventEmitter = require("events");
-var splicer = require("labeled-stream-splicer");
 var readableStream = require("readable-stream");
 var resolve = require("resolve");
 var syntaxError = require("syntax-error");
 var through = require("through2");
+var Splicer = require("./LabeledStreamSplicer");
 var lastCwd = process.cwd();
 var cache = {};
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -235,7 +234,7 @@ var TsBrowserify = /** @class */ (function (_super) {
                     self._external.push(prev);
                 }
             });
-            b.pipeline.get("deps").push(through.obj(function (row, enc, next) {
+            b.pipeline.getGroup("deps").push(through.obj(function (row, enc, next) {
                 bdeps = xtend({}, bdeps, row.deps);
                 this.push(row);
                 next();
@@ -253,7 +252,7 @@ var TsBrowserify = /** @class */ (function (_super) {
                     }
                 }
             });
-            b.pipeline.get("label").once("end", function () {
+            b.pipeline.getGroup("label").once("end", function () {
                 if (--self._pending === 0)
                     self.emit("_ready");
             });
@@ -395,7 +394,7 @@ var TsBrowserify = /** @class */ (function (_super) {
             expose: this._expose
         };
         this._bpack = opts.browserPack(xtend({}, opts, { raw: true }));
-        var pipeline = splicer.obj([
+        var pipeline = Splicer.obj([
             "record", [this._recorder()],
             "deps", [this._mdeps],
             "json", [this._json()],
@@ -412,7 +411,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         ]);
         if (opts.exposeAll) {
             var basedir = defined(opts.basedir, process.cwd());
-            pipeline.get("deps").push(through.obj(function (row, enc, next) {
+            pipeline.getGroup("deps").push(through.obj(function (row, enc, next) {
                 if (self._external.indexOf(row.id) >= 0)
                     return next();
                 if (self._external.indexOf(row.file) >= 0)

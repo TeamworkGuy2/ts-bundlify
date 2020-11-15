@@ -1,5 +1,4 @@
 /// <reference types="node" />
-/// <reference path="./labeled-stream-splicer.d.ts" />
 
 // based on browserify@14.4.0
 import crypto = require("crypto");
@@ -11,12 +10,12 @@ import concat = require("concat-stream");
 import depsSort = require("deps-sort");
 import EventEmitter = require("events");
 import insertGlobals = require("insert-module-globals");
-import splicer = require("labeled-stream-splicer");
 import mdeps = require("module-deps");
 import readableStream = require("readable-stream");
 import resolve = require("resolve");
 import syntaxError = require("syntax-error");
 import through = require("through2");
+import Splicer = require("./LabeledStreamSplicer");
 
 type CreateDepsOptions = TsBrowserify.CreateDepsOptions;
 type CreatePipelineOptions = TsBrowserify.CreatePipelineOptions;
@@ -69,7 +68,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     _bresolve: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
     _mdeps!: mdeps.ModuleDepsObject;
     _bpack!: NodeJS.ReadWriteStream & { hasExports?: boolean; standaloneModule?: any };
-    pipeline: splicer.Pipeline;
+    pipeline: Splicer<NodeJS.ReadWriteStream>;
 
 
     constructor(opts: TsBrowserify.Options);
@@ -127,7 +126,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
                 if (!opts.basedir) opts.basedir = path.dirname(<string>opts.filename)
                 resolve(id, opts, <any>cb);
             }
-            : bresolve);
+            : <(id: string, opts: resolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void>bresolve);
         this._syntaxCache = {};
 
         var ignoreTransform: any[] = [].concat(opts.ignoreTransform).filter(Boolean);
@@ -287,7 +286,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
                 }
             });
 
-            b.pipeline.get("deps").push(through.obj(function (row, enc, next) {
+            b.pipeline.getGroup("deps").push(through.obj(function (row, enc, next) {
                 bdeps = xtend({}, bdeps, row.deps);
                 this.push(row);
                 next();
@@ -307,7 +306,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
                 }
             });
 
-            b.pipeline.get("label").once("end", function () {
+            b.pipeline.getGroup("label").once("end", function () {
                 if (--self._pending === 0) self.emit("_ready");
             });
             return this;
@@ -438,7 +437,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
     }
 
 
-    public _createPipeline(opts: CreatePipelineOptions) {
+    public _createPipeline(opts: CreatePipelineOptions): Splicer<NodeJS.ReadWriteStream> {
         var self = this;
         this._mdeps = opts.moduleDeps(this._createDepsOpts(opts));
         this._mdeps.on("file", function (file, id) {
@@ -461,7 +460,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
         };
         this._bpack = opts.browserPack(xtend({}, opts, { raw: true }));
 
-        var pipeline = splicer.obj([
+        var pipeline = Splicer.obj<NodeJS.ReadWriteStream>([
             "record", [this._recorder()],
             "deps", [this._mdeps],
             "json", [this._json()],
@@ -478,7 +477,7 @@ class TsBrowserify extends EventEmitter.EventEmitter {
         ]);
         if (opts.exposeAll) {
             var basedir = defined(opts.basedir, process.cwd());
-            pipeline.get("deps").push(through.obj(function (row, enc, next) {
+            pipeline.getGroup("deps").push(through.obj(function (row, enc, next) {
                 if (self._external.indexOf(row.id) >= 0) return next();
                 if (self._external.indexOf(row.file) >= 0) return next();
 
@@ -935,7 +934,7 @@ module TsBrowserify {
     }
 
     export interface Options extends CreatePipelineOptions {
-        /** 'browser-resolve@1.11.3' or equivalent resolve() algorithm */
+        /** 'browser-resolve@2.0.0' or equivalent resolve() algorithm */
         browserResolve?: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
 
         bare?: boolean;
