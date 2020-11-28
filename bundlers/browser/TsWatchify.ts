@@ -1,7 +1,7 @@
 ﻿import path = require("path");
-import through = require("through2");
 import chokidar = require("chokidar");
 import anymatch = require("anymatch");
+import StreamUtil = require("../../streams/StreamUtil");
 
 interface Watchable extends NodeJS.EventEmitter {
     pipeline: { get(name: string): any; [prop: string]: any };
@@ -45,7 +45,7 @@ function watchify<T extends Watchable>(br: T, opts?: { delay?: number; ignoreWat
     }
 
     function collect() {
-        b.pipeline.get("deps").push(through.obj(function (row, enc, next) {
+        b.pipeline.get("deps").push(StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             var file = row.expose ? b._expose[row.id] : row.file;
             (<Exclude<typeof cache, undefined>>cache)[file] = {
                 source: row.source,
@@ -76,7 +76,7 @@ function watchify<T extends Watchable>(br: T, opts?: { delay?: number; ignoreWat
             time = Date.now();
         });
 
-        b.pipeline.get("wrap").push(through(function write(buf, enc, next) {
+        b.pipeline.get("wrap").push(StreamUtil.readWrite({}, function write(buf, enc, next) {
             bytes += buf.length;
             this.push(buf);
             next();

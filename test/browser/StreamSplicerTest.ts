@@ -1,15 +1,20 @@
 ﻿"use strict";
 import chai = require("chai");
 import mocha = require("mocha");
-import through = require("through2");
 import JSONStream = require("jsonstream");
 import split = require("split");
 import concat = require("concat-stream");
-import LabeledStreamSplicer = require("../../bundlers/browser/LabeledStreamSplicer");
 import stream = require("stream");
+import LabeledStreamSplicer = require("../../streams/LabeledStreamSplicer");
+import StreamUtil = require("../../streams/StreamUtil");
 
 type Transform = stream.Transform & { label: string };
 var Splicer = LabeledStreamSplicer.StreamSplicer;
+//type DropFirstArg<T extends (...args: any[]) => any> = T extends (_: any, ..._1: infer Rest) => infer R ? (...args: Rest) => R : never;
+var streamObj: <T = any>(
+    transform?: (this: stream.Transform, chunk: T, encoding: BufferEncoding, callback: (error?: Error, data?: T) => void) => void,
+    flush?: (this: stream.Transform, callback: (error?: Error, data?: T) => void) => void
+) => stream.Transform = (transform, flush?) => StreamUtil.readWrite({ objectMode: true }, transform, flush);
 
 var asr = chai.assert;
 var stringify = JSONStream.stringify;
@@ -21,16 +26,16 @@ suite("StreamSplicer", function StreamSplicerTest() {
         done = plan(1, done);
 
         var a = split();
-        var b = through.obj(function (row, enc, next) {
+        var b = streamObj(function (row, enc, next) {
             this.push(JSON.parse(row));
             next();
         });
-        var c = through.obj(function (row, enc, next) { this.push(row.x); next() });
-        var d = through.obj(function (x, enc, next) { this.push(x * 111); next() });
+        var c = streamObj(function (row, enc, next) { this.push(row.x); next() });
+        var d = streamObj(function (x, enc, next) { this.push(x * 111); next() });
         var e = stringify();
 
-        var input = through();
-        var output = through();
+        var input = StreamUtil.readWrite();
+        var output = StreamUtil.readWrite();
         output.pipe(concat(function (body) {
             try {
                 asr.deepEqual(body.toString(), '[\n333\n,\n444\n,\n555\n]\n');
@@ -52,12 +57,12 @@ suite("StreamSplicer", function StreamSplicerTest() {
         done = plan(1, done);
 
         var a = split();
-        var b = through.obj(function (row, enc, next) {
+        var b = streamObj(function (row, enc, next) {
             this.push(JSON.parse(row));
             next();
         });
-        var c = through.obj(function (row, enc, next) { this.push(row.x); next() });
-        var d = through.obj(function (x, enc, next) { this.push(x * 111); next() });
+        var c = streamObj(function (row, enc, next) { this.push(row.x); next() });
+        var d = streamObj(function (x, enc, next) { this.push(x * 111); next() });
         var e = stringify();
 
         var stream = new Splicer([a, b, c, d, e]);
@@ -113,9 +118,9 @@ suite("StreamSplicer", function StreamSplicerTest() {
     });
 
     test("get", function () {
-        var a = through.obj();
-        var b = through.obj();
-        var c = through.obj();
+        var a = streamObj();
+        var b = streamObj();
+        var c = streamObj();
 
         var pipe = new Splicer([a, b, c]);
         asr.equal(pipe.get(0), a, '0');
@@ -133,13 +138,13 @@ suite("StreamSplicer", function StreamSplicerTest() {
     });
 
     test("get: nested", function () {
-        var a = <Transform><any>through.obj();
-        var b = <Transform><any>through.obj();
-        var c = <Transform><any>through.obj();
-        var d = <Transform><any>through.obj();
-        var e = <Transform><any>through.obj();
-        var f = <Transform><any>through.obj();
-        var g = <Transform><any>through.obj();
+        var a = <Transform><any>streamObj();
+        var b = <Transform><any>streamObj();
+        var c = <Transform><any>streamObj();
+        var d = <Transform><any>streamObj();
+        var e = <Transform><any>streamObj();
+        var f = <Transform><any>streamObj();
+        var g = <Transform><any>streamObj();
 
         var pipe = new Splicer([a, [b, c], d, [e], f, g]);
         asr.equal(pipe.get(0), a, "0");
@@ -154,12 +159,12 @@ suite("StreamSplicer", function StreamSplicerTest() {
         done = plan(1, done);
 
         var a = split();
-        var b = through.obj(function (row, enc, next) {
+        var b = streamObj(function (row, enc, next) {
             this.push(JSON.parse(row));
             next();
         });
-        var c = through.obj(function (row, enc, next) { this.push(row.x); next() });
-        var d = through.obj(function (x, enc, next) { this.push(x * 111); next() });
+        var c = streamObj(function (row, enc, next) { this.push(row.x); next() });
+        var d = streamObj(function (x, enc, next) { this.push(x * 111); next() });
         var e = stringify();
 
         var stream = new Splicer([]);
@@ -185,12 +190,12 @@ suite("StreamSplicer", function StreamSplicerTest() {
         done = plan(1, done);
 
         var a = split();
-        var b = through.obj(function (row, enc, next) {
+        var b = streamObj(function (row, enc, next) {
             this.push(JSON.parse(row));
             next();
         });
-        var c = through.obj(function (row, enc, next) { this.push(row.x); next() });
-        var d = through.obj(function (x, enc, next) { this.push(x * 111); next() });
+        var c = streamObj(function (row, enc, next) { this.push(row.x); next() });
+        var d = streamObj(function (x, enc, next) { this.push(x * 111); next() });
         var e = stringify();
 
         var stream = new Splicer([]);
@@ -215,20 +220,20 @@ suite("StreamSplicer", function StreamSplicerTest() {
         this.timeout(500);
         done = plan(1, done);
 
-        var addNewLines = through(function (buf, enc, next) {
+        var addNewLines = StreamUtil.readWrite({}, function (buf, enc, next) {
             this.push(buf + '\n');
             next();
         });
 
         var stream = Splicer.obj([
             [split(), addNewLines],
-            through(function (buf, enc, next) {
+            StreamUtil.readWrite({}, function (buf, enc, next) {
                 this.push('> ' + buf);
                 next()
             })
         ]);
 
-        stream.getGroup(0).unshift(through(function (buf, enc, next) {
+        stream.getGroup(0).unshift(StreamUtil.readWrite({}, function (buf, enc, next) {
             this.push(buf.toString('utf8').toUpperCase());
             next();
         }));
@@ -252,26 +257,26 @@ suite("StreamSplicer", function StreamSplicerTest() {
         this.timeout(500);
         done = plan(1, done);
 
-        var addNewLines = through(function (buf, enc, next) {
+        var addNewLines = StreamUtil.readWrite({}, function (buf, enc, next) {
             this.push(buf + '\n');
             next();
         });
 
         var stream = Splicer.obj([
-            through.obj(function (str: string, enc, next) {
+            streamObj(function (str: string, enc, next) {
                 this.push(str.replace(/^./, function (c) {
                     return String.fromCharCode(c.charCodeAt(0) + 5);
                 }));
                 next();
             }),
             [split(), addNewLines],
-            through(function (buf, enc, next) {
+            StreamUtil.readWrite({}, function (buf, enc, next) {
                 this.push('> ' + buf);
                 next()
             })
         ]);
 
-        stream.getGroup(1).unshift(through(function (buf, enc, next) {
+        stream.getGroup(1).unshift(StreamUtil.readWrite({}, function (buf, enc, next) {
             this.push(buf.toString('utf8').toUpperCase());
             next();
         }));
@@ -298,19 +303,19 @@ suite("StreamSplicer", function StreamSplicerTest() {
         var expected = { replacer: ['333', '444'] };
 
         var a = split();
-        var b = through.obj(function (row, enc, next) {
+        var b = streamObj(function (row, enc, next) {
             this.push(JSON.parse(row));
             next();
         });
-        var c = through.obj(function (row, enc, next) {
+        var c = streamObj(function (row, enc, next) {
             this.push(row.x);
             next();
         });
-        var d = through.obj(function (x, enc, next) {
+        var d = streamObj(function (x, enc, next) {
             this.push(String(x * 111));
             next();
         });
-        var replacer = through(function (buf, enc, next) {
+        var replacer = StreamUtil.readWrite({}, function (buf, enc, next) {
             var ex = expected.replacer.shift();
             asr.equal(buf.toString(), ex);
             done();
@@ -350,14 +355,14 @@ suite("StreamSplicer", function StreamSplicerTest() {
         done = plan(5 + 2 + 5 + 3, done);
 
         var a = split();
-        var b = through.obj(function (row, enc, next) {
+        var b = streamObj(function (row, enc, next) {
             this.push(JSON.parse(row));
             next();
         });
-        var c = through.obj(function (row, enc, next) { this.push(row.x); next() });
-        var d = through.obj(function (x, enc, next) { this.push(x * 111); next() });
+        var c = streamObj(function (row, enc, next) { this.push(row.x); next() });
+        var d = streamObj(function (x, enc, next) { this.push(x * 111); next() });
 
-        var first = through.obj(function (row, enc, next) {
+        var first = streamObj(function (row, enc, next) {
             if (expected.first.length === 2) {
                 asr.equal(p.length, 5);
                 done();
@@ -373,7 +378,7 @@ suite("StreamSplicer", function StreamSplicerTest() {
             this.push(row / 100);
             next();
         });
-        var second = through.obj(function (row, enc, next) {
+        var second = streamObj(function (row, enc, next) {
             var ex = expected.second.shift();
             asr.deepEqual(row, ex);
             done();
@@ -385,7 +390,7 @@ suite("StreamSplicer", function StreamSplicerTest() {
         asr.equal(p.length, 5);
         done();
 
-        p.pipe(through.obj(function (row, enc, next) {
+        p.pipe(streamObj(function (row, enc, next) {
             var ex = expected.output.shift();
             asr.deepEqual(row, ex);
             done();
@@ -412,14 +417,14 @@ suite("StreamSplicer", function StreamSplicerTest() {
 
         done = plan(2 + 4 + 4 + 4, done);
 
-        var a = through.obj(function (x, enc, next) {
+        var a = streamObj(function (x, enc, next) {
             var ex = expected.a.shift();
             asr.equal(x, ex, 'a');
             done();
             this.push(x * 100);
             next();
         });
-        var b = through.obj(function (x, enc, next) {
+        var b = streamObj(function (x, enc, next) {
             var ex = expected.b.shift();
             asr.equal(x, ex, 'b');
             done();
@@ -427,7 +432,7 @@ suite("StreamSplicer", function StreamSplicerTest() {
             this.push(x + 10);
             next();
         });
-        var c = through.obj(function (x, enc, next) {
+        var c = streamObj(function (x, enc, next) {
             var ex = expected.c.shift();
             asr.equal(x, ex, 'c');
             done();
@@ -436,7 +441,7 @@ suite("StreamSplicer", function StreamSplicerTest() {
         });
 
         var p = Splicer.obj([a, b, c]);
-        p.pipe(through.obj(function (x, enc, next) {
+        p.pipe(streamObj(function (x, enc, next) {
             var ex = expected.output.shift();
             asr.equal(x, ex);
             done();
@@ -460,14 +465,14 @@ suite("StreamSplicer", function StreamSplicerTest() {
 
         done = plan(2 + 4 + 4 + 4, done);
 
-        var a = through.obj(function (x, enc, next) {
+        var a = streamObj(function (x, enc, next) {
             var ex = expected.a.shift();
             asr.equal(x, ex, 'a');
             done();
             this.push(x * 100);
             next();
         });
-        var b = through.obj(function (x, enc, next) {
+        var b = streamObj(function (x, enc, next) {
             var ex = expected.b.shift();
             asr.equal(x, ex, 'b');
             done();
@@ -475,7 +480,7 @@ suite("StreamSplicer", function StreamSplicerTest() {
             this.push(x + 10);
             next();
         });
-        var c = through.obj(function (x, enc, next) {
+        var c = streamObj(function (x, enc, next) {
             var ex = expected.c.shift();
             asr.equal(x, ex, 'c');
             done();
@@ -484,7 +489,7 @@ suite("StreamSplicer", function StreamSplicerTest() {
         });
 
         var p = Splicer.obj([a, b, c]);
-        p.pipe(through.obj(function (x, enc, next) {
+        p.pipe(streamObj(function (x, enc, next) {
             var ex = expected.output.shift();
             asr.equal(x, ex);
             done();
@@ -508,28 +513,28 @@ suite("StreamSplicer", function StreamSplicerTest() {
         done = plan(4 + 2 + 2 + 1, done);
 
         var a = split();
-        var b = through.obj(function (row, enc, next) {
+        var b = streamObj(function (row, enc, next) {
             this.push(JSON.parse(row));
             next();
         });
-        var c = through.obj(function (row, enc, next) {
+        var c = streamObj(function (row, enc, next) {
             this.push(row.x);
             next();
         });
-        var d = through.obj(function (x, enc, next) {
+        var d = streamObj(function (x, enc, next) {
             asr.equal(x, expected.d.shift(), 'd');
             done();
             this.push(String(x * 111));
             next();
         });
-        var thousander = through.obj(function (x, enc, next) {
+        var thousander = streamObj(function (x, enc, next) {
             asr.equal(x, expected.thousander.shift(), 'thousander');
             done();
             this.push(String(x * 1000));
             next();
         });
 
-        var replacer = through(function (buf, enc, next) {
+        var replacer = StreamUtil.readWrite({}, function (buf, enc, next) {
             var ex = expected.replacer.shift();
             asr.equal(buf.toString(), ex);
             done();
@@ -563,14 +568,14 @@ suite("StreamSplicer", function StreamSplicerTest() {
 
         done = plan(2 + 4 + 4 + 4, done);
 
-        var a = through.obj(function (x, enc, next) {
+        var a = streamObj(function (x, enc, next) {
             var ex = expected.a.shift();
             asr.equal(x, ex, 'a');
             done();
             this.push(x * 100);
             next();
         });
-        var b = through.obj(function (x, enc, next) {
+        var b = streamObj(function (x, enc, next) {
             var ex = expected.b.shift();
             asr.equal(x, ex, 'b');
             done();
@@ -578,7 +583,7 @@ suite("StreamSplicer", function StreamSplicerTest() {
             this.push(x + 10);
             next();
         });
-        var c = through.obj(function (x, enc, next) {
+        var c = streamObj(function (x, enc, next) {
             var ex = expected.c.shift();
             asr.equal(x, ex, 'c');
             done();
@@ -587,7 +592,7 @@ suite("StreamSplicer", function StreamSplicerTest() {
         });
 
         var p = Splicer.obj([b, c]);
-        p.pipe(through.obj(function (x, enc, next) {
+        p.pipe(streamObj(function (x, enc, next) {
             var ex = expected.output.shift();
             asr.equal(x, ex);
             done();

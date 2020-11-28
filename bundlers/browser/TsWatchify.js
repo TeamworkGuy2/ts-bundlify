@@ -1,8 +1,8 @@
 "use strict";
 var path = require("path");
-var through = require("through2");
 var chokidar = require("chokidar");
 var anymatch = require("anymatch");
+var StreamUtil = require("../../streams/StreamUtil");
 // watchify@3.11.0
 function watchify(br, opts) {
     if (!opts)
@@ -37,7 +37,7 @@ function watchify(br, opts) {
         collect();
     }
     function collect() {
-        b.pipeline.get("deps").push(through.obj(function (row, enc, next) {
+        b.pipeline.get("deps").push(StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             var file = row.expose ? b._expose[row.id] : row.file;
             cache[file] = {
                 source: row.source,
@@ -64,7 +64,7 @@ function watchify(br, opts) {
         b.pipeline.get("record").on("end", function () {
             time = Date.now();
         });
-        b.pipeline.get("wrap").push(through(function write(buf, enc, next) {
+        b.pipeline.get("wrap").push(StreamUtil.readWrite({}, function write(buf, enc, next) {
             bytes += buf.length;
             this.push(buf);
             next();

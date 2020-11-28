@@ -2,8 +2,8 @@
 import stream = require("stream");
 import minimatch = require("minimatch");
 import convert = require("convert-source-map");
-import through2 = require("through2");
 import Uglify = require("uglify-js");
+import StreamUtil = require("../../streams/StreamUtil");
 
 module UglifyToStream {
 
@@ -34,7 +34,7 @@ module UglifyToStream {
         delete opts._flags;
 
         if (ignore(file, opts.ignore, filePattern)) {
-            return through2();
+            return StreamUtil.readWrite();
         }
 
         var buffer = '';
@@ -44,10 +44,10 @@ module UglifyToStream {
             .map((d) => (d.charAt(0) === '.') ? d : ('.' + d));
 
         if (/\.json$/.test(file) || (exts.length > 0 && exts.indexOf(path.extname(file)) === -1)) {
-            return through2();
+            return StreamUtil.readWrite();
         }
 
-        return through2(function write(this: stream.Transform, chunk, enc, next) {
+        return StreamUtil.readWrite({}, function write(chunk, enc, next) {
             buffer += chunk;
             next();
         }, capture<stream.Transform>(function ready() {

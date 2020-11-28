@@ -1,7 +1,7 @@
 "use strict";
 var path = require("path");
 var concat_with_sourcemaps_1 = require("concat-with-sourcemaps");
-var through = require("through2");
+var readableStream = require("readable-stream");
 var vinylfs = require("vinyl-fs");
 var VinylFile = require("vinyl");
 /** Helpers for creating bundles
@@ -98,7 +98,7 @@ var VinylConcat;
             this.push(joinedFile);
             cb();
         }
-        return through.obj(bufferContents, endStream);
+        return new readableStream.Transform({ objectMode: true, highWaterMark: 16, transform: bufferContents, flush: endStream });
     }
     VinylConcat.vinylConcat = vinylConcat;
 })(VinylConcat || (VinylConcat = {}));

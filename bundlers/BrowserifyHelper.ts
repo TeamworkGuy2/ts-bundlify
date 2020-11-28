@@ -83,7 +83,7 @@ module BrowserifyHelper {
     }
 
 
-    /** Setup a browserify/watchify rebundler given an intial stream and further stream transforms.
+    /** Setup a browserify/watchify rebundler given an initial stream and further stream transforms.
      * This method does roughly the equivalent of bundler.pipe(...).pipe(...).pipe..., as well as adding
      * a bundler.on('update', ...) listener which re-runs the bundler piping process whenever bundle updates are detected.
      * The major reason to use this method instead of hand rolling the pipe() calls is the detailed error handling this method adds to each pipe() step.
@@ -208,11 +208,11 @@ module BrowserifyHelper {
 
             bundler.pipeline.on("error", createErrorCb("initial-stream", "bundle"));
 
-            if (isPromise<BundleStream<NodeJS.ReadableStream>[]>(bundles.bundleStreams)) {
+            if (isPromise(bundles.bundleStreams)) {
                 bundles.bundleStreams.done((streams) => startStreams(streams), createErrorCb("creating initial-stream", "multi-stream-base"));
             }
             else {
-                startStreams(<BundleStream<NodeJS.ReadableStream>[]>bundles.bundleStreams);
+                startStreams(bundles.bundleStreams);
             }
         }
 
@@ -392,8 +392,8 @@ module BrowserifyHelper {
     }
 
 
-    function isPromise<T>(p: any): p is Q.Promise<T> {
-        return p != null && typeof p.then === "function";
+    function isPromise<T>(p: T | Q.Promise<T> | Promise<T>): p is Q.Promise<T> {
+        return p != null && typeof (<any>p).then === "function";
     }
 
 }

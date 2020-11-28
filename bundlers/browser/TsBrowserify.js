@@ -15,16 +15,16 @@ var __extends = (this && this.__extends) || (function () {
 })();
 // based on browserify@14.4.0
 var crypto = require("crypto");
+var events = require("events");
 var fs = require("fs");
 var path = require("path");
 var bresolve = require("browser-resolve");
 var concat = require("concat-stream");
-var EventEmitter = require("events");
 var readableStream = require("readable-stream");
 var resolve = require("resolve");
 var syntaxError = require("syntax-error");
-var through = require("through2");
-var Splicer = require("./LabeledStreamSplicer");
+var Splicer = require("../../streams/LabeledStreamSplicer");
+var StreamUtil = require("../../streams/StreamUtil");
 var lastCwd = process.cwd();
 var cache = {};
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -234,7 +234,7 @@ var TsBrowserify = /** @class */ (function (_super) {
                     self._external.push(prev);
                 }
             });
-            b.pipeline.getGroup("deps").push(through.obj(function (row, enc, next) {
+            b.pipeline.getGroup("deps").push(StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
                 bdeps = xtend({}, bdeps, row.deps);
                 this.push(row);
                 next();
@@ -298,6 +298,7 @@ var TsBrowserify = /** @class */ (function (_super) {
     };
     TsBrowserify.prototype.transform = function (tr, opts) {
         var self = this;
+        // parameter remapping for original browserify use case, not sure if still needed
         if (typeof opts === "function" || typeof opts === "string") {
             tr = [opts, tr];
         }
@@ -411,7 +412,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         ]);
         if (opts.exposeAll) {
             var basedir = defined(opts.basedir, process.cwd());
-            pipeline.getGroup("deps").push(through.obj(function (row, enc, next) {
+            pipeline.getGroup("deps").push(StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
                 if (self._external.indexOf(row.id) >= 0)
                     return next();
                 if (self._external.indexOf(row.file) >= 0)
@@ -546,23 +547,23 @@ var TsBrowserify = /** @class */ (function (_super) {
             .map(function (x) { return path.resolve(basedir, x); });
         function globalTr(file) {
             if (opts.detectGlobals === false)
-                return through();
+                return StreamUtil.readWrite();
             if (opts.noParse === true)
-                return through();
+                return StreamUtil.readWrite();
             if (no.indexOf(file) >= 0)
-                return through();
+                return StreamUtil.readWrite();
             if (absno.indexOf(file) >= 0)
-                return through();
+                return StreamUtil.readWrite();
             var parts = file.replace(/\\/g, '/').split("/node_modules/");
             for (var i = 0; i < no.length; i++) {
                 if (typeof no[i] === "function" && no[i](file)) {
-                    return through();
+                    return StreamUtil.readWrite();
                 }
                 else if (no[i] === parts[parts.length - 1].split('/')[0]) {
-                    return through();
+                    return StreamUtil.readWrite();
                 }
                 else if (no[i] === parts[parts.length - 1]) {
-                    return through();
+                    return StreamUtil.readWrite();
                 }
             }
             if (opts.commondir === false && opts.builtins === false) {
@@ -609,7 +610,7 @@ var TsBrowserify = /** @class */ (function (_super) {
                     stream.push(null);
             });
         }
-        var stream = through.obj(function write(row, enc, next) {
+        var stream = StreamUtil.readWrite({ objectMode: true }, function write(row, enc, next) {
             self._recorded.push(row);
             if (self._ticked)
                 this.push(row);
@@ -622,7 +623,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         return stream;
     };
     TsBrowserify.prototype._json = function () {
-        return through.obj(function (row, enc, next) {
+        return StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             if (/\.json$/.test(row.file)) {
                 row.source = "module.exports=" + htmlsanitize(row.source);
             }
@@ -631,7 +632,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         });
     };
     TsBrowserify.prototype._unbom = function () {
-        return through.obj(function (row, enc, next) {
+        return StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             if (/^\ufeff/.test(row.source)) {
                 row.source = row.source.replace(/^\ufeff/, "");
             }
@@ -640,7 +641,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         });
     };
     TsBrowserify.prototype._unshebang = function () {
-        return through.obj(function (row, enc, next) {
+        return StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             if (/^#!/.test(row.source)) {
                 row.source = row.source.replace(/^#![^\n]*\n/, "");
             }
@@ -650,7 +651,7 @@ var TsBrowserify = /** @class */ (function (_super) {
     };
     TsBrowserify.prototype._syntax = function () {
         var self = this;
-        return through.obj(function (row, enc, next) {
+        return StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             var h = shasum(row.source);
             if (typeof self._syntaxCache[h] === "undefined") {
                 var err = syntaxError(row.source, row.file || row.id);
@@ -664,7 +665,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         });
     };
     TsBrowserify.prototype._dedupe = function () {
-        return through.obj(function (row, enc, next) {
+        return StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             if (!row.dedupeIndex && row.dedupe) {
                 row.source = "arguments[4][" + JSON.stringify(row.dedupe) + "][0].apply(exports,arguments)";
                 row.nomap = true;
@@ -683,7 +684,7 @@ var TsBrowserify = /** @class */ (function (_super) {
     TsBrowserify.prototype._label = function (opts) {
         var self = this;
         var basedir = defined(opts.basedir, process.cwd());
-        return through.obj(function (row, enc, next) {
+        return StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             var prev = row.id;
             if (self._external.indexOf(row.id) >= 0)
                 return next();
@@ -731,7 +732,7 @@ var TsBrowserify = /** @class */ (function (_super) {
     };
     TsBrowserify.prototype._emitDeps = function () {
         var self = this;
-        return through.obj(function (row, enc, next) {
+        return StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             self.emit("dep", row);
             this.push(row);
             next();
@@ -739,7 +740,7 @@ var TsBrowserify = /** @class */ (function (_super) {
     };
     TsBrowserify.prototype._debug = function (opts) {
         var basedir = defined(opts.basedir, process.cwd());
-        return through.obj(function (row, enc, next) {
+        return StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             if (opts.debug) {
                 row.sourceRoot = "file://localhost";
                 row.sourceFile = relativePath(basedir, row.file);
@@ -793,7 +794,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         empty: path.join(__dirname, "lib/_empty.js")
     };
     return TsBrowserify;
-}(EventEmitter.EventEmitter));
+}(events.EventEmitter));
 // ==== htmlescape@1.1.1 ====
 var ESCAPE_LOOKUP = {
     '&': '\\u0026',

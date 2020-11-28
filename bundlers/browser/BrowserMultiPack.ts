@@ -1,8 +1,8 @@
 ﻿import path = require("path");
 import stream = require("stream");
 import CombineSourceMap = require("combine-source-map");
-import through2 = require("through2");
 import umd = require("umd");
+import StreamUtil = require("../../streams/StreamUtil");
 import StringUtil = require("../../utils/StringUtil");
 import BundleBuilder = require("../BundleBuilder");
 
@@ -187,7 +187,7 @@ module BrowserMultiPack {
      */
     export function createPackStreams(bundles: MultiBundleOptions, enabledStreams: boolean[]): { baseStream: stream.Transform; bundleStreams: BundleStream<stream.Transform>[] } {
 
-        var baseStream = <stream.Transform>through2.obj(write, () => {
+        var baseStream = <stream.Transform>StreamUtil.readWrite({ objectMode: true }, write, () => {
             bundleStreams.forEach((s, i) => {
                 if (enabledStreams[i] !== false) {
                     var src = toUmdSource(bundles.bundles[i], firsts[i], entriesAry[i], preludes[i], sourceMaps[i]);
@@ -217,7 +217,7 @@ module BrowserMultiPack {
         for (var i = 0; i < dstCount; i++) {
             var bundleOpts = bundles.bundles[i];
             bundleStreams[i] = {
-                stream: enabledStreams[i] !== false ? <stream.Transform>through2.obj() : <stream.Transform><any>null,
+                stream: enabledStreams[i] !== false ? <stream.Transform>StreamUtil.readWrite({ objectMode: true }) : <stream.Transform><any>null,
                 dstFileName: bundleOpts.dstFileName,
                 dstMapFile: bundleOpts.dstMapFile,
             };
@@ -300,10 +300,22 @@ module BrowserMultiPack {
             if (row.entry && row.order !== undefined) {
                 (<any>entriesAry[idx])[row.order] = row.id;
             }
-            else if (row.entry) entriesAry[idx].push(row.id);
+            else if (row.entry) {
+                entriesAry[idx].push(row.id);
+            }
             next();
         }
 
+        /** Create a module source string in CommonJS format including prelude (before first chunk), JSONified 'entries', postlude, and source map comment based on the parameters.
+         * 
+         * The string format (sans '[' and ']' for optional parts):
+         *   [ _prelude ({ ] },{}, JSON(non-null entries) ) [ ( JSON(opts.standaloneModule) ) umd.postlude(opts.standalone) ] [ sourcemap.comment()[ .replace('//#', opts.sourceMapPrefix) ] ]
+         * @param opts the options for the prelude, postlude, and source map prefix
+         * @param first whether this is first chunk in a given stream
+         * @param entries the array to stringify and include as the entries for the module
+         * @param _prelude the prefix string to include if 'first' is true
+         * @param sourcemap optional 'combine-source-map' dependency for building a source map comment
+         */
         function toUmdSource(opts: BrowserPackOptions, first: boolean, entries: any[], _prelude: string, sourcemap: CombineSourceMap): string {
             var strs: string[] = [];
             if (first) strs.push(_prelude, "({");

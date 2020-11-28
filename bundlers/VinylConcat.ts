@@ -2,7 +2,7 @@
 import path = require("path");
 import stream = require("stream");
 import concatSourceMaps from "concat-with-sourcemaps";
-import through = require("through2");
+import readableStream = require("readable-stream");
 import vinylfs = require("vinyl-fs");
 import VinylFile = require("vinyl");
 
@@ -85,7 +85,7 @@ module VinylConcat {
             cb();
         }
 
-        function endStream(this: stream.Readable, cb: () => void) {
+        function endStream(this: stream.Readable, cb: (err?: any, data?: any) => void) {
             // no files passed in, no file goes out
             if (!latestFile || !concat) {
                 cb();
@@ -114,7 +114,7 @@ module VinylConcat {
             cb();
         }
 
-        return through.obj(bufferContents, endStream);
+        return new readableStream.Transform({ objectMode: true, highWaterMark: 16, transform: bufferContents, flush: endStream });
     }
 
 

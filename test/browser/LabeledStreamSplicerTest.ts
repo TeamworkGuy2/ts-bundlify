@@ -1,11 +1,11 @@
 ﻿"use strict";
 import chai = require("chai");
 import mocha = require("mocha");
-import through = require("through2");
 import deps = require("module-deps");
 import pack = require("browser-pack");
 import concat = require("concat-stream");
-import Splicer = require("../../bundlers/browser/LabeledStreamSplicer");
+import Splicer = require("../../streams/LabeledStreamSplicer");
+import StreamUtil = require("../../streams/StreamUtil");
 
 var asr = chai.assert;
 
@@ -28,7 +28,7 @@ suite("LabeledStreamSplicer", function LabeledStreamSplicerTest() {
             }
         }));
 
-        pipeline.getGroup("deps").push(through.obj(function (row, enc, next) {
+        pipeline.getGroup("deps").push(StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             row.source = row.source.replace(/111/g, "11111");
             this.push(row);
             next();

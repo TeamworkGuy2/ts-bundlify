@@ -107,7 +107,7 @@ interface StylePaths {
 
 
 interface BundleStream<T extends NodeJS.ReadableStream> extends BundleDst {
-    /** the stream */
+    /** the data/file stream */
     stream: T;
 }
 

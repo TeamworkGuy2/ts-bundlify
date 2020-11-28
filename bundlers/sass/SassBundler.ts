@@ -2,7 +2,6 @@
 import path = require("path");
 import log = require("fancy-log");
 import NodeSass = require("node-sass");
-import PathUtil = require("../../utils/PathUtil");
 import LogUtil = require("../../utils/LogUtil");
 
 /** Compile SASS/SCSS stylesheet files to CSS

@@ -4,7 +4,22 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.15.0](N/A) - 2020-11-14
+### [0.16.0](N/A) - 2020-11-27
+#### Added
+* `StreamUtil` with a `readWrite()` method which can be used as a replacement for `through2`
+* Untested TypeScript conversion of `insert-module-globals` in `bundlers/InsertModuleGlobals`
+
+#### Changed
+* More specific/correct types for `TsBrowserify.Options` fields: `entries`, `plugin`, `require`, `transform`, `builtins`, `exposeAll`, and `noParse`
+* Moved `LabeledStreamSplicer` to new `streams/` directory
+
+#### Removed
+* `through2` dependency, replaced by `streams/StreamUtil`
+* `events` dependency in favor or `TsBrowserify` extending node.js `events` directly since TsBrowserify is not designed to run in a browser context
+
+
+--------
+### [0.15.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/3ee631f034dd73e02d2defff7d387f870cefd5cc) - 2020-11-14
 #### Added
 * Add/port `LabeledStreamSplicer` and `StreamSplicer` classes into this project based on `labeled-stream-splicer@2.0.2` and `stream-splicer@2.0.1`
   * Adjust API `getGroup()` method added to handle the return type difference between a stream and a stream-splicer

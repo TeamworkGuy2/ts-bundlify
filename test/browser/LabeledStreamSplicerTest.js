@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var chai = require("chai");
-var through = require("through2");
 var deps = require("module-deps");
 var pack = require("browser-pack");
 var concat = require("concat-stream");
-var Splicer = require("../../bundlers/browser/LabeledStreamSplicer");
+var Splicer = require("../../streams/LabeledStreamSplicer");
+var StreamUtil = require("../../streams/StreamUtil");
 var asr = chai.assert;
 suite("LabeledStreamSplicer", function LabeledStreamSplicerTest() {
     test("bundle", function (done) {
@@ -23,7 +23,7 @@ suite("LabeledStreamSplicer", function LabeledStreamSplicerTest() {
                 done();
             }
         }));
-        pipeline.getGroup("deps").push(through.obj(function (row, enc, next) {
+        pipeline.getGroup("deps").push(StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
             row.source = row.source.replace(/111/g, "11111");
             this.push(row);
             next();
