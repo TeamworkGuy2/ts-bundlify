@@ -5,8 +5,6 @@ import undeclaredIdentifiers = require("undeclared-identifiers");
 import readableStream = require("readable-stream");
 import StreamUtil = require("../streams/StreamUtil");
 
-var isAbsolute = path.isAbsolute;
-var parse = acornNode.parse;
 var processPath = require.resolve("process/browser.js");
 var isbufferPath = require.resolve("is-buffer");
 
@@ -24,7 +22,7 @@ function getRelativeRequirePath(fullPath: string, fromPath: string) {
     // If fullPath is in the same directory or a subdirectory of fromPath,
     // relpath will result in something like "index.js", "src/abc.js".
     // require() needs "./" prepended to these paths.
-    if (!/^\./.test(relpath) && !isAbsolute(relpath)) {
+    if (!/^\./.test(relpath) && !path.isAbsolute(relpath)) {
         relpath = "./" + relpath;
     }
     // On Windows: Convert path separators to what require() expects
@@ -116,7 +114,7 @@ function insertModuleGlobals(file: string, opts: { basedir?: string; always?: bo
         try {
             var undeclared = opts.always
                 ? { identifiers: varNames, properties: [] }
-                : undeclaredIdentifiers(parse(source), { wildcard: true })
+                : undeclaredIdentifiers(acornNode.parse(source), { wildcard: true })
                 ;
         }
         catch (err) {

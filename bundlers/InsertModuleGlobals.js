@@ -4,8 +4,6 @@ var acornNode = require("acorn-node");
 var combineSourceMap = require("combine-source-map");
 var undeclaredIdentifiers = require("undeclared-identifiers");
 var StreamUtil = require("../streams/StreamUtil");
-var isAbsolute = path.isAbsolute;
-var parse = acornNode.parse;
 var processPath = require.resolve("process/browser.js");
 var isbufferPath = require.resolve("is-buffer");
 function isBuffer(obj) {
@@ -17,7 +15,7 @@ function getRelativeRequirePath(fullPath, fromPath) {
     // If fullPath is in the same directory or a subdirectory of fromPath,
     // relpath will result in something like "index.js", "src/abc.js".
     // require() needs "./" prepended to these paths.
-    if (!/^\./.test(relpath) && !isAbsolute(relpath)) {
+    if (!/^\./.test(relpath) && !path.isAbsolute(relpath)) {
         relpath = "./" + relpath;
     }
     // On Windows: Convert path separators to what require() expects
@@ -101,7 +99,7 @@ function insertModuleGlobals(file, opts) {
         try {
             var undeclared = opts.always
                 ? { identifiers: varNames, properties: [] }
-                : undeclaredIdentifiers(parse(source), { wildcard: true });
+                : undeclaredIdentifiers(acornNode.parse(source), { wildcard: true });
         }
         catch (err) {
             var e = new SyntaxError((err.message || err) + " while parsing " + file);

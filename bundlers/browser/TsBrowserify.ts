@@ -64,7 +64,6 @@ class TsBrowserify extends events.EventEmitter {
     _ticked: boolean;
     /** tracks source file hashes from files with syntax errors */
     _syntaxCache: { [name: string]: boolean };
-    _filterTransform: (tr: any) => boolean;
     _bresolve: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
     _mdeps!: mdeps.ModuleDepsObject;
     _bpack!: NodeJS.ReadWriteStream & { hasExports?: boolean; standaloneModule?: any };
@@ -129,32 +128,23 @@ class TsBrowserify extends events.EventEmitter {
             : <(id: string, opts: resolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void>bresolve);
         this._syntaxCache = {};
 
-        var ignoreTransform: any[] = [].concat(opts.ignoreTransform).filter(Boolean);
-        this._filterTransform = function (tr) {
-            if (isArray(tr)) {
-                return ignoreTransform.indexOf(tr[0]) === -1;
-            }
-            return ignoreTransform.indexOf(tr) === -1;
-        };
-
         this.pipeline = this._createPipeline(opts);
 
         var self = this;
 
-        (<any[]>[]).concat(opts.transform).filter(Boolean).filter(self._filterTransform)
-            .forEach(function (tr) {
-                self.transform(tr);
-            });
+        (<Exclude<typeof opts.transform, undefined>>[]).concat(opts.transform || []).forEach(function (tr) {
+            self.transform(tr);
+        });
 
-        (<any[]>[]).concat(opts.entries).filter(Boolean).forEach(function (file) {
+        (<Exclude<typeof opts.entries, undefined>>[]).concat(opts.entries || []).forEach(function (file) {
             self.add(file, { basedir: opts.basedir });
         });
 
-        (<any[]>[]).concat(opts.require).filter(Boolean).forEach(function (file) {
+        (<Exclude<typeof opts.require, undefined>>[]).concat(opts.require || []).forEach(function (file) {
             self.require(file, { basedir: opts.basedir });
         });
 
-        (<any[]>[]).concat(opts.plugin).filter(Boolean).forEach(function (p) {
+        (<Exclude<typeof opts.plugin, undefined>>[]).concat(opts.plugin || []).forEach(function (p) {
             self.plugin(p, { basedir: opts.basedir });
         });
     }
@@ -167,7 +157,9 @@ class TsBrowserify extends events.EventEmitter {
                 if (typeof x === "object") {
                     self.require(x.file, xtend({}, opts, x));
                 }
-                else self.require(x, opts);
+                else {
+                    self.require(x, opts);
+                }
             });
             return this;
         }
@@ -266,7 +258,9 @@ class TsBrowserify extends events.EventEmitter {
                 if (typeof f === "object") {
                     self.external(f, xtend({}, opts, f));
                 }
-                else self.external(f, opts)
+                else {
+                    self.external(f, opts);
+                }
             });
             return this;
         }
@@ -352,21 +346,8 @@ class TsBrowserify extends events.EventEmitter {
     }
 
 
-    public transform(tr: string | ((file: string, opts: { basedir?: string }) => NodeJS.ReadWriteStream), opts?: { _flags?: any; basedir?: string; global?: any }) {
+    public transform(tr: (file: string, opts: { basedir?: string }) => NodeJS.ReadWriteStream, opts?: { _flags?: any; basedir?: string; global?: any }) {
         var self = this;
-        // parameter remapping for original browserify use case, not sure if still needed
-        if (typeof opts === "function" || typeof opts === "string") {
-            tr = <any>[<any>opts, <any>tr];
-        }
-        if (isArray(<any>tr)) {
-            opts = (<any>tr)[1];
-            tr = (<any>tr)[0];
-        }
-
-        //if the bundler is ignoring this transform
-        if (typeof tr === "string" && !self._filterTransform(tr)) {
-            return this;
-        }
 
         function resolved() {
             self._transforms[order] = rec;
@@ -385,7 +366,6 @@ class TsBrowserify extends events.EventEmitter {
         if (!opts) opts = {};
         opts._flags = "_flags" in opts ? opts._flags : self._options;
 
-        var basedir = defined(opts.basedir, this._options.basedir, process.cwd());
         var order = self._transformOrder++;
         self._pending++;
         self._transformPending++;
@@ -396,44 +376,20 @@ class TsBrowserify extends events.EventEmitter {
             global: opts.global
         };
 
-        if (typeof tr === "string") {
-            var topts = {
-                basedir: basedir,
-                paths: (self._options.paths || []).map(function (p) {
-                    return path.resolve(basedir, p);
-                })
-            };
-            resolve(tr, topts, function (err, res) {
-                if (err) return self.emit("error", err);
-                rec.transform = <Exclude<typeof res, undefined>>res;
-                resolved();
-                return undefined;
-            });
-        }
-        else process.nextTick(resolved);
+        process.nextTick(resolved);
         return this;
     }
 
 
-    public plugin(p: string | ((inst: TsBrowserify, opts: any) => any) | [string | ((inst: TsBrowserify, opts: any) => any), { basedir?: string }], opts?: { basedir?: string }) {
+    public plugin(p: ((inst: TsBrowserify, opts: any) => any) | [(inst: TsBrowserify, opts: any) => any, { basedir?: string }], opts?: { basedir?: string }) {
         if (isArray(p)) {
             opts = p[1];
             p = p[0];
         }
         if (!opts) opts = {};
 
-        if (typeof p === "function") {
-            p(this, opts);
-        }
-        else {
-            var basedir = defined(opts.basedir, this._options.basedir, process.cwd());
-            var pfile = resolve.sync(String(p), { basedir: basedir });
-            var f = require(pfile);
-            if (typeof f !== "function") {
-                throw new Error("plugin " + p + " should export a function");
-            }
-            f(this, opts);
-        }
+        p(this, opts);
+
         return this;
     }
 
@@ -518,9 +474,7 @@ class TsBrowserify extends events.EventEmitter {
             //filter transforms on module dependencies
             if (pkg && pkg.browserify && pkg.browserify.transform) {
                 //In edge cases it may be a string
-                pkg.browserify.transform = [].concat(pkg.browserify.transform)
-                    .filter(Boolean)
-                    .filter(self._filterTransform);
+                pkg.browserify.transform = [].concat(pkg.browserify.transform).filter(Boolean);
             }
             return true;
         };
@@ -563,7 +517,10 @@ class TsBrowserify extends events.EventEmitter {
                         return cb(null, paths.empty, {});
                     }
                 }
-                if (err) cb(err, file, pkg)
+
+                if (err) {
+                    cb(err, file, pkg);
+                }
                 else if (file) {
                     if (opts.preserveSymlinks && parent.id !== (<any>self._mdeps).top.id) {
                         return cb(err, path.resolve(file), pkg, file)
@@ -572,7 +529,10 @@ class TsBrowserify extends events.EventEmitter {
                     fs.realpath(file, function (err, res) {
                         cb(err, res, pkg, file);
                     });
-                } else cb(err, <any>null, pkg)
+                }
+                else {
+                    cb(err, <any>null, pkg);
+                }
             });
         };
 
@@ -589,7 +549,9 @@ class TsBrowserify extends events.EventEmitter {
         else if (opts.builtins && typeof opts.builtins === "object") {
             mopts.modules = opts.builtins;
         }
-        else mopts.modules = xtend({}, TsBrowserify.builtins);
+        else {
+            mopts.modules = xtend({}, TsBrowserify.builtins);
+        }
 
         Object.keys(TsBrowserify.builtins).forEach(function (key) {
             if (!has(mopts.modules, key)) self._exclude.push(key);
@@ -619,14 +581,15 @@ class TsBrowserify extends events.EventEmitter {
             if (absno.indexOf(file) >= 0) return StreamUtil.readWrite();
 
             var parts = file.replace(/\\/g, '/').split("/node_modules/");
+            var lastPart = parts[parts.length - 1];
             for (var i = 0; i < no.length; i++) {
                 if (typeof no[i] === "function" && no[i](file)) {
                     return StreamUtil.readWrite();
                 }
-                else if (no[i] === parts[parts.length - 1].split('/')[0]) {
+                else if (no[i] === lastPart.split('/')[0]) {
                     return StreamUtil.readWrite();
                 }
-                else if (no[i] === parts[parts.length - 1]) {
+                else if (no[i] === lastPart) {
                     return StreamUtil.readWrite();
                 }
             }
@@ -656,10 +619,7 @@ class TsBrowserify extends events.EventEmitter {
             return opts.insertModuleGlobals(file, xtend({}, opts, {
                 debug: opts.debug,
                 always: opts.insertGlobals,
-                basedir: opts.commondir === false && isArray(opts.builtins)
-                    ? '/'
-                    : opts.basedir || process.cwd()
-                ,
+                basedir: opts.commondir === false && isArray(opts.builtins) ? '/' : (opts.basedir || process.cwd()),
                 vars: vars
             }));
         }
@@ -916,7 +876,7 @@ module TsBrowserify {
         noParse?: boolean | string[];
         postFilter?: (id: any, file: any, pkg: any) => boolean;
         preserveSymlinks?: boolean;
-        transform?: (string | ((file: string, opts: { basedir?: string }) => NodeJS.ReadWriteStream))[];
+        transform?: ((file: string, opts: { basedir?: string }) => NodeJS.ReadWriteStream)[];
         transformKey?: string[];
         [prop: string]: any;
     }
@@ -941,10 +901,9 @@ module TsBrowserify {
         bare?: boolean;
         browserField?: boolean;
         entries?: (string | RowLike | StreamLike)[];
-        ignoreTransform?: any;
         node?: boolean;
         paths?: string[];
-        plugin?: (string | ((inst: TsBrowserify, opts: any) => any) | [string | ((inst: TsBrowserify, opts: any) => any), { basedir?: string }])[];
+        plugin?: (((inst: TsBrowserify, opts: any) => any) | [(inst: TsBrowserify, opts: any) => any, { basedir?: string }])[];
         require?: (string | RowLike | StreamLike | (string | RowLike | StreamLike)[])[];
     }
 

@@ -4,7 +4,20 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.16.0](N/A) - 2020-11-27
+### [0.17.0](N/A) - 2021-02-21
+#### Added
+* Added a TypeScript implementation of `detective@5.2.0` in `bundlers/Detective.ts` (includes a port of `acorn-node/walk` since it couldn't be imported into a TypeScript via `import ...`)
+
+#### Changed
+* `TsBrowserify.Options` `plugin` and `TsBrowserify.plugin()` no longer supports `string`, import plugins into your calling code and pass the plugin function, since TsBrowserify is not designed to run via cli (which appears to have been the use case for supporting `string` on this option)
+* `TsBrowserify.Options` `transform` and `TsBrowserify.transform()` no longer supports `string`, import transform functions into your calling code and pass them directly, since TsBrowserify is not designed to run via cli (which appears to have been the use case for supporting `string` on this option)
+
+#### Removed
+* `TsBrowserify.Options` `ignoreTransform` removed - no compelling use case
+
+
+--------
+### [0.16.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/cb8fccf1668a6305fca00c8f1913b9a016fabe06) - 2020-11-28
 #### Added
 * `StreamUtil` with a `readWrite()` method which can be used as a replacement for `through2`
 * Untested TypeScript conversion of `insert-module-globals` in `bundlers/InsertModuleGlobals`

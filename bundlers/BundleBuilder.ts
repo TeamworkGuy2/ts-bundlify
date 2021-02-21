@@ -1,5 +1,4 @@
-﻿import browserify = require("browserify");
-import exorcist = require("exorcist");
+﻿import exorcist = require("exorcist");
 import vinylfs = require("vinyl-fs");
 import vinylSourceStream = require("vinyl-source-stream");
 import BrowserifyHelper = require("./BrowserifyHelper");
