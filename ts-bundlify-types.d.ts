@@ -1,7 +1,6 @@
 ﻿/// <reference types="browserify" />
 /// <reference types="browser-pack" />
 /// <reference types="node" />
-/// <reference types="q" />
 
 /** Type of data row that comes out of browserify */
 interface ModuleDepRow {
@@ -113,6 +112,6 @@ interface BundleStream<T extends NodeJS.ReadableStream> extends BundleDst {
 
 
 type MultiBundleStreams = {
-    baseStream: NodeJS.ReadableStream | Q.Promise<NodeJS.ReadableStream>;
-    bundleStreams: BundleStream<NodeJS.ReadableStream>[] | Q.Promise<BundleStream<NodeJS.ReadableStream>[]>;
+    baseStream: NodeJS.ReadableStream | Promise<NodeJS.ReadableStream>;
+    bundleStreams: BundleStream<NodeJS.ReadableStream>[] | Promise<BundleStream<NodeJS.ReadableStream>[]>;
 };

@@ -3,7 +3,7 @@ import PathUtil = require("./PathUtil");
 
 module LogUtil {
 
-    export function log<S>(taskDescription: string, promise: Q.Promise<S>): Q.Promise<S> {
+    export function log<S>(taskDescription: string, promise: Promise<S>): Promise<S> {
         return promise.then(function (res) {
             llog("done " + taskDescription, res);
             return res;

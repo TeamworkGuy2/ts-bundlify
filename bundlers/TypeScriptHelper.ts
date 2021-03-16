@@ -1,6 +1,5 @@
 ﻿import child_process = require("child_process");
 import log = require("fancy-log");
-import Q = require("q");
 import BrowserMultiPack = require("./browser/BrowserMultiPack");
 
 /** Helpers for compiling TypeScript to Javascript
@@ -27,8 +26,7 @@ module TypeScriptHelper {
      * Example: "tsc -t ES5 -m commonjs --preserveConstEnums --forceConsistentCasingInFileNames --noEmitHelpers " + projectRelativeSrcPath
      * @param tscCmd the typescript compiler command to execute
      */
-    export function compileTypeScriptFile(tscCmd: string): Q.Promise<void> {
-        var dfd = Q.defer<void>();
+    export function compileTypeScriptFile(tscCmd: string, callback: (error?: child_process.ExecException) => void): child_process.ChildProcess {
 
         var child = child_process.exec(tscCmd, function (error, stdout, stderr) {
             if (stdout != null && stdout.length > 0) {
@@ -39,14 +37,14 @@ module TypeScriptHelper {
             }
             if (error != null) {
                 log("TypeScript compile error: " + error);
-                dfd.reject(error);
+                callback(error);
             }
             else {
-                dfd.resolve(<void><any>null);
+                callback();
             }
         });
 
-        return dfd.promise;
+        return child;
     }
 
 

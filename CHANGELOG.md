@@ -4,7 +4,16 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.17.0](N/A) - 2021-02-21
+### [0.18.0](N/A) - 2021-03-15
+#### Added
+* Remove `Q` dependency
+* Change `TypeScriptHelper.compileTpeScriptFile()` to take a callback rather than return a promise
+* Change `BrowserifyHelper` and `LogUtil.log()` to use interface `Promise` instead of `Q.Promise`
+* Change `MultiBundleStreams` `baseStream` and `bundleStream` properties from accepting `Q.Promise` to `Promise`
+
+
+--------
+### [0.17.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/705a0f162e3cbe5492a2235dcd4ec95bad9c9e90) - 2021-02-21
 #### Added
 * Added a TypeScript implementation of `detective@5.2.0` in `bundlers/Detective.ts` (includes a port of `acorn-node/walk` since it couldn't be imported into a TypeScript via `import ...`)
 

@@ -1,7 +1,6 @@
 "use strict";
 var child_process = require("child_process");
 var log = require("fancy-log");
-var Q = require("q");
 var BrowserMultiPack = require("./browser/BrowserMultiPack");
 /** Helpers for compiling TypeScript to Javascript
  */
@@ -25,8 +24,7 @@ var TypeScriptHelper;
      * Example: "tsc -t ES5 -m commonjs --preserveConstEnums --forceConsistentCasingInFileNames --noEmitHelpers " + projectRelativeSrcPath
      * @param tscCmd the typescript compiler command to execute
      */
-    function compileTypeScriptFile(tscCmd) {
-        var dfd = Q.defer();
+    function compileTypeScriptFile(tscCmd, callback) {
         var child = child_process.exec(tscCmd, function (error, stdout, stderr) {
             if (stdout != null && stdout.length > 0) {
                 log("TypeScript compile stdout: " + stdout);
@@ -36,13 +34,13 @@ var TypeScriptHelper;
             }
             if (error != null) {
                 log("TypeScript compile error: " + error);
-                dfd.reject(error);
+                callback(error);
             }
             else {
-                dfd.resolve(null);
+                callback();
             }
         });
-        return dfd.promise;
+        return child;
     }
     TypeScriptHelper.compileTypeScriptFile = compileTypeScriptFile;
     /** Get the 'prelude.js' source string used by browser-pack, insert the TypeScript static helpers (required for 'extends', annotations, and other TypeScript features) into it, and return it

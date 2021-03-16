@@ -2,7 +2,6 @@
 import path = require("path");
 import stream = require("stream");
 import util = require("util");
-import Q = require("q");
 
 /** Helpers for building JS bundles using 'browserify'
  */
@@ -209,7 +208,7 @@ module BrowserifyHelper {
             bundler.pipeline.on("error", createErrorCb("initial-stream", "bundle"));
 
             if (isPromise(bundles.bundleStreams)) {
-                bundles.bundleStreams.done((streams) => startStreams(streams), createErrorCb("creating initial-stream", "multi-stream-base"));
+                bundles.bundleStreams.then((streams) => startStreams(streams), createErrorCb("creating initial-stream", "multi-stream-base"));
             }
             else {
                 startStreams(bundles.bundleStreams);
@@ -392,7 +391,7 @@ module BrowserifyHelper {
     }
 
 
-    function isPromise<T>(p: T | Q.Promise<T> | Promise<T>): p is Q.Promise<T> {
+    function isPromise<T>(p: T | PromiseLike<T> | Promise<T>): p is Promise<T> {
         return p != null && typeof (<any>p).then === "function";
     }
 
