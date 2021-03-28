@@ -8,14 +8,15 @@ import path = require("path");
 import stream = require("stream");
 import bresolve = require("browser-resolve");
 import concat = require("concat-stream");
-import depsSort = require("deps-sort");
-import insertGlobals = require("insert-module-globals");
-import mdeps = require("module-deps");
 import readableStream = require("readable-stream");
 import resolve = require("resolve");
 import syntaxError = require("syntax-error");
-import Splicer = require("../../streams/LabeledStreamSplicer");
+import LabeledStreamSplicer = require("../../streams/LabeledStreamSplicer");
 import StreamUtil = require("../../streams/StreamUtil");
+// types only
+import depsSort = require("deps-sort");
+import insertGlobals = require("insert-module-globals");
+import mdeps = require("module-deps");
 
 type CreateDepsOptions = TsBrowserify.CreateDepsOptions;
 type CreatePipelineOptions = TsBrowserify.CreatePipelineOptions;
@@ -67,7 +68,7 @@ class TsBrowserify extends events.EventEmitter {
     _bresolve: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
     _mdeps!: mdeps.ModuleDepsObject;
     _bpack!: NodeJS.ReadWriteStream & { hasExports?: boolean; standaloneModule?: any };
-    pipeline: Splicer<NodeJS.ReadWriteStream>;
+    pipeline: LabeledStreamSplicer<NodeJS.ReadWriteStream>;
 
 
     constructor(opts: TsBrowserify.Options);
@@ -76,10 +77,11 @@ class TsBrowserify extends events.EventEmitter {
         super();
         options = (options != null ? options : <TsBrowserify.Options>files);
         if (options == null) throw new Error("'options' is required");
-        if (options.browserPack == null) throw new Error("'options.browserPack' is required");
-        if (options.depsSort == null) throw new Error("'options.depsSort' is required");
-        if (options.insertModuleGlobals == null) throw new Error("'options.insertModuleGlobals' is required");
-        if (options.moduleDeps == null) throw new Error("'options.moduleDeps' is required");
+        if (options.createPipeline == null) {
+            if (options.browserPack == null) throw new Error("'options.browserPack' is required");
+            if (options.depsSort == null) throw new Error("'options.depsSort' is required");
+            if (options.moduleDeps == null) throw new Error("'options.moduleDeps' is required");
+        }
         if (options.basedir !== undefined && typeof options.basedir !== "string") throw new Error("opts.basedir must be either undefined or a string.");
 
         var opts = options;
@@ -88,14 +90,10 @@ class TsBrowserify extends events.EventEmitter {
             opts.entries = (<any[]>[]).concat(opts.entries || [], files);
         }
 
-        if (opts.node) {
-            opts.bare = true;
-            opts.browserField = false;
-        }
         if (opts.bare) {
             opts.builtins = false;
             opts.commondir = false;
-            if (opts.insertGlobalVars === undefined) {
+            if (opts.insertGlobalVars === undefined && opts.insertModuleGlobals != null) {
                 opts.insertGlobalVars = {}
                 Object.keys(opts.insertModuleGlobals.vars).forEach(function (name) {
                     if (name !== "__dirname" && name !== "__filename") {
@@ -143,13 +141,19 @@ class TsBrowserify extends events.EventEmitter {
         (<Exclude<typeof opts.require, undefined>>[]).concat(opts.require || []).forEach(function (file) {
             self.require(file, { basedir: opts.basedir });
         });
-
-        (<Exclude<typeof opts.plugin, undefined>>[]).concat(opts.plugin || []).forEach(function (p) {
-            self.plugin(p, { basedir: opts.basedir });
-        });
     }
 
 
+    /** Make 'file' available from outside the bundle with require(file).
+     * The file param is anything that can be resolved by require.resolve(), including files from node_modules. Like with require.resolve(),
+     * you must prefix file with ./ to require a local file (not in node_modules).
+     * 'file' can also be a stream, but you should also use opts.basedir so that relative requires will be resolvable.
+     * If file is an array, each item in file will be required. In file array form, you can use a string or object for each item.
+     * Object items should have a file property and the rest of the parameters will be used for the opts.
+     * Use the expose property of opts to specify a custom dependency name. require('./vendor/angular/angular.js', {expose: 'angular'}) enables require('angular')
+     * @param file
+     * @param opts
+     */
     public require(file: string | RowLike | StreamLike | (string | RowLike | StreamLike)[], opts: RequireOptions) {
         var self = this;
         if (isArray(file)) {
@@ -241,6 +245,11 @@ class TsBrowserify extends events.EventEmitter {
     }
 
 
+    /** Add an entry file from 'file' that will be executed when the bundle loads.
+     * If 'file' is an array, each item in file will be added as an entry file.
+     * @param file
+     * @param opts
+     */
     public add(file: string | RowLike | StreamLike | (string | RowLike | StreamLike)[], opts: RequireOptions) {
         if (!opts) opts = {};
         if (isArray(file)) {
@@ -251,6 +260,12 @@ class TsBrowserify extends events.EventEmitter {
     }
 
 
+    /** Prevent 'file' from being loaded into the current bundle, instead referencing from another bundle.
+     * If 'file' is an array, each item in file will be externalized.
+     * If 'file' is another bundle, that bundle's contents will be read and excluded from the current bundle as the bundle in file gets bundled.
+     * @param file
+     * @param opts
+     */
     public external(file: any, opts: { basedir?: string; [prop: string]: any }) {
         var self = this;
         if (isArray(file)) {
@@ -314,6 +329,12 @@ class TsBrowserify extends events.EventEmitter {
     }
 
 
+    /** Prevent the module name or file at 'file' from showing up in the output bundle.
+     * If 'file' is an array, each item in file will be excluded.
+     * If your code tries to require() that file it will throw unless you've provided another mechanism for loading it.
+     * @param file
+     * @param opts
+     */
     public exclude(file: string | string[], opts?: { basedir?: string }) {
         if (!opts) opts = {};
         if (isArray(file)) {
@@ -327,6 +348,12 @@ class TsBrowserify extends events.EventEmitter {
     }
 
 
+    /** Prevent the module name or file at file from showing up in the output bundle.
+     * If file is an array, each item in file will be ignored.
+     * Instead you will get a file with module.exports = {}.
+     * @param file
+     * @param opts
+     */
     public ignore(file: string | string[], opts?: { basedir?: string }) {
         if (!opts) opts = {};
         if (isArray(file)) {
@@ -381,22 +408,11 @@ class TsBrowserify extends events.EventEmitter {
     }
 
 
-    public plugin(p: ((inst: TsBrowserify, opts: any) => any) | [(inst: TsBrowserify, opts: any) => any, { basedir?: string }], opts?: { basedir?: string }) {
-        if (isArray(p)) {
-            opts = p[1];
-            p = p[0];
-        }
-        if (!opts) opts = {};
-
-        p(this, opts);
-
-        return this;
-    }
-
-
-    public _createPipeline(opts: CreatePipelineOptions): Splicer<NodeJS.ReadWriteStream> {
+    public _createPipeline(opts: CreatePipelineOptions): LabeledStreamSplicer<NodeJS.ReadWriteStream> {
         var self = this;
         this._mdeps = opts.moduleDeps(this._createDepsOpts(opts));
+        this._setupBundleTransform(opts);
+
         this._mdeps.on("file", function (file, id) {
             pipeline.emit("file", file, id);
             self.emit("file", file, id);
@@ -417,7 +433,7 @@ class TsBrowserify extends events.EventEmitter {
         };
         this._bpack = opts.browserPack(xtend({}, opts, { raw: true }));
 
-        var pipeline = Splicer.obj<NodeJS.ReadWriteStream>([
+        var pipeline = opts.createPipeline != null ? opts.createPipeline(this, opts) : LabeledStreamSplicer.obj<NodeJS.ReadWriteStream>([
             "record", [this._recorder()],
             "deps", [this._mdeps],
             "json", [this._json()],
@@ -432,24 +448,12 @@ class TsBrowserify extends events.EventEmitter {
             "pack", [this._bpack],
             "wrap", []
         ]);
+
         if (opts.exposeAll) {
             var basedir = defined(opts.basedir, process.cwd());
-            pipeline.getGroup("deps").push(StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
-                if (self._external.indexOf(row.id) >= 0) return next();
-                if (self._external.indexOf(row.file) >= 0) return next();
-
-                if (isAbsolutePath(row.id)) {
-                    row.id = '/' + relativePath(basedir, row.file);
-                }
-                var depKeys = <string[]>Object.keys(row.deps || {});
-                for (var i = 0, size = depKeys.length; i < size; i++) {
-                    var key = depKeys[i];
-                    row.deps[key] = '/' + relativePath(basedir, row.deps[key]);
-                }
-                this.push(row);
-                next();
-            }));
+            pipeline.getGroup("deps").push(this._exposeAllDeps(basedir));
         }
+
         return pipeline;
     }
 
@@ -558,6 +562,15 @@ class TsBrowserify extends events.EventEmitter {
         });
 
         mopts.globalTransform = [];
+
+        return mopts;
+    }
+
+
+    public _setupBundleTransform(opts: CreateDepsOptions) {
+        var self = this;
+        var basedir = defined(opts.basedir, process.cwd());
+
         if (!this._bundled) {
             this.once("bundle", function () {
                 self.pipeline.write(<any>{
@@ -574,11 +587,14 @@ class TsBrowserify extends events.EventEmitter {
             .map((x) => path.resolve(basedir, x));
 
         function globalTr(file: string) {
-            if (opts.detectGlobals === false) return StreamUtil.readWrite();
-
-            if (opts.noParse === true) return StreamUtil.readWrite();
-            if (no.indexOf(file) >= 0) return StreamUtil.readWrite();
-            if (absno.indexOf(file) >= 0) return StreamUtil.readWrite();
+            if (opts.detectGlobals === false
+                || opts.noParse === true
+                || no.indexOf(file) >= 0
+                || absno.indexOf(file) >= 0
+                || opts.insertModuleGlobals == null
+            ) {
+                return StreamUtil.readWrite();
+            }
 
             var parts = file.replace(/\\/g, '/').split("/node_modules/");
             var lastPart = parts[parts.length - 1];
@@ -623,7 +639,6 @@ class TsBrowserify extends events.EventEmitter {
                 vars: vars
             }));
         }
-        return mopts;
     }
 
 
@@ -801,9 +816,29 @@ class TsBrowserify extends events.EventEmitter {
     }
 
 
-    public reset(opts: CreatePipelineOptions) {
+    public _exposeAllDeps(basedir: string) {
+        var self = this;
+        return StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
+            if (self._external.indexOf(row.id) >= 0) return next();
+            if (self._external.indexOf(row.file) >= 0) return next();
+
+            if (isAbsolutePath(row.id)) {
+                row.id = '/' + relativePath(basedir, row.file);
+            }
+            var depKeys = <string[]>Object.keys(row.deps || {});
+            for (var i = 0, size = depKeys.length; i < size; i++) {
+                var key = depKeys[i];
+                row.deps[key] = '/' + relativePath(basedir, row.deps[key]);
+            }
+            this.push(row);
+            next();
+        });
+    }
+
+
+    public reset(opts?: CreatePipelineOptions) {
         var hadExports = this._bpack.hasExports;
-        this.pipeline = this._createPipeline(xtend({}, opts, this._options));
+        this.pipeline = this._createPipeline(xtend({}, opts || {}, this._options));
         this._bpack.hasExports = hadExports;
         this._entryOrder = 0;
         this._bundled = false;
@@ -816,17 +851,14 @@ class TsBrowserify extends events.EventEmitter {
 
         if (this._bundled) {
             var recorded = this._recorded;
-            this.reset({
-                browserPack: this._options.browserPack,
-                depsSort: this._options.depsSort,
-                insertModuleGlobals: this._options.insertModuleGlobals,
-                moduleDeps: this._options.moduleDeps
-            });
+            this.reset();
             recorded.forEach(function (x) {
                 self.pipeline.write(x);
             });
         }
+
         var output = readonly(this.pipeline);
+
         if (cb) {
             output.on("error", cb);
             output.pipe(concat(function (body) {
@@ -861,7 +893,7 @@ module TsBrowserify {
 
     export interface CreateDepsOptions extends mdeps.Options {
         /** 'insert-module-globals@7.2.0' or equivalent */
-        insertModuleGlobals: typeof insertGlobals;
+        insertModuleGlobals?: typeof insertGlobals;
 
         basedir?: string;
         bundleExternal?: boolean;
@@ -882,15 +914,43 @@ module TsBrowserify {
     }
 
     export interface CreatePipelineOptions extends CreateDepsOptions {
-        /** 'browser-pack@6.1.0' or equivalent to pack modules */
+        /** 'browser-pack@6.1.0' or equivalent to pack modules (optional if 'createPipeline' is provided) */
         browserPack: (opts?: browserPack.Options) => NodeJS.ReadWriteStream;
-        /** 'deps-sort@2.0.0' or equivalent to sort dependency output order */
+        /** 'deps-sort@2.0.0' or equivalent to sort dependency output order (optional if 'createPipeline' is provided) */
         depsSort: (opts?: depsSort.Options) => stream.Transform;
-        /** 'module-deps@6.2.0' or equivalent to parse module dependencies */
+        /** 'module-deps@6.2.0' or equivalent to parse module dependencies (optional if 'createPipeline' is provided) */
         moduleDeps: (opts: mdeps.Options) => mdeps.ModuleDepsObject;
 
+        /** _createPipeline() equivalent that returns a LabeledSplicer stream, the default is:
+         * LabeledStreamSplicer.obj([
+         *   "record", [this._recorder()],
+         *   "deps", [this._mdeps],
+         *   "json", [this._json()],
+         *   "unbom", [this._unbom()],
+         *   "unshebang", [this._unshebang()],
+         *   "syntax", [this._syntax()],
+         *   "sort", [opts.depsSort({ index: !opts.fullPaths && !opts.exposeAll, dedupe: opts.dedupe, expose: this._expose })],
+         *   "dedupe", [this._dedupe()],
+         *   "label", [this._label(opts)],
+         *   "emit-deps", [this._emitDeps()],
+         *   "debug", [this._debug(opts)],
+         *   "pack", [this._bpack],
+         *   "wrap", []
+         * ]);
+         * 
+         * With an additional default if 'opts.exposeAll' is true:
+         * var basedir = defined(opts.basedir, process.cwd());
+         * pipeline.getGroup("deps").push(this._exposeAllDeps(basedir));
+         */
+        createPipeline?: (browserify: TsBrowserify, opts: CreatePipelineOptions) => LabeledStreamSplicer<NodeJS.ReadWriteStream>;
+
+        /** remove duplicate source contents, passed to 'depsSort' */
         dedupe?: boolean;
+        /** used in conjunction with 'fullPaths' to determine the 'index' flag passed to 'depsSort' */
         exposeAll?: boolean;
+        /** used in conjunction with 'fullPaths' to determine the 'index' flag passed to 'depsSort'.
+         * Disables converting module ids into numerical indexes. This is useful for preserving the original paths that a bundle was generated with.
+         */
         fullPaths?: boolean;
     }
 
@@ -898,12 +958,12 @@ module TsBrowserify {
         /** 'browser-resolve@2.0.0' or equivalent resolve() algorithm */
         browserResolve?: (id: string, opts: bresolve.AsyncOpts, cb: (err?: Error, resolved?: string) => void) => void;
 
+        /** Create a bundle that does not include Node builtins, and does not replace global Node variables except for __dirname and __filename */
         bare?: boolean;
+        /** When false, the package.json browser field will be ignored. When 'opts.browserField' is set to a string, then a custom field name can be used instead of the default 'browser' field. */
         browserField?: boolean;
         entries?: (string | RowLike | StreamLike)[];
-        node?: boolean;
         paths?: string[];
-        plugin?: (((inst: TsBrowserify, opts: any) => any) | [(inst: TsBrowserify, opts: any) => any, { basedir?: string }])[];
         require?: (string | RowLike | StreamLike | (string | RowLike | StreamLike)[])[];
     }
 

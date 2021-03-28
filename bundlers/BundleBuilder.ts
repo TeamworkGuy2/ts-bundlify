@@ -6,7 +6,6 @@ import TypeScriptHelper = require("./TypeScriptHelper");
 
 type BrowserifyTransform = BrowserifyHelper.BrowserifyTransform;
 
-
 /** Browserify bundle stream builder
  * requires package.json:
  *   "browserify": "~14.3.0",

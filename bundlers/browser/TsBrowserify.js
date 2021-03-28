@@ -23,7 +23,7 @@ var concat = require("concat-stream");
 var readableStream = require("readable-stream");
 var resolve = require("resolve");
 var syntaxError = require("syntax-error");
-var Splicer = require("../../streams/LabeledStreamSplicer");
+var LabeledStreamSplicer = require("../../streams/LabeledStreamSplicer");
 var StreamUtil = require("../../streams/StreamUtil");
 var lastCwd = process.cwd();
 var cache = {};
@@ -37,28 +37,24 @@ var TsBrowserify = /** @class */ (function (_super) {
         options = (options != null ? options : files);
         if (options == null)
             throw new Error("'options' is required");
-        if (options.browserPack == null)
-            throw new Error("'options.browserPack' is required");
-        if (options.depsSort == null)
-            throw new Error("'options.depsSort' is required");
-        if (options.insertModuleGlobals == null)
-            throw new Error("'options.insertModuleGlobals' is required");
-        if (options.moduleDeps == null)
-            throw new Error("'options.moduleDeps' is required");
+        if (options.createPipeline == null) {
+            if (options.browserPack == null)
+                throw new Error("'options.browserPack' is required");
+            if (options.depsSort == null)
+                throw new Error("'options.depsSort' is required");
+            if (options.moduleDeps == null)
+                throw new Error("'options.moduleDeps' is required");
+        }
         if (options.basedir !== undefined && typeof options.basedir !== "string")
             throw new Error("opts.basedir must be either undefined or a string.");
         var opts = options;
         if (typeof files === "string" || isArray(files) || isStream(files)) {
             opts.entries = [].concat(opts.entries || [], files);
         }
-        if (opts.node) {
-            opts.bare = true;
-            opts.browserField = false;
-        }
         if (opts.bare) {
             opts.builtins = false;
             opts.commondir = false;
-            if (opts.insertGlobalVars === undefined) {
+            if (opts.insertGlobalVars === undefined && opts.insertModuleGlobals != null) {
                 opts.insertGlobalVars = {};
                 Object.keys(opts.insertModuleGlobals.vars).forEach(function (name) {
                     if (name !== "__dirname" && name !== "__filename") {
@@ -100,11 +96,18 @@ var TsBrowserify = /** @class */ (function (_super) {
         [].concat(opts.require || []).forEach(function (file) {
             self.require(file, { basedir: opts.basedir });
         });
-        [].concat(opts.plugin || []).forEach(function (p) {
-            self.plugin(p, { basedir: opts.basedir });
-        });
         return _this;
     }
+    /** Make 'file' available from outside the bundle with require(file).
+     * The file param is anything that can be resolved by require.resolve(), including files from node_modules. Like with require.resolve(),
+     * you must prefix file with ./ to require a local file (not in node_modules).
+     * 'file' can also be a stream, but you should also use opts.basedir so that relative requires will be resolvable.
+     * If file is an array, each item in file will be required. In file array form, you can use a string or object for each item.
+     * Object items should have a file property and the rest of the parameters will be used for the opts.
+     * Use the expose property of opts to specify a custom dependency name. require('./vendor/angular/angular.js', {expose: 'angular'}) enables require('angular')
+     * @param file
+     * @param opts
+     */
     TsBrowserify.prototype.require = function (file, opts) {
         var self = this;
         if (isArray(file)) {
@@ -193,6 +196,11 @@ var TsBrowserify = /** @class */ (function (_super) {
         self.pipeline.write(row);
         return self;
     };
+    /** Add an entry file from 'file' that will be executed when the bundle loads.
+     * If 'file' is an array, each item in file will be added as an entry file.
+     * @param file
+     * @param opts
+     */
     TsBrowserify.prototype.add = function (file, opts) {
         var _this = this;
         if (!opts)
@@ -203,6 +211,12 @@ var TsBrowserify = /** @class */ (function (_super) {
         }
         return this.require(file, xtend({ entry: true, expose: false }, opts));
     };
+    /** Prevent 'file' from being loaded into the current bundle, instead referencing from another bundle.
+     * If 'file' is an array, each item in file will be externalized.
+     * If 'file' is another bundle, that bundle's contents will be read and excluded from the current bundle as the bundle in file gets bundled.
+     * @param file
+     * @param opts
+     */
     TsBrowserify.prototype.external = function (file, opts) {
         var self = this;
         if (isArray(file)) {
@@ -259,6 +273,12 @@ var TsBrowserify = /** @class */ (function (_super) {
         this._external.push('/' + relativePath(basedir, file));
         return this;
     };
+    /** Prevent the module name or file at 'file' from showing up in the output bundle.
+     * If 'file' is an array, each item in file will be excluded.
+     * If your code tries to require() that file it will throw unless you've provided another mechanism for loading it.
+     * @param file
+     * @param opts
+     */
     TsBrowserify.prototype.exclude = function (file, opts) {
         var _this = this;
         if (!opts)
@@ -272,6 +292,12 @@ var TsBrowserify = /** @class */ (function (_super) {
         this._exclude.push('/' + relativePath(basedir, file));
         return this;
     };
+    /** Prevent the module name or file at file from showing up in the output bundle.
+     * If file is an array, each item in file will be ignored.
+     * Instead you will get a file with module.exports = {}.
+     * @param file
+     * @param opts
+     */
     TsBrowserify.prototype.ignore = function (file, opts) {
         var _this = this;
         if (!opts)
@@ -318,19 +344,10 @@ var TsBrowserify = /** @class */ (function (_super) {
         process.nextTick(resolved);
         return this;
     };
-    TsBrowserify.prototype.plugin = function (p, opts) {
-        if (isArray(p)) {
-            opts = p[1];
-            p = p[0];
-        }
-        if (!opts)
-            opts = {};
-        p(this, opts);
-        return this;
-    };
     TsBrowserify.prototype._createPipeline = function (opts) {
         var self = this;
         this._mdeps = opts.moduleDeps(this._createDepsOpts(opts));
+        this._setupBundleTransform(opts);
         this._mdeps.on("file", function (file, id) {
             pipeline.emit("file", file, id);
             self.emit("file", file, id);
@@ -349,7 +366,7 @@ var TsBrowserify = /** @class */ (function (_super) {
             expose: this._expose
         };
         this._bpack = opts.browserPack(xtend({}, opts, { raw: true }));
-        var pipeline = Splicer.obj([
+        var pipeline = opts.createPipeline != null ? opts.createPipeline(this, opts) : LabeledStreamSplicer.obj([
             "record", [this._recorder()],
             "deps", [this._mdeps],
             "json", [this._json()],
@@ -366,22 +383,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         ]);
         if (opts.exposeAll) {
             var basedir = defined(opts.basedir, process.cwd());
-            pipeline.getGroup("deps").push(StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
-                if (self._external.indexOf(row.id) >= 0)
-                    return next();
-                if (self._external.indexOf(row.file) >= 0)
-                    return next();
-                if (isAbsolutePath(row.id)) {
-                    row.id = '/' + relativePath(basedir, row.file);
-                }
-                var depKeys = Object.keys(row.deps || {});
-                for (var i = 0, size = depKeys.length; i < size; i++) {
-                    var key = depKeys[i];
-                    row.deps[key] = '/' + relativePath(basedir, row.deps[key]);
-                }
-                this.push(row);
-                next();
-            }));
+            pipeline.getGroup("deps").push(this._exposeAllDeps(basedir));
         }
         return pipeline;
     };
@@ -487,6 +489,11 @@ var TsBrowserify = /** @class */ (function (_super) {
                 self._exclude.push(key);
         });
         mopts.globalTransform = [];
+        return mopts;
+    };
+    TsBrowserify.prototype._setupBundleTransform = function (opts) {
+        var self = this;
+        var basedir = defined(opts.basedir, process.cwd());
         if (!this._bundled) {
             this.once("bundle", function () {
                 self.pipeline.write({
@@ -501,14 +508,13 @@ var TsBrowserify = /** @class */ (function (_super) {
             .filter(function (x) { return typeof x === "string"; })
             .map(function (x) { return path.resolve(basedir, x); });
         function globalTr(file) {
-            if (opts.detectGlobals === false)
+            if (opts.detectGlobals === false
+                || opts.noParse === true
+                || no.indexOf(file) >= 0
+                || absno.indexOf(file) >= 0
+                || opts.insertModuleGlobals == null) {
                 return StreamUtil.readWrite();
-            if (opts.noParse === true)
-                return StreamUtil.readWrite();
-            if (no.indexOf(file) >= 0)
-                return StreamUtil.readWrite();
-            if (absno.indexOf(file) >= 0)
-                return StreamUtil.readWrite();
+            }
             var parts = file.replace(/\\/g, '/').split("/node_modules/");
             var lastPart = parts[parts.length - 1];
             for (var i = 0; i < no.length; i++) {
@@ -548,7 +554,6 @@ var TsBrowserify = /** @class */ (function (_super) {
                 vars: vars
             }));
         }
-        return mopts;
     };
     TsBrowserify.prototype._recorder = function (opts) {
         var self = this;
@@ -703,9 +708,28 @@ var TsBrowserify = /** @class */ (function (_super) {
             next();
         });
     };
+    TsBrowserify.prototype._exposeAllDeps = function (basedir) {
+        var self = this;
+        return StreamUtil.readWrite({ objectMode: true }, function (row, enc, next) {
+            if (self._external.indexOf(row.id) >= 0)
+                return next();
+            if (self._external.indexOf(row.file) >= 0)
+                return next();
+            if (isAbsolutePath(row.id)) {
+                row.id = '/' + relativePath(basedir, row.file);
+            }
+            var depKeys = Object.keys(row.deps || {});
+            for (var i = 0, size = depKeys.length; i < size; i++) {
+                var key = depKeys[i];
+                row.deps[key] = '/' + relativePath(basedir, row.deps[key]);
+            }
+            this.push(row);
+            next();
+        });
+    };
     TsBrowserify.prototype.reset = function (opts) {
         var hadExports = this._bpack.hasExports;
-        this.pipeline = this._createPipeline(xtend({}, opts, this._options));
+        this.pipeline = this._createPipeline(xtend({}, opts || {}, this._options));
         this._bpack.hasExports = hadExports;
         this._entryOrder = 0;
         this._bundled = false;
@@ -715,12 +739,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         var self = this;
         if (this._bundled) {
             var recorded = this._recorded;
-            this.reset({
-                browserPack: this._options.browserPack,
-                depsSort: this._options.depsSort,
-                insertModuleGlobals: this._options.insertModuleGlobals,
-                moduleDeps: this._options.moduleDeps
-            });
+            this.reset();
             recorded.forEach(function (x) {
                 self.pipeline.write(x);
             });

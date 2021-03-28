@@ -97,10 +97,7 @@ function insertModuleGlobals(file: string, opts: { basedir?: string; always?: bo
         next();
     }, function end(this: readableStream.Duplex) {
         var self = this;
-        var source = Buffer.isBuffer(chunks[0])
-            ? Buffer.concat(chunks).toString("utf8")
-            : chunks.join("")
-            ;
+        var source = Buffer.isBuffer(chunks[0]) ? Buffer.concat(chunks).toString("utf8") : chunks.join("");
         source = source
             .replace(/^\ufeff/, "")
             .replace(/^#![^\n]*\n/, "\n");
@@ -118,9 +115,7 @@ function insertModuleGlobals(file: string, opts: { basedir?: string; always?: bo
                 ;
         }
         catch (err) {
-            var e = new SyntaxError(
-                (err.message || err) + " while parsing " + file
-            );
+            var e = new SyntaxError((err.message || err) + " while parsing " + file);
             (<any>e).type = "syntax";
             (<any>e).filename = file;
             return this.emit("error", e);
@@ -197,11 +192,12 @@ function closeOver(globals: { [key: string]: any }, src: string, file: string, o
 
 function countprops(props: string[], name: string) {
     return props.filter(function (prop) {
-        return prop.slice(0, name.length + 1) === name + ".";
+        return prop.startsWith(name + ".");
     }).length;
 }
 
-
 (<any>insertModuleGlobals).vars = defaultVars;
 
-export = insertModuleGlobals;
+var InsertModuleGlobals: typeof insertModuleGlobals & { vars: typeof defaultVars } = <any>insertModuleGlobals;
+
+export = InsertModuleGlobals;

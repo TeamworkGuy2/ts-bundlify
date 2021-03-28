@@ -85,9 +85,7 @@ function insertModuleGlobals(file, opts) {
         next();
     }, function end() {
         var self = this;
-        var source = Buffer.isBuffer(chunks[0])
-            ? Buffer.concat(chunks).toString("utf8")
-            : chunks.join("");
+        var source = Buffer.isBuffer(chunks[0]) ? Buffer.concat(chunks).toString("utf8") : chunks.join("");
         source = source
             .replace(/^\ufeff/, "")
             .replace(/^#![^\n]*\n/, "\n");
@@ -174,8 +172,9 @@ function closeOver(globals, src, file, opts) {
 }
 function countprops(props, name) {
     return props.filter(function (prop) {
-        return prop.slice(0, name.length + 1) === name + ".";
+        return prop.startsWith(name + ".");
     }).length;
 }
 insertModuleGlobals.vars = defaultVars;
-module.exports = insertModuleGlobals;
+var InsertModuleGlobals = insertModuleGlobals;
+module.exports = InsertModuleGlobals;

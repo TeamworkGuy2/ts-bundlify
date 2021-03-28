@@ -4,8 +4,29 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.18.0](N/A) - 2021-03-15
+### [0.19.0](N/A) - 2021-03-28
 #### Added
+* `TsBrowserify` option `createPipeline` to allow overriding the default pipeline creation completely
+  * Refactored `_createPipeline()` code into several sub functions: `_setupBundleTransform()` (split out from `_createDepsOpts()` which is already called by `_createPipeline()`) and `_exposeAllDeps()` which is called to create a pipeline `deps` transform when `options.exposeAll` is true
+
+#### Changed
+* Move dependencies only used for testing to 'devDependencies': `deps-sort` and `insert-module-globals`
+* Update dependencies: `chokidar` from 3.3 to 3.5, `exorcist` from 1.0 to 2.0
+* Made `TsBrowserify` constructor `options.insertModuleGlobals` optional, if not provided the `insertModuleGlobals` step will be skipped
+
+#### Fixed
+* `InsertModuleGlobals` TypeScript signature not matching the popular npm package `insert-module-globals`
+
+#### Removed
+* `TsBrowserify` `plugin()` and constructor `options.plugin` (only useful for CLI, which this project is not focused on supporting). `tsBrowserifyInst.plugin(p, [opts])` is equivalent to `p(tsBrowserifyInst, [opts])`
+* `TsBrowserify` constructor `options.node` (equivalent to `{ bare: true, browserField: false }`)
+* `GulpUtil` small helper file that did not contribute to the purpose of this project
+* Removed unused dependency `minimist`
+
+
+--------
+### [0.18.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/185d4922effc074db23ec42901cdc5ff359bcb49) - 2021-03-15
+#### Changed
 * Remove `Q` dependency
 * Change `TypeScriptHelper.compileTpeScriptFile()` to take a callback rather than return a promise
 * Change `BrowserifyHelper` and `LogUtil.log()` to use interface `Promise` instead of `Q.Promise`
