@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.19.0](N/A) - 2021-03-28
+### [0.20.0](N/A) - 2021-06-12
+#### Changed
+* Update to TypeScript 4.3
+
+
+--------
+### [0.19.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/3a3f909554a43b0fb142d7d6d66fa96a20526736) - 2021-03-28
 #### Added
 * `TsBrowserify` option `createPipeline` to allow overriding the default pipeline creation completely
   * Refactored `_createPipeline()` code into several sub functions: `_setupBundleTransform()` (split out from `_createDepsOpts()` which is already called by `_createPipeline()`) and `_exposeAllDeps()` which is called to create a pipeline `deps` transform when `options.exposeAll` is true
