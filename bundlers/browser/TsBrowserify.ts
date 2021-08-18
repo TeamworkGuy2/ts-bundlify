@@ -657,7 +657,7 @@ class TsBrowserify extends events.EventEmitter {
             });
         }
 
-        var stream = StreamUtil.readWrite({ objectMode: true }, function write(this: stream.Transform, row, enc, next) {
+        var stream = StreamUtil.readWrite({ objectMode: true }, function write(row, enc, next) {
             self._recorded.push(row);
             if (self._ticked) this.push(row);
             next();

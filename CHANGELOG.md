@@ -4,7 +4,15 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.20.0](N/A) - 2021-06-12
+### [0.21.0](N/A) - 2021-08-17
+#### Changed
+* Dependency updates:
+  * bump `resolve` from `1.17.1` to `1.20.1`
+  * pin `readable-stream` to `2.3.9` to fix breaking changes in `2.3.10` - `readable-stream` types no longer match `node` types because they don't properly implement/mirror `EventEmitter`, this commit appears to have introduced the issue https://github.com/DefinitelyTyped/DefinitelyTyped/blob/6c4cb0df04cfaa6ac31ab8136bfd12f8f05f9ef1/types/readable-stream/index.d.ts
+
+
+--------
+### [0.20.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/48f23ca34d0156408ac044b8f39162e8f8bcf93c) - 2021-06-12
 #### Changed
 * Update to TypeScript 4.3
 
