@@ -1,8 +1,8 @@
 ﻿import exorcist = require("exorcist");
 import vinylfs = require("vinyl-fs");
-import vinylSourceStream = require("vinyl-source-stream");
 import BrowserifyHelper = require("./BrowserifyHelper");
 import TypeScriptHelper = require("./TypeScriptHelper");
+import VinylSourceStream = require("../streams/VinylSourceStream");
 
 type BrowserifyTransform = BrowserifyHelper.BrowserifyTransform;
 
@@ -102,7 +102,7 @@ module BundleBuilder {
 
         BrowserifyHelper.setupRebundleListener(bundleOpts.rebuild, bundleOpts.verbose, bundler, bundleSourceCreator, [
             ["extract-source-maps", (prevSrc, streamOpts) => prevSrc.pipe(exorcist(getMapFilePath(dstDir, streamOpts.dstFileName, streamOpts.dstMapFile)))],
-            ["to-vinyl-file", (prevSrc, streamOpts) => prevSrc.pipe(vinylSourceStream(streamOpts.dstFileName))],
+            ["to-vinyl-file", (prevSrc, streamOpts) => prevSrc.pipe(VinylSourceStream(streamOpts.dstFileName))],
             ["write-to-dst", (prevSrc, streamOpts) => prevSrc.pipe(vinylfs.dest(dstDir))],
         ], listeners);
     }

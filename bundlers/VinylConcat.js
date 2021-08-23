@@ -1,9 +1,9 @@
 "use strict";
 var path = require("path");
-var concat_with_sourcemaps_1 = require("concat-with-sourcemaps");
-var readableStream = require("readable-stream");
+var ReadableStream = require("readable-stream");
 var vinylfs = require("vinyl-fs");
 var VinylFile = require("vinyl");
+var ConcatSourceMaps = require("../streams/ConcatWithSourceMaps");
 /** Helpers for creating bundles
  */
 var VinylConcat;
@@ -69,7 +69,7 @@ var VinylConcat;
             }
             // construct concat instance
             if (!concat) {
-                concat = new concat_with_sourcemaps_1.default(isUsingSourceMaps, fileName, _opt.newLine);
+                concat = new ConcatSourceMaps(isUsingSourceMaps, fileName, _opt.newLine);
             }
             // add file to concat instance
             concat.add(file.relative, file.contents, file.sourceMap);
@@ -98,7 +98,7 @@ var VinylConcat;
             this.push(joinedFile);
             cb();
         }
-        return new readableStream.Transform({ objectMode: true, highWaterMark: 16, transform: bufferContents, flush: endStream });
+        return new ReadableStream.Transform({ objectMode: true, highWaterMark: 16, transform: bufferContents, flush: endStream });
     }
     VinylConcat.vinylConcat = vinylConcat;
 })(VinylConcat || (VinylConcat = {}));

@@ -3,16 +3,16 @@ ts-bundlify
 
 Are you trying to compile JS (or TS, JSX, etc.) files into multiple bundle files with the ability to require() any file from one bundle in another bundle without asynchronous waits?
 
-Been having trouble getting [browserify](https://www.npmjs.com/package/browserify) to output bundles exactly the way you want?
+Having trouble getting [browserify](https://www.npmjs.com/package/browserify) to output bundles exactly the way you want?
 
 __ts-bundlify__ aims to solve two issues:
-1. reduce the amount of code required to setup a simple browserify build process
+1. reduce the amount of code required to setup a browserify build process
 2. easily generate multiple, customizable, bundles from browserify
 
-ts-bundlify includes several default bundle transformers, including uglify-js and babel, but you can easily plug your own transform in via `BundleBuilder.buildBundle(...).transforms()`.
-ts-bundlify can use this projects own [TsBrowserify](bundlers/browser/TsBrowserify.ts) class or a custom browserify-like implementation along with gulp.js to do the actual bundling with a little magic (see [bundlers/browser/BrowserMultiPack.ts](bundlers/browser/BrowserMultiPack.ts)).
+ts-bundlify includes several default bundle transforms, including uglify-js and babel, but you can easily plug your own transform in via `BundleBuilder.buildBundle(...).transforms()`.
+ts-bundlify can use this projects' own [TsBrowserify](bundlers/browser/TsBrowserify.ts) class or a custom browserify-like implementation along with gulp.js to do the actual bundling with a little magic (see [bundlers/browser/BrowserMultiPack.ts](bundlers/browser/BrowserMultiPack.ts)).
 
-See each of the `bundlers/` sub-directories as well as the [test/](test/) folder for examples.
+See each of the [bundlers/](bundlers/) sub-directories as well as the [test/](test/) folder for examples.
 
 Two examples, creating single and multiple bundle compilers that rebuild when source file changes are detected (using watchify and browserify) compiled using babel:
 
@@ -26,8 +26,9 @@ var BundleBuilder = require("ts-bundlify/bundlers/BundleBuilder");
 var BabelBundler = require("ts-bundlify/bundlers/babel/BabelBundler");
 ```
 
+--------
+Build a single bundle with `browserify` and rebuild with `watchify`:
 
-Default single output bundle example:
 ```ts
 // [...]
 
@@ -63,7 +64,9 @@ BundleBuilder.buildBundler((opts) => new browserify(opts), watchify, {
 
 --------
 Here's an example that produces two bundles.
+
 Bundle 1 contains code from all `./src/[...]` files.
+
 Bundle 2 contains all the `node_modules` files.
 
 ```ts

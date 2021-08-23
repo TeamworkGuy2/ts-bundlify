@@ -21,10 +21,10 @@ var events = require("events");
 var fs = require("fs");
 var path = require("path");
 var bresolve = require("browser-resolve");
-var concat = require("concat-stream");
 var readableStream = require("readable-stream");
 var resolve = require("resolve");
 var syntaxError = require("syntax-error");
+var ConcatStream = require("../../streams/ConcatStream");
 var LabeledStreamSplicer = require("../../streams/LabeledStreamSplicer");
 var StreamUtil = require("../../streams/StreamUtil");
 var lastCwd = process.cwd();
@@ -139,7 +139,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         if (isStream(file)) {
             self._pending++;
             var order = self._entryOrder++;
-            file.pipe(concat(function (buf) {
+            file.pipe(ConcatStream.from(function (buf) {
                 var filename = opts.file || file.file || path.join(basedir, "_stream_" + order + ".js");
                 var id = file.id || expose || filename;
                 if (expose || opts.entry === false) {
@@ -749,7 +749,7 @@ var TsBrowserify = /** @class */ (function (_super) {
         var output = readonly(this.pipeline);
         if (cb) {
             output.on("error", cb);
-            output.pipe(concat(function (body) {
+            output.pipe(ConcatStream.from(function (body) {
                 cb(null, body);
             }));
         }

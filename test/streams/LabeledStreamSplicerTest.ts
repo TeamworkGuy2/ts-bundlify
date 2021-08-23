@@ -3,7 +3,7 @@ import chai = require("chai");
 import mocha = require("mocha");
 import deps = require("module-deps");
 import pack = require("browser-pack");
-import concat = require("concat-stream");
+import ConcatStream = require("../../streams/ConcatStream");
 import Splicer = require("../../streams/LabeledStreamSplicer");
 import StreamUtil = require("../../streams/StreamUtil");
 
@@ -19,7 +19,7 @@ suite("LabeledStreamSplicer", function LabeledStreamSplicerTest() {
             "deps", [deps()],
             "pack", [pack({ raw: true })]
         ]);
-        pipeline.pipe(concat(function (body) {
+        pipeline.pipe(ConcatStream.from(function (body) {
             var bundleSrc = body.toString("utf8");
             Function("console", bundleSrc)({ log: log });
             function log(msg: string) {
@@ -34,7 +34,7 @@ suite("LabeledStreamSplicer", function LabeledStreamSplicerTest() {
             next();
         }));
 
-        pipeline.end(__dirname + "/bundle/main.js");
+        pipeline.end(__dirname + "/../browser/bundle/main.js");
     });
 });
 

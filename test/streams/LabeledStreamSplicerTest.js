@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var chai = require("chai");
 var deps = require("module-deps");
 var pack = require("browser-pack");
-var concat = require("concat-stream");
+var ConcatStream = require("../../streams/ConcatStream");
 var Splicer = require("../../streams/LabeledStreamSplicer");
 var StreamUtil = require("../../streams/StreamUtil");
 var asr = chai.assert;
@@ -15,7 +15,7 @@ suite("LabeledStreamSplicer", function LabeledStreamSplicerTest() {
             "deps", [deps()],
             "pack", [pack({ raw: true })]
         ]);
-        pipeline.pipe(concat(function (body) {
+        pipeline.pipe(ConcatStream.from(function (body) {
             var bundleSrc = body.toString("utf8");
             Function("console", bundleSrc)({ log: log });
             function log(msg) {
@@ -28,7 +28,7 @@ suite("LabeledStreamSplicer", function LabeledStreamSplicerTest() {
             this.push(row);
             next();
         }));
-        pipeline.end(__dirname + "/bundle/main.js");
+        pipeline.end(__dirname + "/../browser/bundle/main.js");
     });
 });
 function plan(count, done) {

@@ -7,10 +7,10 @@ import fs = require("fs");
 import path = require("path");
 import stream = require("stream");
 import bresolve = require("browser-resolve");
-import concat = require("concat-stream");
 import readableStream = require("readable-stream");
 import resolve = require("resolve");
 import syntaxError = require("syntax-error");
+import ConcatStream = require("../../streams/ConcatStream");
 import LabeledStreamSplicer = require("../../streams/LabeledStreamSplicer");
 import StreamUtil = require("../../streams/StreamUtil");
 // types only
@@ -184,7 +184,7 @@ class TsBrowserify extends events.EventEmitter {
         if (isStream(file)) {
             self._pending++;
             var order = self._entryOrder++;
-            file.pipe(concat(function (buf) {
+            file.pipe(ConcatStream.from(function (buf) {
                 var filename = opts.file || file.file || path.join(basedir, "_stream_" + order + ".js");
                 var id = file.id || expose || filename;
                 if (expose || opts.entry === false) {
@@ -846,7 +846,7 @@ class TsBrowserify extends events.EventEmitter {
     }
 
 
-    public bundle(cb?: (err: Error | null, body?: any) => void) {
+    public bundle(cb?: (err: Error | null, body?: string | any[] | Buffer | Uint8Array) => void) {
         var self = this;
 
         if (this._bundled) {
@@ -861,7 +861,7 @@ class TsBrowserify extends events.EventEmitter {
 
         if (cb) {
             output.on("error", cb);
-            output.pipe(concat(function (body) {
+            output.pipe(ConcatStream.from(function (body) {
                 cb(null, body);
             }));
         }

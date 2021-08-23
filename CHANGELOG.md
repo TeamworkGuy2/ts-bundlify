@@ -4,7 +4,21 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.21.0](N/A) - 2021-08-17
+### [0.22.0](N/A) - 2021-08-22
+#### Added
+* Add several implementations of basic stream operations: `ConcatStream`, `ConcatWithSourceMaps`, and `VinylSourceStream`. These are meant to centralize and simplify dependency management, especially updating dependency versions when security issues and bug fixes are released
+
+#### Changed
+* Dependency updates:
+  * remove `concat-stream` and `@types/concat-stream` in favor of custom implementation (see `/streams/ConcatStream.ts`)
+  * remove `concat-with-sourcemaps` in favor of custom implementation (see `/streams/ConcatWithSourceMaps`)
+  * remove `vinyl-source-streams` in favor of custom implementation (see `/streams/VinylSourceStream`)
+  * update `exorcist` from `0.4.6` to `2.0.0`
+  * move `browser-pack` from `dependencies` to `devDependencies` (keep `@types/browser-pack` as a dependency since it is required by `TsBrowserify`)
+
+
+--------
+### [0.21.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/ff8e7b73bc7f46e2f03a46d94d747bb7a253f850) - 2021-08-17
 #### Changed
 * Dependency updates:
   * bump `resolve` from `1.17.1` to `1.20.1`

@@ -1,10 +1,10 @@
 ﻿import fs = require("fs");
 import path = require("path");
 import stream = require("stream");
-import concatSourceMaps from "concat-with-sourcemaps";
-import readableStream = require("readable-stream");
+import ReadableStream = require("readable-stream");
 import vinylfs = require("vinyl-fs");
 import VinylFile = require("vinyl");
+import ConcatSourceMaps = require("../streams/ConcatWithSourceMaps");
 
 /** Helpers for creating bundles
  */
@@ -26,8 +26,8 @@ module VinylConcat {
 
 
     // modified version of 'gulp-concat@2.6.1'
-    export function vinylConcat(file: string | VinylOptions, opt?: { newLine: any }) {
-        var _opt = opt || <{ newLine: any }><any>{};
+    export function vinylConcat(file: string | VinylOptions, opt?: { newLine?: string | undefined }) {
+        var _opt = opt || <{ newLine: string }><any>{};
 
         // to preserve existing |undefined| behaviour and to introduce |newLine: ""| for binaries
         if (typeof _opt.newLine !== "string") {
@@ -77,7 +77,7 @@ module VinylConcat {
 
             // construct concat instance
             if (!concat) {
-                concat = new concatSourceMaps(isUsingSourceMaps, fileName, _opt.newLine);
+                concat = new ConcatSourceMaps(isUsingSourceMaps, fileName, _opt.newLine);
             }
 
             // add file to concat instance
@@ -114,7 +114,7 @@ module VinylConcat {
             cb();
         }
 
-        return new readableStream.Transform({ objectMode: true, highWaterMark: 16, transform: bufferContents, flush: endStream });
+        return new ReadableStream.Transform({ objectMode: true, highWaterMark: 16, transform: bufferContents, flush: endStream });
     }
 
 

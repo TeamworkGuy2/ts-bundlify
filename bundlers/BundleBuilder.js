@@ -1,9 +1,9 @@
 "use strict";
 var exorcist = require("exorcist");
 var vinylfs = require("vinyl-fs");
-var vinylSourceStream = require("vinyl-source-stream");
 var BrowserifyHelper = require("./BrowserifyHelper");
 var TypeScriptHelper = require("./TypeScriptHelper");
+var VinylSourceStream = require("../streams/VinylSourceStream");
 /** Browserify bundle stream builder
  * requires package.json:
  *   "browserify": "~14.3.0",
@@ -24,7 +24,7 @@ var BundleBuilder;
         }
         BrowserifyHelper.setupRebundleListener(bundleOpts.rebuild, bundleOpts.verbose, bundler, bundleSourceCreator, [
             ["extract-source-maps", function (prevSrc, streamOpts) { return prevSrc.pipe(exorcist(getMapFilePath(dstDir, streamOpts.dstFileName, streamOpts.dstMapFile))); }],
-            ["to-vinyl-file", function (prevSrc, streamOpts) { return prevSrc.pipe(vinylSourceStream(streamOpts.dstFileName)); }],
+            ["to-vinyl-file", function (prevSrc, streamOpts) { return prevSrc.pipe(VinylSourceStream(streamOpts.dstFileName)); }],
             ["write-to-dst", function (prevSrc, streamOpts) { return prevSrc.pipe(vinylfs.dest(dstDir)); }],
         ], listeners);
     }
