@@ -12,7 +12,7 @@ function upper() {
     var stream = StreamUtil.readWrite({}, function (chunk, _, cb) {
         var str = chunk.toString().toUpperCase();
         (<any>stream).results.push(str);
-        cb(<any>null, new Buffer(str));
+        cb(<any>null, Buffer.from(str));
     });
     (<any>stream).results = [];
     return stream;

@@ -18,7 +18,9 @@ var ReadableStream = require("readable-stream");
 var Duplex = ReadableStream.Duplex;
 var PassThrough = ReadableStream.PassThrough;
 var Readable = ReadableStream.Readable;
-/** Based on browserify 'stream-splicer@2.0.1'
+/** Based on browserify 'stream-splicer@2.0.1' (https://github.com/browserify/stream-splicer/commit/d11ce6d702d979d7d701de90ae783640da4cb972)
+ * Streaming pipeline with a mutable configuration. This module is similar to [stream-combiner](https://npmjs.org/package/stream-combiner),
+ * but with a pipeline configuration that can be changed at runtime.
  */
 var Splicer = /** @class */ (function (_super) {
     __extends(Splicer, _super);

@@ -1,7 +1,7 @@
 "use strict";
 var path = require("path");
 var acornNode = require("acorn-node");
-var combineSourceMap = require("combine-source-map");
+var CombineSourceMap = require("../source-maps/CombineSourceMap");
 var undeclaredIdentifiers = require("undeclared-identifiers");
 var StreamUtil = require("../streams/StreamUtil");
 var processPath = require.resolve("process/browser.js");
@@ -166,8 +166,8 @@ function closeOver(globals, src, file, opts) {
     }
     var sourceFile = path.relative(opts.basedir, file)
         .replace(/\\/g, "/");
-    var sourceMap = combineSourceMap.create().addFile({ sourceFile: sourceFile, source: src }, { line: 1 });
-    return combineSourceMap.removeComments(wrappedSource) + "\n"
+    var sourceMap = CombineSourceMap.create().addFile({ sourceFile: sourceFile, source: src }, { line: 1 });
+    return CombineSourceMap.removeComments(wrappedSource) + "\n"
         + sourceMap.comment();
 }
 function countprops(props, name) {

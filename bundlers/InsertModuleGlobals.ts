@@ -1,6 +1,6 @@
 ﻿import path = require("path");
 import acornNode = require("acorn-node");
-import combineSourceMap = require("combine-source-map");
+import CombineSourceMap = require("../source-maps/CombineSourceMap");
 import undeclaredIdentifiers = require("undeclared-identifiers");
 import readableStream = require("readable-stream");
 import StreamUtil = require("../streams/StreamUtil");
@@ -183,10 +183,10 @@ function closeOver(globals: { [key: string]: any }, src: string, file: string, o
     }
     var sourceFile = path.relative(<string><any>opts.basedir, file)
         .replace(/\\/g, "/");
-    var sourceMap = combineSourceMap.create().addFile(
+    var sourceMap = CombineSourceMap.create().addFile(
         { sourceFile: sourceFile, source: src },
         { line: 1 });
-    return combineSourceMap.removeComments(wrappedSource) + "\n"
+    return CombineSourceMap.removeComments(wrappedSource) + "\n"
         + sourceMap.comment();
 }
 

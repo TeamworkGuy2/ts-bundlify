@@ -1,12 +1,12 @@
 ﻿import path = require("path");
 import stream = require("stream");
-import CombineSourceMap = require("combine-source-map");
+import CombineSourceMap = require("../../source-maps/CombineSourceMap");
 import umd = require("umd");
 import StreamUtil = require("../../streams/StreamUtil");
 import StringUtil = require("../../utils/StringUtil");
 import BundleBuilder = require("../BundleBuilder");
 
-var ln = '\n';
+var ln = "\n";
 var defaultPreludePath = path.join(__dirname, "_prelude.js");
 /*
 // modules are defined as an array
@@ -72,8 +72,9 @@ var defaultPrelude = `(function outer(m,c,e){` + ln +
 `  return newReq` + ln +
 `})`;
 
-/** A port of npm's 'browser-pack@6.0.2' package.
+/** A TypeScript port of 'browser-pack@6.0.2' (https://github.com/browserify/browser-pack/commit/d46d450d3b06f003356a216403d6217844d479e7)
  * Customized to support multiple output streams.
+ * Pack node-style source files from a json stream into a browser bundle.
  */
 module BrowserMultiPack {
 
@@ -206,7 +207,7 @@ module BrowserMultiPack {
         // tracks source map line number offsets for each bundle stream
         var lineNumAry = new Array<number>(dstCount);
         // source maps for each bundle stream
-        var sourceMaps = new Array<CombineSourceMap>(dstCount);
+        var sourceMaps = new Array<CombineSourceMap.Combiner>(dstCount);
         // prelude strings for each bundle stream
         var preludes = Array<string>(dstCount);
         // prelude paths for each bundle stream (mostly for source maps)
@@ -225,7 +226,7 @@ module BrowserMultiPack {
             entriesAry[i] = [];
             var basedir = (bundleOpts.basedir !== undefined ? bundleOpts.basedir : process.cwd());
             preludes[i] = bundleOpts.prelude || defaultPrelude;
-            preludePaths[i] = bundleOpts.preludePath || path.relative(basedir, defaultPreludePath).replace(/\\/g, '/');
+            preludePaths[i] = bundleOpts.preludePath || path.relative(basedir, defaultPreludePath).replace(/\\/g, "/");
         }
 
         return { baseStream, bundleStreams };
@@ -238,65 +239,17 @@ module BrowserMultiPack {
                 return;
             }
             var dst = bundleStreams[idx].stream;
-            var first = firsts[idx];
-            var sourceMap = sourceMaps[idx];
             var opts = bundles.bundles[idx];
             var prelude = preludes[idx];
-            var preludePath = preludePaths[idx];
             if (lineNumAry[idx] == null) { lineNumAry[idx] = 1 + StringUtil.countNewlines(prelude); }
 
-            var wrappedSrc: string[] = [];
-
-            if (first) {
-                if (opts.standalone) {
-                    var pre = umd.prelude(opts.standalone).trim();
-                    wrappedSrc.push(pre, "return ");
-                }
-                else if (opts.hasExports) {
-                    var pre = opts.externalRequireName || "require";
-                    wrappedSrc.push(pre, '=');
-                }
-                wrappedSrc.push(prelude, "({");
-            }
-            else {
-                wrappedSrc.push(',');
-            }
-
-            if (row.sourceFile && !row.nomap) {
-                if (!sourceMap) {
-                    sourceMaps[idx] = sourceMap = CombineSourceMap.create();
-                    sourceMap.addFile(
-                        { sourceFile: preludePath, source: prelude },
-                        { line: 0 }
-                    );
-                }
-                sourceMap.addFile(
-                    { sourceFile: row.sourceFile, source: row.source },
-                    { line: lineNumAry[idx] }
-                );
-            }
-
-            wrappedSrc.push(
-                JSON.stringify(row.id),
-                ":[",
-                "function(require,module,exports){\n",
-                CombineSourceMap.removeComments(row.source),
-                "\n},",
-                '{'
-            );
-            if (row.deps) {
-                Object.keys(row.deps).sort().forEach(function (key, i) {
-                    if (i > 0) { wrappedSrc.push(','); }
-                    wrappedSrc.push(JSON.stringify(key), ':', JSON.stringify(row.deps[key]));
-                });
-            }
-            wrappedSrc.push("}]");
+            var wrappedSrc = createWrappedSourceAndMap(row, sourceMaps, idx, lineNumAry[idx], prelude, preludePaths[idx], opts, firsts[idx]);
 
             var fullSrc = wrappedSrc.join("");
             dst.push(Buffer.from(fullSrc));
             lineNumAry[idx] += StringUtil.countNewlines(fullSrc);
 
-            firsts[idx] = first = false;
+            firsts[idx] = false;
             if (row.entry && row.order !== undefined) {
                 (<any>entriesAry[idx])[row.order] = row.id;
             }
@@ -305,42 +258,117 @@ module BrowserMultiPack {
             }
             next();
         }
+    }
 
-        /** Create a module source string in CommonJS format including prelude (before first chunk), JSONified 'entries', postlude, and source map comment based on the parameters.
-         * 
-         * The string format (sans '[' and ']' for optional parts):
-         *   [ _prelude ({ ] },{}, JSON(non-null entries) ) [ ( JSON(opts.standaloneModule) ) umd.postlude(opts.standalone) ] [ sourcemap.comment()[ .replace('//#', opts.sourceMapPrefix) ] ]
-         * @param opts the options for the prelude, postlude, and source map prefix
-         * @param first whether this is first chunk in a given stream
-         * @param entries the array to stringify and include as the entries for the module
-         * @param _prelude the prefix string to include if 'first' is true
-         * @param sourcemap optional 'combine-source-map' dependency for building a source map comment
-         */
-        function toUmdSource(opts: BrowserPackOptions, first: boolean, entries: any[], _prelude: string, sourcemap: CombineSourceMap): string {
-            var strs: string[] = [];
-            if (first) strs.push(_prelude, "({");
-            entries = entries.filter(function (x) { return x !== undefined });
 
-            strs.push("},{},", JSON.stringify(entries), ')');
+    /** Create the source text for a given 'ModuleDepRow' that can be concatenated together with
+     * other calls to this function to form a the source text for a single bundle file.
+     * @param row the row with 'source' and other properties
+     * @param sourceMaps an array of bundle source maps, the source map for this bundle is located at 'sourceMapIndex', however it may be null
+     * if it is null, a source map can be created and assigned to the 'sourceMapIndex' in the array.
+     * @param sourceMapIndex the 'sourceMaps' index at which the source map for this bundle is located/stored
+     * @param lineNum the current line number count within the bundle being built
+     * @param prelude the 'prelude' source text for this bundle
+     * @param preludePath the 'prelude' file path (can be fake)
+     * @param opts the options for this bundle
+     * @param first whether this is the first 'row' being added to this bundle (if it is the 'prelude' should be included) in the returned text
+     * @returns string array containing the source text to insert into the bundle for this 'row'
+     */
+    export function createWrappedSourceAndMap(row: ModuleDepRow, sourceMaps: CombineSourceMap.Combiner[], sourceMapIndex: number, lineNum: number,
+        prelude: string, preludePath: string, opts: BundleDst & BrowserPackOptions, first: boolean
+    ): string[] {
+        var wrappedSrc: string[] = [];
 
-            if (opts.standalone && !first) {
-                strs.push(
-                    '(', JSON.stringify(opts.standaloneModule), ')'
-                    , umd.postlude(opts.standalone)
+        // create the prelude text at the beginning of the bundle
+        if (first) {
+            if (opts.standalone) {
+                var pre = umd.prelude(opts.standalone).trim();
+                wrappedSrc.push(pre, "return ");
+            }
+            else if (opts.hasExports) {
+                var pre = opts.externalRequireName || "require";
+                wrappedSrc.push(pre, "=");
+            }
+            wrappedSrc.push(prelude, "({");
+        }
+        // or just a comma ',' to separate files within a bundle
+        else {
+            wrappedSrc.push(",");
+        }
+
+        // update the source mapping
+        if (row.sourceFile && !row.nomap) {
+            var sourceMap = sourceMaps[sourceMapIndex];
+            if (!sourceMap) {
+                sourceMap = CombineSourceMap.create(null, opts.sourceRoot);
+                sourceMaps[sourceMapIndex] = sourceMap;
+                sourceMap.addFile(
+                    { sourceFile: preludePath, source: prelude },
+                    { line: 0 }
                 );
             }
-
-            if (sourcemap) {
-                var comment = sourcemap.comment();
-                if (opts.sourceMapPrefix) {
-                    comment = comment.replace(/^\/\/#/, function () { return <string>opts.sourceMapPrefix; });
-                }
-                strs.push('\n', comment, '\n');
-            }
-            if (!sourcemap && !opts.standalone) strs.push(";\n");
-
-            return strs.join('');
+            sourceMap.addFile(
+                { sourceFile: row.sourceFile, source: row.source },
+                { line: lineNum }
+            );
         }
+
+        // the actual code wrapped in a prelude require function
+        wrappedSrc.push(
+            JSON.stringify(row.id),
+            ":[",
+            "function(require,module,exports){\n",
+            CombineSourceMap.removeComments(row.source),
+            "\n},",
+            "{" // for the dependencies map
+        );
+        // and write the dependencies
+        if (row.deps) {
+            Object.keys(row.deps).sort().forEach(function (key, i) {
+                if (i > 0) { wrappedSrc.push(","); }
+                wrappedSrc.push(JSON.stringify(key), ":", JSON.stringify(row.deps[key]));
+            });
+        }
+        wrappedSrc.push("}]");
+
+        return wrappedSrc;
+    }
+
+
+    /** Create a module source string in CommonJS format including prelude (before first chunk), JSONified 'entries', postlude, and source map comment based on the parameters.
+     * 
+     * The string format (sans '[' and ']' for optional parts):
+     *   [ _prelude ({ ] },{}, JSON(non-null entries) ) [ ( JSON(opts.standaloneModule) ) umd.postlude(opts.standalone) ] [ sourcemap.comment()[ .replace('//#', opts.sourceMapPrefix) ] ]
+     * @param opts the options for the prelude, postlude, and source map prefix
+     * @param first whether this is first chunk in a given stream
+     * @param entries the array to stringify and include as the entries for the module
+     * @param _prelude the prefix string to include if 'first' is true
+     * @param sourcemap optional 'combine-source-map' dependency for building a source map comment
+     */
+    export function toUmdSource(opts: BrowserPackOptions, first: boolean, entries: any[], _prelude: string, sourcemap: CombineSourceMap.Combiner): string {
+        var strs: string[] = [];
+        if (first) strs.push(_prelude, "({");
+        entries = entries.filter(function (x) { return x !== undefined });
+
+        strs.push("},{},", JSON.stringify(entries), ")");
+
+        if (opts.standalone && !first) {
+            strs.push(
+                "(", JSON.stringify(opts.standaloneModule), ")"
+                , umd.postlude(opts.standalone)
+            );
+        }
+
+        if (sourcemap) {
+            var comment = sourcemap.comment();
+            if (opts.sourceMapPrefix) {
+                comment = comment.replace(/^\/\/#/, function () { return <string>opts.sourceMapPrefix; });
+            }
+            strs.push("\n", comment, "\n");
+        }
+        if (!sourcemap && !opts.standalone) strs.push(";\n");
+
+        return strs.join("");
     }
 
 }

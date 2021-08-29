@@ -15,7 +15,9 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 var ReadableStream = require("readable-stream");
-/** Based on 'concat-stream@2.0.0' (https://github.com/maxogden/concat-stream)
+/** Based on 'concat-stream@2.0.0' (https://github.com/maxogden/concat-stream/commit/ceaa101bd2e19c5878a98dd6cb875108f49bf5c5)
+ * Writable stream that concatenates all the data from a stream and calls a callback with the result.
+ * Use this when you want to collect all the data from a stream into a single buffer.
  */
 var ConcatStream = /** @class */ (function (_super) {
     __extends(ConcatStream, _super); /*inherits(ConcatStream, Writable)*/
@@ -73,13 +75,13 @@ var ConcatStream = /** @class */ (function (_super) {
         if (this.shouldInferEncoding)
             this.encoding = this.inferEncoding();
         if (this.encoding === "array")
-            return arrayConcat(this.body);
+            return ConcatStream.arrayConcat(this.body);
         if (this.encoding === "string")
-            return stringConcat(this.body);
+            return ConcatStream.stringConcat(this.body);
         if (this.encoding === "buffer")
-            return bufferConcat(this.body);
+            return ConcatStream.bufferConcat(this.body);
         if (this.encoding === "uint8array")
-            return u8Concat(this.body);
+            return ConcatStream.u8Concat(this.body);
         return this.body;
     };
     ConcatStream.from = function (opts, cb) {
@@ -87,117 +89,124 @@ var ConcatStream = /** @class */ (function (_super) {
     };
     return ConcatStream;
 }(ReadableStream.Writable /*inherits(ConcatStream, Writable)*/));
-function isArrayish(ary) {
-    return /Array\]$/.test(Object.prototype.toString.call(ary));
-}
-function isBufferish(p) {
-    return typeof p === "string" || isArrayish(p) || (p && typeof p.subarray === "function");
-}
-function stringConcat(parts) {
-    var strings = [];
-    for (var i = 0; i < parts.length; i++) {
-        var p = parts[i];
-        if (typeof p === "string") {
-            strings.push(p);
-        }
-        else if (Buffer.isBuffer(p)) {
-            strings.push(p);
-        }
-        else if (isBufferish(p)) {
-            strings.push(BufferFrom(p));
-        }
-        else {
-            strings.push(BufferFrom(String(p)));
-        }
+(function (ConcatStream) {
+    function isArrayish(ary) {
+        return /Array\]$/.test(Object.prototype.toString.call(ary));
     }
-    var string;
-    if (Buffer.isBuffer(parts[0])) {
-        string = Buffer.concat(strings).toString("utf8");
+    function isBufferish(p) {
+        return typeof p === "string" || isArrayish(p) || (p && typeof p.subarray === "function");
     }
-    else {
-        string = strings.join("");
-    }
-    return string;
-}
-function bufferConcat(parts) {
-    var bufs = [];
-    for (var i = 0; i < parts.length; i++) {
-        var p = parts[i];
-        if (Buffer.isBuffer(p)) {
-            bufs.push(p);
+    function stringConcat(parts) {
+        var strings = [];
+        for (var i = 0; i < parts.length; i++) {
+            var p = parts[i];
+            if (typeof p === "string") {
+                strings.push(p);
+            }
+            else if (Buffer.isBuffer(p)) {
+                strings.push(p);
+            }
+            else if (isBufferish(p)) {
+                strings.push(bufferFrom(p));
+            }
+            else {
+                strings.push(bufferFrom(String(p)));
+            }
         }
-        else if (isBufferish(p)) {
-            bufs.push(BufferFrom(p));
+        var string;
+        if (Buffer.isBuffer(parts[0])) {
+            string = Buffer.concat(strings).toString("utf8");
         }
         else {
-            bufs.push(BufferFrom(String(p)));
+            string = strings.join("");
         }
+        return string;
     }
-    return Buffer.concat(bufs);
-}
-function arrayConcat(parts) {
-    var res = [];
-    for (var i = 0; i < parts.length; i++) {
-        res.push.apply(res, parts[i]);
-    }
-    return res;
-}
-function u8Concat(parts) {
-    var len = 0;
-    for (var i = 0; i < parts.length; i++) {
-        if (typeof parts[i] === "string") {
-            parts[i] = BufferFrom(parts[i]);
+    ConcatStream.stringConcat = stringConcat;
+    function bufferConcat(parts) {
+        var bufs = [];
+        for (var i = 0; i < parts.length; i++) {
+            var p = parts[i];
+            if (Buffer.isBuffer(p)) {
+                bufs.push(p);
+            }
+            else if (isBufferish(p)) {
+                bufs.push(bufferFrom(p));
+            }
+            else {
+                bufs.push(bufferFrom(String(p)));
+            }
         }
-        len += parts[i].length;
+        return Buffer.concat(bufs);
     }
-    var u8 = new Uint8Array(len);
-    for (var i = 0, offset = 0; i < parts.length; i++) {
-        var part = parts[i];
-        for (var j = 0; j < part.length; j++) {
-            u8[offset++] = part[j];
+    ConcatStream.bufferConcat = bufferConcat;
+    function arrayConcat(parts) {
+        var res = [];
+        for (var i = 0; i < parts.length; i++) {
+            res.push.apply(res, parts[i]);
         }
+        return res;
     }
-    return u8;
-}
-function isArrayBuffer(input) {
-    return Object.prototype.toString.call(input).slice(8, -1) === "ArrayBuffer";
-}
-function fromArrayBuffer(obj, byteOffset, length) {
-    byteOffset >>>= 0;
-    var maxLength = obj.byteLength - byteOffset;
-    if (maxLength < 0) {
-        throw new RangeError("'offset' is out of bounds");
-    }
-    if (length === undefined) {
-        length = maxLength;
-    }
-    else {
-        length >>>= 0;
-        if (length > maxLength) {
-            throw new RangeError("'length' is out of bounds");
+    ConcatStream.arrayConcat = arrayConcat;
+    function u8Concat(parts) {
+        var len = 0;
+        for (var i = 0; i < parts.length; i++) {
+            if (typeof parts[i] === "string") {
+                parts[i] = bufferFrom(parts[i]);
+            }
+            len += parts[i].length;
         }
+        var u8 = new Uint8Array(len);
+        for (var i = 0, offset = 0; i < parts.length; i++) {
+            var part = parts[i];
+            for (var j = 0; j < part.length; j++) {
+                u8[offset++] = part[j];
+            }
+        }
+        return u8;
     }
-    return Buffer.from(obj.slice(byteOffset, byteOffset + length));
-}
-function fromString(string, encoding) {
-    if (typeof encoding !== "string" || encoding === "") {
-        encoding = "utf8";
+    ConcatStream.u8Concat = u8Concat;
+    function bufferFrom(value, encodingOrOffset, length) {
+        if (typeof value === "number") {
+            throw new TypeError("'value' argument must not be a number");
+        }
+        if (isArrayBuffer(value)) {
+            return fromArrayBuffer(value, encodingOrOffset, length);
+        }
+        if (typeof value === "string") {
+            return fromString(value, encodingOrOffset);
+        }
+        return Buffer.from(value);
     }
-    if (!Buffer.isEncoding(encoding)) {
-        throw new TypeError("'encoding' must be a valid string encoding");
+    ConcatStream.bufferFrom = bufferFrom;
+    function isArrayBuffer(input) {
+        return Object.prototype.toString.call(input).slice(8, -1) === "ArrayBuffer";
     }
-    return Buffer.from(string, encoding);
-}
-function BufferFrom(value, encodingOrOffset, length) {
-    if (typeof value === "number") {
-        throw new TypeError("'value' argument must not be a number");
+    function fromArrayBuffer(obj, byteOffset, length) {
+        byteOffset >>>= 0;
+        var maxLength = obj.byteLength - byteOffset;
+        if (maxLength < 0) {
+            throw new RangeError("'offset' is out of bounds");
+        }
+        if (length === undefined) {
+            length = maxLength;
+        }
+        else {
+            length >>>= 0;
+            if (length > maxLength) {
+                throw new RangeError("'length' is out of bounds");
+            }
+        }
+        return Buffer.from(obj.slice(byteOffset, byteOffset + length));
     }
-    if (isArrayBuffer(value)) {
-        return fromArrayBuffer(value, encodingOrOffset, length);
+    function fromString(string, encoding) {
+        if (typeof encoding !== "string" || encoding === "") {
+            encoding = "utf8";
+        }
+        if (!Buffer.isEncoding(encoding)) {
+            throw new TypeError("'encoding' must be a valid string encoding");
+        }
+        return Buffer.from(string, encoding);
     }
-    if (typeof value === "string") {
-        return fromString(value, encodingOrOffset);
-    }
-    return Buffer.from(value);
-}
+})(ConcatStream || (ConcatStream = {}));
 module.exports = ConcatStream;

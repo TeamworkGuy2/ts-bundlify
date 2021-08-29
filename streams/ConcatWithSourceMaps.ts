@@ -1,12 +1,12 @@
-﻿import SourceMap = require("source-map");
-
-var SourceMapGenerator = SourceMap.SourceMapGenerator;
-var SourceMapConsumer = SourceMap.SourceMapConsumer;
+﻿import SourceMap = require("source-map-js");
 
 function unixStylePath(filePath: string): string {
     return filePath.replace(/\\/g, "/");
 }
 
+/** based on concat-with-sourcemaps@1.1.0 (https://github.com/floridoo/concat-with-sourcemaps/commit/fa7922b69c4054a6c5dc8f415f0dfcabaf5b8fe4)
+ * Concatenate file contents with a custom separator and generate a source map.
+ */
 class ConcatWithSourceMaps {
     public lineOffset: number;
     public columnOffset: number;
@@ -29,7 +29,7 @@ class ConcatWithSourceMaps {
         }
 
         if (generateSourceMap) {
-            this._sourceMap = new SourceMapGenerator({ file: unixStylePath(fileName) });
+            this._sourceMap = new SourceMap.SourceMapGenerator({ file: unixStylePath(fileName) });
             this.separatorLineOffset = 0;
             this.separatorColumnOffset = 0;
             var separatorString = this.separator.toString();
@@ -42,6 +42,7 @@ class ConcatWithSourceMaps {
             }
         }
     }
+
 
     public add(filePath: string | null, content: string | Buffer, sourceMap?: string | SourceMap.RawSourceMap): void {
         filePath = filePath && unixStylePath(filePath);
@@ -65,7 +66,7 @@ class ConcatWithSourceMaps {
             }
 
             if (sourceMap != null && sourceMap.mappings != null && sourceMap.mappings.length > 0) {
-                var upstreamSM = new SourceMapConsumer(sourceMap);
+                var upstreamSM = new SourceMap.SourceMapConsumer(sourceMap);
                 var _this = this;
                 upstreamSM.eachMapping(function (mapping) {
                     if (mapping.source) {
@@ -83,6 +84,7 @@ class ConcatWithSourceMaps {
                         });
                     }
                 });
+
                 var sourcesContent = <string[] | null>(<any>upstreamSM).sourcesContent;
                 if (sourcesContent != null) {
                     var sources = <string[]>(<any>upstreamSM).sources;
@@ -109,7 +111,7 @@ class ConcatWithSourceMaps {
                             source: filePath,
                         });
                     }
-                    if (sourceMap && sourceMap.sourcesContent) {
+                    if (sourceMap != null && sourceMap.sourcesContent) {
                         this._sourceMap.setSourceContent(filePath, sourceMap.sourcesContent[0]);
                     }
                 }
@@ -128,6 +130,7 @@ class ConcatWithSourceMaps {
         }
     }
 
+
     get content(): Buffer {
         return Buffer.concat(this.contentParts);
     }
@@ -145,7 +148,7 @@ class ConcatWithSourceMaps {
             if (Object.prototype.toString.call(content) !== "[object String]") {
                 throw new TypeError("separator must be a string");
             }
-            return new Buffer(<any>content);
+            return Buffer.from(<any>content);
         }
     }
 

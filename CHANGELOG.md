@@ -4,7 +4,23 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.22.0](N/A) - 2021-08-22
+### [0.23.0](N/A) - 2021-08-28
+#### Added
+* Add several implementations of stream and source-map operations: `InlineSourceMap`, `Memoize`, `PathIsAbsolute`, and `GlobWatcher`. These are meant to centralize and simplify dependency management, especially updating dependency versions when security issues and bug fixes are released
+  * The biggest addition is the `GlobWatcher` implementation which has only 4 non-core dependencies and directly uses `picomatch` and `chokidar` instead of `anymatch@2.0.*`. This eliminates over 150 dependencies required by anymatch.
+* `BrowserPackOptions.sourceRoot` new optional string property that gets passed to `CombineSourceMap.create()`
+* `BrowserMultiPack` refactored to expose `toUmdSource()` and `createWrappedSourceAndMap()`
+
+#### Changed
+* Switch from `source-map` to `source-map-js` for fixes and performance improvements. We can't update to `source-map@0.7.*` due to the async wasm (see https://github.com/mozilla/source-map/issues/370)
+* Dependency updates:
+  * add `end-of-stream`, `once`, `picomatch`, and `source-map-js` to dependencies in place of `combine-source-map` and `glob-watcher`
+  * remove `combine-source-map` and `@types/combine-source-map` in favor of custom implementation (see `/streams/CombineSourceMap.ts`)
+  * remove `concat-with-sourcemaps` in favor of custom implementation (see `/streams/ConcatWithSourceMaps`)
+
+
+--------
+### [0.22.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/317aea345dc2e6ac056f25cf03955f6e3142faee) - 2021-08-22
 #### Added
 * Add several implementations of basic stream operations: `ConcatStream`, `ConcatWithSourceMaps`, and `VinylSourceStream`. These are meant to centralize and simplify dependency management, especially updating dependency versions when security issues and bug fixes are released
 

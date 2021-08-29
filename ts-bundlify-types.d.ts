@@ -44,6 +44,8 @@ interface BrowserPackOptions /*extends browserPack.Options*/ {
     standaloneModule?: boolean;
     /** If given and source maps are computed, the opts.sourceMapPrefix string will be used instead of default: '//#' */
     sourceMapPrefix?: string;
+    /** If given and source maps are computed, the root for the output source map will be defined. (default is no root) */
+    sourceRoot?: string;
 }
 
 

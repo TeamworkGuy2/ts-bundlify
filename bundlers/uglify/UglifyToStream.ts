@@ -74,7 +74,7 @@ module UglifyToStream {
             // Check if incoming source code already has source map comment.
             // If so, send it in to uglifyjs.minify as the inSourceMap parameter
             if (debug && matched) {
-                opts.inSourceMap = convert.fromJSON(new Buffer(matched[1], "base64").toString()).sourcemap;
+                opts.inSourceMap = convert.fromJSON(Buffer.from(matched[1], "base64").toString()).sourcemap;
             }
 
             var min = uglify.minify(buffer, opts);

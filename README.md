@@ -5,16 +5,19 @@ Are you trying to compile JS (or TS, JSX, etc.) files into multiple bundle files
 
 Having trouble getting [browserify](https://www.npmjs.com/package/browserify) to output bundles exactly the way you want?
 
-__ts-bundlify__ aims to solve two issues:
+__ts-bundlify__ addresses three issues:
 1. reduce the amount of code required to setup a browserify build process
 2. easily generate multiple, customizable, bundles from browserify
+3. reduce build dependencies by inlining build utilities/wrappers (see [source-maps/](source-maps/) and [streams/](streams/)) and using `^` dependency versions in `package.json` so that the user of this package has greater control over dependencies.
+  - aside: the node.js ecosystem is awesome but can suffer from versioning issues caused by deep dependency trees with many maintainers; it's hard to get all packages updated to new versions. 10 and 20 LOC packages should be inlined, in my opinion/experience, and that's what this package does in several places.
 
-ts-bundlify includes several default bundle transforms, including uglify-js and babel, but you can easily plug your own transform in via `BundleBuilder.buildBundle(...).transforms()`.
+Several default bundle transforms are included: `browserify`, `uglify-js` and `babel`. You can easily plug your own transform in via `BundleBuilder.buildBundle(...).transforms()`.
+
 ts-bundlify can use this projects' own [TsBrowserify](bundlers/browser/TsBrowserify.ts) class or a custom browserify-like implementation along with gulp.js to do the actual bundling with a little magic (see [bundlers/browser/BrowserMultiPack.ts](bundlers/browser/BrowserMultiPack.ts)).
 
 See each of the [bundlers/](bundlers/) sub-directories as well as the [test/](test/) folder for examples.
 
-Two examples, creating single and multiple bundle compilers that rebuild when source file changes are detected (using watchify and browserify) compiled using babel:
+Example of single and multiple out file bundles that rebuild when source file changes are detected (using `watchify` and `browserify`) and compiled using `babel` via [BabelBundler](bundlers/babel/BabelBundler.ts):
 
 Setup:
 ```ts
@@ -30,6 +33,7 @@ var BabelBundler = require("ts-bundlify/bundlers/babel/BabelBundler");
 Build a single bundle with `browserify` and rebuild with `watchify`:
 
 ```ts
+// gulpfile.js
 // [...]
 
 // create the bundle builder with build options
@@ -67,9 +71,12 @@ Here's an example that produces two bundles.
 
 Bundle 1 contains code from all `./src/[...]` files.
 
-Bundle 2 contains all the `node_modules` files.
+Bundle 2 contains all the required `node_modules` files.
 
 ```ts
+// gulpfile.js
+// [...]
+
 var BrowserMultiPack = require("ts-bundlify/bundlers/browser/BrowserMultiPack");
 
 // create the bundle builder with build options (difference - save the browserify options via the buildBundle() callback)
@@ -101,12 +108,14 @@ BrowserMultiPack.overrideBrowserifyPack(bundleBldr, browserify, () => ({
   }
 }));
 
-// add a babelify transform step, you can add multiple transforms which are passed on to browserify.transform() (same as before)
+// add a babelify transform step, you can add multiple transforms which are passed to
+// browserify.transform() (same as before)
 bundleBldr.transforms((browserify) => [
   BabelBundler.createTransformer(babelify)
 ])
 // start the build process with options about the source files to compile
-// notice, the 'dstFileName' destination is left out since the destination(s) were configured by the previous call to BrowserMultiPack.overrideBrowserifyPack())
+// notice, the 'dstFileName' destination is left out since the destination(s) were configured by the
+// previous call to BrowserMultiPack.overrideBrowserifyPack()
 .compileBundle({
   entryFile: "./src/[...]/myApp.js",
   dstDir: "./build/",
