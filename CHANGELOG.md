@@ -4,7 +4,16 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.23.0](N/A) - 2021-08-28
+### [0.23.1](N/A) - 2021-08-30
+#### Fixed
+* Fix `GlobWatcher.WatchOptions` type to extend `chokidar.WatchOptions`
+* Fix `GlobWatcher.watch()` `cb` parameter type to receive a `done()` function parameter
+* Remove unnecessary `GlobWatcher.watch()` `options.events` array check
+* Fix an issue in `BrowserifyHelper` when used in a project without tsconfig `strict` enabled
+
+
+--------
+### [0.23.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/7cac4c4cd749161a928fbf50bfa26747ceb60938) - 2021-08-28
 #### Added
 * Add several implementations of stream and source-map operations: `InlineSourceMap`, `Memoize`, `PathIsAbsolute`, and `GlobWatcher`. These are meant to centralize and simplify dependency management, especially updating dependency versions when security issues and bug fixes are released
   * The biggest addition is the `GlobWatcher` implementation which has only 4 non-core dependencies and directly uses `picomatch` and `chokidar` instead of `anymatch@2.0.*`. This eliminates over 150 dependencies required by anymatch.

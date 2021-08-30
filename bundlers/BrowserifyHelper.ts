@@ -233,7 +233,7 @@ module BrowserifyHelper {
     }): stream.Transform {
 
         function SimpleStreamView(this: stream.Transform, opts?: stream.TransformOptions) {
-            stream.Transform.call(this, opts);
+            (<any>stream.Transform).call(this, opts);
         }
 
         util.inherits(SimpleStreamView, stream.Transform);

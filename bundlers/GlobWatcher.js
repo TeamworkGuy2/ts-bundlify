@@ -32,9 +32,6 @@ var GlobWatcher;
     };
     function watch(glob, options, cb) {
         var opt = Object.assign({}, defaultOpts, options);
-        if (!Array.isArray(opt.events)) {
-            opt.events = [opt.events];
-        }
         if (Array.isArray(glob)) {
             // We slice so we don't mutate the passed globs array
             glob = glob.slice();
@@ -302,15 +299,11 @@ var GlobWatcher;
             var d = domain.create();
             d.once("error", onError);
             var domainBoundFn = d.bind(fn);
-            function done() {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
+            var done = function done() {
                 d.removeListener("error", onError);
                 d.exit();
                 return tryCatch(cb, arguments);
-            }
+            };
             function onSuccess(result) {
                 done(null, result);
             }

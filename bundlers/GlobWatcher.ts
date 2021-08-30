@@ -9,31 +9,27 @@ import picomatch = require("picomatch");
 // based on glob-watcher@5.0.5 (https://github.com/gulpjs/glob-watcher/commit/c994409826c8914fa913f308568b5b13fc2a7723)
 module GlobWatcher {
 
-    export interface WatchOptions {
-        delay: number;
-        events: string[];
-        ignored: any[];
-        ignoreInitial: boolean;
-        queue: boolean;
+    export interface WatchOptions extends chokidar.WatchOptions {
+        delay?: number;
+        events?: string[];
+        ignored?: any[];
+        ignoreInitial?: boolean;
+        queue?: boolean;
         cwd?: string;
     }
 
 
-    var defaultOpts: WatchOptions = {
+    var defaultOpts = {
         delay: 200,
         events: ["add", "change", "unlink"],
-        ignored: [],
+        ignored: <any[]>[],
         ignoreInitial: true,
         queue: true,
     };
 
 
-    export function watch(glob: string[], options: WatchOptions, cb: () => void) {
+    export function watch(glob: string[], options: WatchOptions, cb: (done: (...args: any[]) => any) => any): chokidar.FSWatcher {
         var opt = Object.assign({}, defaultOpts, options);
-
-        if (!Array.isArray(opt.events)) {
-            opt.events = [opt.events];
-        }
 
         if (Array.isArray(glob)) {
             // We slice so we don't mutate the passed globs array
@@ -361,18 +357,18 @@ module GlobWatcher {
         }
 
 
-        export function asyncDone(fn: (...args: any[]) => any, cb: (...args: any[]) => any) {
+        export function asyncDone(fn: (done: (...args: any[]) => any) => any, cb: (...args: any[]) => any) {
             cb = once(cb);
 
             var d = domain.create();
             d.once("error", onError);
             var domainBoundFn = d.bind(fn);
 
-            function done(...args: any[]) {
+            var done = <(...args: any[]) => any>function done() {
                 d.removeListener("error", onError);
                 d.exit();
                 return tryCatch(cb, arguments);
-            }
+            };
 
             function onSuccess(result?: any) {
                 (<any>done)(null, result);
