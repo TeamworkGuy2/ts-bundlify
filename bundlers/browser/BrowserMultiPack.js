@@ -216,13 +216,9 @@ var BrowserMultiPack;
             var dst = bundleStreams[idx].stream;
             var opts = bundles.bundles[idx];
             var prelude = preludes[idx];
-            if (lineNumAry[idx] == null) {
-                lineNumAry[idx] = 1 + StringUtil.countNewlines(prelude);
-            }
-            var wrappedSrc = createWrappedSourceAndMap(row, sourceMaps, idx, lineNumAry[idx], prelude, preludePaths[idx], opts, firsts[idx]);
+            var wrappedSrc = createWrappedSourceAndMap(row, sourceMaps, lineNumAry, idx, prelude, preludePaths[idx], opts, firsts[idx]);
             var fullSrc = wrappedSrc.join("");
             dst.push(Buffer.from(fullSrc));
-            lineNumAry[idx] += StringUtil.countNewlines(fullSrc);
             firsts[idx] = false;
             if (row.entry && row.order !== undefined) {
                 entriesAry[idx][row.order] = row.id;
@@ -237,17 +233,19 @@ var BrowserMultiPack;
     /** Create the source text for a given 'ModuleDepRow' that can be concatenated together with
      * other calls to this function to form a the source text for a single bundle file.
      * @param row the row with 'source' and other properties
-     * @param sourceMaps an array of bundle source maps, the source map for this bundle is located at 'sourceMapIndex', however it may be null
-     * if it is null, a source map can be created and assigned to the 'sourceMapIndex' in the array.
-     * @param sourceMapIndex the 'sourceMaps' index at which the source map for this bundle is located/stored
-     * @param lineNum the current line number count within the bundle being built
+     * @param sourceMaps an array of bundle source maps, the source map for this bundle is located at 'bundleIndex', however it may be null
+     * if it is null, a source map can be created and assigned to the 'bundleIndex' in the array.
+     * @param lineNumbers array of line numbers counts, the current line number of the bundle being built is located at 'bundleIndex'
+     * @param bundleIndex the 'sourceMaps' and 'lineNumbers' index at which the source map and current line number for this bundle are located/stored
      * @param prelude the 'prelude' source text for this bundle
      * @param preludePath the 'prelude' file path (can be fake)
      * @param opts the options for this bundle
      * @param first whether this is the first 'row' being added to this bundle (if it is the 'prelude' should be included) in the returned text
      * @returns string array containing the source text to insert into the bundle for this 'row'
      */
-    function createWrappedSourceAndMap(row, sourceMaps, sourceMapIndex, lineNum, prelude, preludePath, opts, first) {
+    function createWrappedSourceAndMap(row, sourceMaps, lineNumbers, bundleIndex, prelude, preludePath, opts, first) {
+        var initialLineNum = lineNumbers[bundleIndex] || 0;
+        var lineNum = initialLineNum;
         var wrappedSrc = [];
         // create the prelude text at the beginning of the bundle
         if (first) {
@@ -260,6 +258,7 @@ var BrowserMultiPack;
                 wrappedSrc.push(pre, "=");
             }
             wrappedSrc.push(prelude, "({");
+            lineNum += StringUtil.countNewlines(prelude) + 1; // +1 for next line at which the next file will start appending
         }
         // or just a comma ',' to separate files within a bundle
         else {
@@ -267,14 +266,16 @@ var BrowserMultiPack;
         }
         // update the source mapping
         if (row.sourceFile && !row.nomap) {
-            var sourceMap = sourceMaps[sourceMapIndex];
+            var sourceMap = sourceMaps[bundleIndex];
             if (!sourceMap) {
                 sourceMap = CombineSourceMap.create(null, opts.sourceRoot);
-                sourceMaps[sourceMapIndex] = sourceMap;
-                sourceMap.addFile({ sourceFile: preludePath, source: prelude }, { line: 0 });
+                sourceMaps[bundleIndex] = sourceMap;
+                sourceMap.addFile({ sourceFile: preludePath, source: prelude }, { line: initialLineNum });
             }
             sourceMap.addFile({ sourceFile: row.sourceFile, source: row.source }, { line: lineNum });
         }
+        lineNum += StringUtil.countNewlines(row.source) + 2; // +2 for the UMD function and dependency definition lines surrounding the source, see below
+        lineNumbers[bundleIndex] = lineNum;
         // the actual code wrapped in a prelude require function
         wrappedSrc.push(JSON.stringify(row.id), ":[", "function(require,module,exports){\n", CombineSourceMap.removeComments(row.source), "\n},", "{" // for the dependencies map
         );

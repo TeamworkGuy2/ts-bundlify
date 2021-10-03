@@ -80,12 +80,12 @@ var CombineSourceMap;
          * Adds map to underlying source map.
          * If source contains a source map comment that has the source of the original file inlined it will offset these
          * mappings and include them.
-         * If no source map comment is found or it has no source inlined, mappings for the file will be generated and included
+         * If no source map comment is found or it has no source inlined, mappings for the file will be generated and included.
          *
          * @name addMap
          * @function
-         * @param opts {Object} { sourceFile: {String}, source: {String} }
-         * @param offset {Object} { line: {Number}, column: {Number} }
+         * @param opts '{ sourceFile: {String}, source: {String} }'
+         * @param offset '{ line: {Number}, column: {Number} }'
          */
         Combiner.prototype.addFile = function (opts, offset) {
             offset = offset || { line: 0, column: 0 };
@@ -99,13 +99,13 @@ var CombineSourceMap;
                 : this._addGeneratedMap(opts.sourceFile, opts.source, offset);
         };
         /**
-        * @return {string} base64 encoded combined source map
+        * @return base64 encoded combined source map
         */
         Combiner.prototype.base64 = function () {
             return this.generator.base64Encode();
         };
         /**
-         * @return {string} base64 encoded sourceMappingUrl comment of the combined source map
+         * @return base64 encoded sourceMappingUrl comment of the combined source map
          */
         Combiner.prototype.comment = function () {
             return this.generator.inlineMappingUrl();
@@ -133,7 +133,7 @@ var CombineSourceMap;
     }
     CombineSourceMap.removeComments = removeComments;
     /**
-     * @param map {object} the JSON.parse()'ed map
+     * @param map the JSON.parse()'ed map
      * @return array of mappings
      */
     function mappingsFromMap(map) {

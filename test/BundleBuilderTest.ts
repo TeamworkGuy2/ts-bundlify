@@ -166,12 +166,12 @@ suite("BundleBuilder", function MemoryStoreTest() {
                     "test/test-proj/helpers/HelperUtil.js",
                 ]);
                 var sortedDeps = Object.keys(allDeps).reduce((map, k) => { map[k] = allDeps[k].sort(); return map; }, <{ [name: string]: string[] }>{}); // must sort for stable test results
-                asr.deepEqual(sortedDeps, {
-                    "test-proj\\App": [ "test-proj\\DataSource", "test-proj\\WidgetUi", "test-proj\\helpers\\HelperUtil" ],
-                    "test-proj\\DataSource": [],
-                    "test-proj\\WidgetUi": [ "test-proj\\helpers\\HelperUtil" ],
-                    "test-proj\\helpers\\HelperUtil": [ "test-proj\\WidgetUi" ],
-                })
+                asr.deepEqual(Object.keys(allDeps).sort(), ["test-proj\\App", "test-proj\\DataSource", "test-proj\\WidgetUi", "test-proj\\helpers\\HelperUtil"]);
+
+                asr.deepEqual(sortedDeps["test-proj\\App"], ["test-proj\\DataSource", "test-proj\\WidgetUi", "test-proj\\helpers\\HelperUtil"]);
+                asr.deepEqual(sortedDeps["test-proj\\DataSource"], []);
+                asr.deepEqual(sortedDeps["test-proj\\WidgetUi"], ["test-proj\\helpers\\HelperUtil"]);
+                asr.deepEqual(sortedDeps["test-proj\\helpers\\HelperUtil"], []);
 
                 done();
             }

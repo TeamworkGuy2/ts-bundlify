@@ -7,11 +7,16 @@ function main() {
         name: "test-proj",
         version: "0.1.0",
         description: "parser/bundler test project",
+        dependencies: { "base": "none" },
     };
-    console.log(WidgetUi.createWidget());
+    HelperUtil.Ui = WidgetUi;
+    var widget = WidgetUi.createWidget(HelperUtil.App);
+    console.log(widget);
     for (var collName in DataSource.collectionCache) {
         console.log(collName + ": " + DataSource.collectionCache[collName]);
     }
+    WidgetUi.updateWidget(widget);
+    console.log("done");
 }
 main();
 module.exports = main;

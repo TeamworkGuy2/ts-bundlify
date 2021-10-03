@@ -3,7 +3,7 @@ import WidgetUi = require("../WidgetUi");
 
 module HelperUtil {
 
-    interface PackageLike {
+    export interface PackageLike {
         name: string;
         version: string;
         description?: string;
@@ -14,8 +14,19 @@ module HelperUtil {
 
 
     export var App: PackageLike;
-    export var Ui: typeof WidgetUi = WidgetUi;
+    export var Ui: typeof WidgetUi;
 
+    export function notNull(obj: any) {
+        var copy = <any>{};
+        for (var key in obj) {
+            var value = obj[key];
+            if (value != null) {
+                copy[key] = value;
+            }
+        }
+
+        return copy;
+    }
 }
 
 export = HelperUtil;

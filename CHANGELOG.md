@@ -4,7 +4,16 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.23.1](N/A) - 2021-08-30
+### [0.24.0](N/A) - 2021-10-03
+#### Changed
+* `BrowserMultiPack.createWrappedSourceAndMap()` parameters changed, line numbers array instead of `lineNum` and `sourceMapIndex` renamed to `bundleIndex and moved later in the parameter list
+
+#### Fixed
+* Fix source map line numbers in bundles not matching up to source files
+
+
+--------
+### [0.23.1](https://github.com/TeamworkGuy2/ts-bundlify/commit/d9d2f48be5e6bd87e64130828ee5cac34acbd757) - 2021-08-30
 #### Fixed
 * Fix `GlobWatcher.WatchOptions` type to extend `chokidar.WatchOptions`
 * Fix `GlobWatcher.watch()` `cb` parameter type to receive a `done()` function parameter
