@@ -111,6 +111,9 @@ var ConcatWithSourceMaps = /** @class */ (function () {
         }
     };
     Object.defineProperty(ConcatWithSourceMaps.prototype, "content", {
+        /** All of the add() 'contents' with separators concatenated together in one Buffer
+         * @returns a buffer
+         */
         get: function () {
             return Buffer.concat(this.contentParts);
         },
@@ -118,6 +121,9 @@ var ConcatWithSourceMaps = /** @class */ (function () {
         configurable: true
     });
     Object.defineProperty(ConcatWithSourceMaps.prototype, "sourceMap", {
+        /** The string representation of this concatenated source map
+         * @returns a source map string or undefined if source maps are not enabled (see constructor first parameter 'generateSourceMap')
+         */
         get: function () {
             return this._sourceMap ? this._sourceMap.toString() : undefined;
         },

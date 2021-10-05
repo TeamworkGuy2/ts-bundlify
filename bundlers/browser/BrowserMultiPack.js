@@ -274,10 +274,11 @@ var BrowserMultiPack;
             }
             sourceMap.addFile({ sourceFile: row.sourceFile, source: row.source }, { line: lineNum });
         }
-        lineNum += StringUtil.countNewlines(row.source) + 2; // +2 for the UMD function and dependency definition lines surrounding the source, see below
+        var sourceWithoutComments = CombineSourceMap.removeComments(row.source);
+        lineNum += StringUtil.countNewlines(sourceWithoutComments) + 2; // +2 for the UMD function and dependency definition lines surrounding the source, see below
         lineNumbers[bundleIndex] = lineNum;
-        // the actual code wrapped in a prelude require function
-        wrappedSrc.push(JSON.stringify(row.id), ":[", "function(require,module,exports){\n", CombineSourceMap.removeComments(row.source), "\n},", "{" // for the dependencies map
+        // the actual code wrapped in a prelude require function (adds 2 lines)
+        wrappedSrc.push(JSON.stringify(row.id), ":[", "function(require,module,exports){\n", sourceWithoutComments, "\n},", "{" // for the dependencies map
         );
         // and write the dependencies
         if (row.deps) {

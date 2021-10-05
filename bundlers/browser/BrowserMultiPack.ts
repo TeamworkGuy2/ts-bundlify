@@ -315,15 +315,17 @@ module BrowserMultiPack {
             );
         }
 
-        lineNum += StringUtil.countNewlines(row.source) + 2; // +2 for the UMD function and dependency definition lines surrounding the source, see below
+        var sourceWithoutComments = CombineSourceMap.removeComments(row.source);
+
+        lineNum += StringUtil.countNewlines(sourceWithoutComments) + 2; // +2 for the UMD function and dependency definition lines surrounding the source, see below
         lineNumbers[bundleIndex] = lineNum;
 
-        // the actual code wrapped in a prelude require function
+        // the actual code wrapped in a prelude require function (adds 2 lines)
         wrappedSrc.push(
             JSON.stringify(row.id),
             ":[",
             "function(require,module,exports){\n",
-            CombineSourceMap.removeComments(row.source),
+            sourceWithoutComments,
             "\n},",
             "{" // for the dependencies map
         );

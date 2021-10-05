@@ -127,12 +127,12 @@ suite("BundleBuilder", function MemoryStoreTest() {
                         asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle.js.map"));
                         asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle-data-access.js"));
                         asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle-data-access.js.map"));
-                        fs.unlinkSync("./test/tmp/bundle.js");
-                        fs.unlinkSync("./test/tmp/bundle.js.map");
-                        fs.unlinkSync("./test/tmp/bundle-data-access.js");
-                        fs.unlinkSync("./test/tmp/bundle-data-access.js.map");
-                        fs.rmdirSync("./test/tmp");
-                        asr.isNotTrue(FileUtil.existsDirSync("./test/tmp"));
+                        //fs.unlinkSync("./test/tmp/bundle.js");
+                        //fs.unlinkSync("./test/tmp/bundle.js.map");
+                        //fs.unlinkSync("./test/tmp/bundle-data-access.js");
+                        //fs.unlinkSync("./test/tmp/bundle-data-access.js.map");
+                        //fs.rmdirSync("./test/tmp");
+                        //asr.isNotTrue(FileUtil.existsDirSync("./test/tmp"));
                     }
                 });
                 asr.deepEqual(bundleDataSourceMap.sources, [

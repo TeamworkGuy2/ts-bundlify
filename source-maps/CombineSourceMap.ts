@@ -49,11 +49,11 @@ module CombineSourceMap {
 
     function resolveMap(source: string) {
         var gen = ConvertSourceMap.fromSource(source);
-        return gen ? gen.toObject() : null;
+        return gen ? <SourceMap.RawSourceMap>gen.toObject() : null;
     }
 
 
-    function hasInlinedSource(existingMap?: any) {
+    function hasInlinedSource(existingMap?: any): existingMap is { sourcesContent: any[] } {
         return existingMap.sourcesContent && !!existingMap.sourcesContent[0];
     }
 
@@ -66,14 +66,15 @@ module CombineSourceMap {
             this.generator = new InlineSourceMap({ file: file || "generated.js", sourceRoot: sourceRoot });
         }
 
-        public _addGeneratedMap(sourceFile: string, source: string, offset: { line: number; column: number }) {
+        public _addGeneratedMap(sourceFile: string, source: string, offset: Partial<InlineSourceMap.Mapping>) {
             this.generator.addGeneratedMappings(sourceFile, source, offset);
             this.generator.addSourceContent(sourceFile, source);
             return this;
         }
 
-        public _addExistingMap(sourceFile: string, source: string, existingMap: { sourceRoot?: string | null; sources: any[]; sourcesContent?: (string | null | undefined)[]; [index: string]: any },
-            offset: { line: number; column: number }
+        public _addExistingMap(sourceFile: string, source: string,
+            existingMap: { sourceRoot?: string | null; sources: string[]; sourcesContent?: (string | null | undefined)[]; [index: string]: any },
+            offset: Partial<InlineSourceMap.Mapping>
         ) {
             var mappings = mappingsFromMap(existingMap);
 
@@ -83,7 +84,7 @@ module CombineSourceMap {
 
                 this.generator.addSourceContent(
                     rebaseRelativePath(sourceFile, existingMap.sourceRoot, existingMap.sources[i]),
-                    (<any[]>existingMap.sourcesContent)[i]);
+                    existingMap.sourcesContent[i]);
             }
 
             // add the mappings, preserving the original mapping 'source'
@@ -91,24 +92,21 @@ module CombineSourceMap {
                 // Add the mappings one at a time because 'inline-source-map' doesn't handle
                 // mapping source filenames. The mapping.source already takes sourceRoot into account
                 // per the SourceMapConsumer.eachMapping function, so pass null for the root here.
-                this.generator.addMappings(rebaseRelativePath(sourceFile, null, mapping.source), [<any>mapping], offset);
+                this.generator.addMappings(rebaseRelativePath(sourceFile, null, mapping.source), [mapping], offset);
             }, this);
 
             return this;
         }
 
-        /**
-         * Adds map to underlying source map.
+        /** Adds map to underlying source map.
          * If source contains a source map comment that has the source of the original file inlined it will offset these
          * mappings and include them.
          * If no source map comment is found or it has no source inlined, mappings for the file will be generated and included.
          *
-         * @name addMap
-         * @function
          * @param opts '{ sourceFile: {String}, source: {String} }'
          * @param offset '{ line: {Number}, column: {Number} }'
          */
-        public addFile(opts: { sourceFile: string; source: string }, offset?: { line?: number; column?: number }) {
+        public addFile(opts: { sourceFile: string; source: string }, offset?: Partial<InlineSourceMap.Mapping>) {
             offset = offset || { line: 0, column: 0 };
             if (!offset.hasOwnProperty("line")) offset.line = 0;
             if (!offset.hasOwnProperty("column")) offset.column = 0;
@@ -116,13 +114,13 @@ module CombineSourceMap {
             var existingMap = resolveMap(opts.source);
 
             return existingMap && hasInlinedSource(existingMap)
-                ? this._addExistingMap(opts.sourceFile, opts.source, existingMap, <InlineSourceMap.Mapping><any>offset)
-                : this._addGeneratedMap(opts.sourceFile, opts.source, <InlineSourceMap.Mapping><any>offset);
+                ? this._addExistingMap(opts.sourceFile, opts.source, existingMap, offset)
+                : this._addGeneratedMap(opts.sourceFile, opts.source, offset);
         }
 
         /**
-        * @return base64 encoded combined source map
-        */
+         * @return base64 encoded combined source map
+         */
         public base64() {
             return this.generator.base64Encode();
         }

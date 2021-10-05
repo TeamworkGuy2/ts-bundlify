@@ -10,7 +10,7 @@ function unixStylePath(filePath: string): string {
 class ConcatWithSourceMaps {
     public lineOffset: number;
     public columnOffset: number;
-    public contentParts: any[];
+    public contentParts: Buffer[];
     public separator: Buffer;
     public separatorLineOffset: number | null = null;
     public separatorColumnOffset: number | null = null;
@@ -131,11 +131,17 @@ class ConcatWithSourceMaps {
     }
 
 
+    /** All of the add() 'contents' with separators concatenated together in one Buffer
+     * @returns a buffer
+     */
     get content(): Buffer {
         return Buffer.concat(this.contentParts);
     }
 
 
+    /** The string representation of this concatenated source map
+     * @returns a source map string or undefined if source maps are not enabled (see constructor first parameter 'generateSourceMap')
+     */
     get sourceMap(): string | undefined {
         return this._sourceMap ? this._sourceMap.toString() : undefined;
     }

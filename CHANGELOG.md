@@ -4,7 +4,19 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.24.0](N/A) - 2021-10-03
+### [0.24.1](N/A) - 2021-10-04
+#### Changed
+* `InlineSourceMap.addSourceContent()` `sourcesContent` parameter now optional
+* `ConcatWithSourceMaps.contentParts` now strongly typed as `Buffer[]` instead of `any[]`
+* `CombineSourceMap` `offset` parameters on several functions loosened to `Partial<...>` to match the underlying `InlineSourceMap` instance not requiring line/column offsets
+
+#### Fixed
+* A `BrowserMultiPack` bug not counting bundled source lines properly, could throw off source map line numbers
+* A `VinylConcat` bug not identifying when source maps are enabled
+
+
+--------
+### [0.24.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/0c6ad45a3e8550975b8a1ecaa7c0f5a3f01e6110) - 2021-10-03
 #### Changed
 * `BrowserMultiPack.createWrappedSourceAndMap()` parameters changed, line numbers array instead of `lineNum` and `sourceMapIndex` renamed to `bundleIndex and moved later in the parameter list
 

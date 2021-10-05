@@ -1,6 +1,8 @@
 ﻿import DataSource = require("./DataSource");
 import HelperUtil = require("./helpers/HelperUtil");
 
+/** For widget UI stuff!
+ */
 module WidgetUi {
 
     export function createWidget(app: HelperUtil.PackageLike) {

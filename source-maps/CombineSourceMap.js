@@ -76,14 +76,11 @@ var CombineSourceMap;
             }, this);
             return this;
         };
-        /**
-         * Adds map to underlying source map.
+        /** Adds map to underlying source map.
          * If source contains a source map comment that has the source of the original file inlined it will offset these
          * mappings and include them.
          * If no source map comment is found or it has no source inlined, mappings for the file will be generated and included.
          *
-         * @name addMap
-         * @function
          * @param opts '{ sourceFile: {String}, source: {String} }'
          * @param offset '{ line: {Number}, column: {Number} }'
          */
@@ -99,8 +96,8 @@ var CombineSourceMap;
                 : this._addGeneratedMap(opts.sourceFile, opts.source, offset);
         };
         /**
-        * @return base64 encoded combined source map
-        */
+         * @return base64 encoded combined source map
+         */
         Combiner.prototype.base64 = function () {
             return this.generator.base64Encode();
         };

@@ -423,7 +423,7 @@ module GlobWatcher {
     // based on stream-exhaust@1.0.2 (https://github.com/chrisdickinson/stream-exhaust/commit/3142d2e2ac0eb301d561ddf501407fbd75ebb1ee)
     export module StreamExhaust {
 
-        export function resumer<T extends { pipe(...args: any[]): any;[prop: string]: any }>(stream: T): T {
+        export function resumer<T extends { pipe(...args: any[]): any; [prop: string]: any }>(stream: T): T {
             if (!stream.readable) {
                 return stream;
             }

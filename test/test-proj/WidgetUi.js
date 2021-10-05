@@ -1,5 +1,7 @@
 "use strict";
 var HelperUtil = require("./helpers/HelperUtil");
+/** For widget UI stuff!
+ */
 var WidgetUi;
 (function (WidgetUi) {
     function createWidget(app) {

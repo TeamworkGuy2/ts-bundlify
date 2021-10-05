@@ -16,10 +16,10 @@ function newlinesIn(src: string | null | undefined) {
  */
 class InlineSourceMap {
     generator: SourceMap.SourceMapGenerator;
-    sourcesContent: { [sourceFile: string]: string } | undefined;
-    opts: { file?: any; sourceRoot?: any;[index: string]: string };
+    sourcesContent: { [sourceFile: string]: string | null | undefined } | undefined;
+    opts: { file?: any; sourceRoot?: any; [index: string]: string };
 
-    constructor(opts?: { file?: any; sourceRoot?: any;[index: string]: string }) {
+    constructor(opts?: { file?: any; sourceRoot?: any; [index: string]: string }) {
         opts = opts || {};
         this.generator = new SourceMap.SourceMapGenerator({ file: opts.file || "", sourceRoot: opts.sourceRoot || "" });
         this.sourcesContent = undefined;
@@ -76,7 +76,7 @@ class InlineSourceMap {
      * @param sourcesContent the content of the source file
      * @return this generator to allow chaining
      */
-    public addSourceContent(sourceFile: string, sourcesContent: string) {
+    public addSourceContent(sourceFile: string, sourcesContent?: string | null) {
         var srcsContent = this.sourcesContent || {};
         this.sourcesContent = srcsContent;
         srcsContent[sourceFile] = sourcesContent;

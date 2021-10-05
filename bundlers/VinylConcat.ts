@@ -38,7 +38,7 @@ module VinylConcat {
         var latestFile: VinylFile;
         var latestMod: Date | null;
         var fileName: string;
-        var concat: any;
+        var concat: ConcatSourceMaps;
 
         if (typeof file === "string") {
             fileName = file;
@@ -81,7 +81,7 @@ module VinylConcat {
             }
 
             // add file to concat instance
-            concat.add(file.relative, file.contents, file.sourceMap);
+            concat.add(file.relative, <any>file.contents, file.sourceMap); // the 'file.isNull()' check above ensures that this cast is safe
             cb();
         }
 
@@ -106,8 +106,9 @@ module VinylConcat {
 
             joinedFile.contents = concat.content;
 
-            if (concat.sourceMapping) {
-                joinedFile.sourceMap = JSON.parse(concat.sourceMap);
+            var rawSourceMap = concat.sourceMap;
+            if (rawSourceMap) {
+                joinedFile.sourceMap = JSON.parse(rawSourceMap);
             }
 
             this.push(joinedFile);

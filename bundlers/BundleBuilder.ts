@@ -41,7 +41,7 @@ module BundleBuilder {
     type BundleSourceCreator<T> = (bundler: T, updateEvent?: { [key: string]: any } | { [key: number]: any }) => MultiBundleStreams;
 
 
-    type BuildBundlerOptions<T> = T & BundleOptions & { prelude?: string; typescriptHelpers?: string;[prop: string]: any };
+    type BuildBundlerOptions<T> = T & BundleOptions & { prelude?: string; typescriptHelpers?: string; [prop: string]: any };
 
 
     /** An interface that splits the process of building a JS code bundle into steps.

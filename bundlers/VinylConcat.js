@@ -72,7 +72,7 @@ var VinylConcat;
                 concat = new ConcatSourceMaps(isUsingSourceMaps, fileName, _opt.newLine);
             }
             // add file to concat instance
-            concat.add(file.relative, file.contents, file.sourceMap);
+            concat.add(file.relative, file.contents, file.sourceMap); // the 'file.isNull()' check above ensures that this cast is safe
             cb();
         }
         function endStream(cb) {
@@ -92,8 +92,9 @@ var VinylConcat;
                 joinedFile = new VinylFile(file);
             }
             joinedFile.contents = concat.content;
-            if (concat.sourceMapping) {
-                joinedFile.sourceMap = JSON.parse(concat.sourceMap);
+            var rawSourceMap = concat.sourceMap;
+            if (rawSourceMap) {
+                joinedFile.sourceMap = JSON.parse(rawSourceMap);
             }
             this.push(joinedFile);
             cb();
