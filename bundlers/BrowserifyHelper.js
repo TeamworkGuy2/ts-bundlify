@@ -1,8 +1,6 @@
 "use strict";
 var log = require("fancy-log");
 var path = require("path");
-var stream = require("stream");
-var util = require("util");
 /** Helpers for building JS bundles using 'browserify'
  */
 var BrowserifyHelper;
@@ -144,33 +142,12 @@ var BrowserifyHelper;
         rebundle();
     }
     BrowserifyHelper.setupRebundleListener = setupRebundleListener;
-    /** Create a Node stream 'Transform' instance which supports prepending and appending data to each chunk passed to the private/internal '_transform' method
-     * @param optionalTransforms
-     */
-    function createStreamTransformer(optionalTransforms) {
-        function SimpleStreamView(opts) {
-            stream.Transform.call(this, opts);
-        }
-        util.inherits(SimpleStreamView, stream.Transform);
-        // override a private stream.Transform method
-        SimpleStreamView.prototype._transform = function _transform(chunk, encoding, cb) {
-            if (i === 0) {
-                chunk = runFuncResultToBuffer(chunk, false, optionalTransforms.prependInitial);
-            }
-            chunk = runFuncResultToBuffer(chunk, false, optionalTransforms.prependEach);
-            chunk = runFuncResultToBuffer(chunk, true, optionalTransforms.appendEach);
-            this.push(chunk);
-            cb();
-            i++;
-        };
-        var i = 0;
-        return new SimpleStreamView();
-    }
-    BrowserifyHelper.createStreamTransformer = createStreamTransformer;
     /** Add a dependency tracker to the provided 'bundler'
      * @param baseDir the base project directory to resolve relative file paths against
      * @param bundler the bundler to listen for file stream events from
-     * @param filter optional function to filter the bundler files, return false to skip a file
+     * @param filter optional, function to filter the bundler files, return false to skip tracking a file's dependencies
+     * @returns the 'bundler' argument and a map associating file names with an array of dependencies required/imported by that file,
+     * this map is empty when this function returns and is built asynchronously by each 'dep' event emitted by the 'bundler'
      */
     function addDependencyTracker(baseDir, bundler, filter) {
         var res = { bundler: bundler, allDeps: {} };
@@ -276,21 +253,6 @@ var BrowserifyHelper;
         catch (err) {
             console.error("error calling '" + (func != null ? func.name : null) + "'", err);
         }
-    }
-    function runFuncResultToBuffer(chunk, append, func) {
-        if (func != null) {
-            var res = func(chunk);
-            if (res != null) {
-                if (Buffer.isBuffer(res)) {
-                    chunk = res;
-                }
-                else {
-                    var bufs = [append ? chunk : Buffer.from(res), append ? Buffer.from(res) : chunk];
-                    chunk = Buffer.concat(bufs);
-                }
-            }
-        }
-        return chunk;
     }
     function isPromise(p) {
         return p != null && typeof p.then === "function";

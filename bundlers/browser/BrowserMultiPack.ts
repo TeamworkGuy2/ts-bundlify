@@ -129,22 +129,21 @@ module BrowserMultiPack {
     /** Override browserify's standard 'pack' pipeline step with a custom 'browser-pack' implementation that writes to multiple output bundles.
      * This requires overwriting browserif.prototype._createPipeline() and setting the 'bundleBldr' setBundleSourceCreator() callback
      * @param bundleBldr the bundle builder to modify
-     * @param _bundler the browserify instance to modify to output multiple bundle streams
+     * @param bundler the browserify instance to modify to output multiple bundle streams
      * @param getMultiBundleOpts a function which returns a MultiBundleOptions object containing the options to build the bundle streams.
      * This function gets called when browserify.bundle() is called, which happens in BundleBuilder.compileBundle() (which calls BrowserifyHelper.setupRebundleListener())
      */
     export function overrideBrowserifyPack<TBundler extends { bundle(): NodeJS.ReadableStream }>(
-        bundleBldr: BundleBuilder.Builder<TBundler>,
-        _bundler: { prototype: { _bpack: any; _createPipeline(opts: any): any } },
+        bundler: { prototype: { _bpack: any; _createPipeline(opts: any): any } },
         getMultiBundleOpts: () => MultiBundleOptions
     ) {
-        var origCreatePipeline = _bundler.prototype["_createPipeline"];
+        var origCreatePipeline = bundler.prototype["_createPipeline"];
 
         var packer = createPacker(getMultiBundleOpts);
 
         // Override browserify._createPipeline() to replace the 'pack' pipeline step with a custom browser-pack implementation
         // gets called when browserify instance is created or when reset() or bundle() are called
-        _bundler.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(this: typeof _bundler["prototype"], createPipeOpts: any) {
+        bundler.prototype["_createPipeline"] = function _createPipelineBundleSpliterCustomization(this: typeof bundler["prototype"], createPipeOpts: any) {
             var pipeline = origCreatePipeline.call(this, createPipeOpts);
             var packPipe = pipeline.get("pack");
             var oldBpack = packPipe.pop();
@@ -155,9 +154,6 @@ module BrowserMultiPack {
             packPipe.push(newBpack.baseStream);
             return pipeline;
         };
-
-        // Consume the browserify bundle and return the multiple pack bundles
-        bundleBldr.setBundleSourceCreator(packer.multiBundleSourceCreator);
 
         return packer;
     }

@@ -4,7 +4,26 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.24.1](N/A) - 2021-10-04
+### [0.25.0](N/A) - 2021-11-07
+#### Added
+* `BundleBuilder.createOptions()`
+* `BundleBuilder.createDefaultBundler()`
+
+#### Changed
+Refactor with goal of removing excess layers of complexity and giving the caller more transparent control over the bundler implementation setup and usage.
+* `BundleBuilder` refactored, see README.md for usage instructions, summary:
+  1. create your own options using `BundleBuilder.createOptions(...)`
+  2. create a bundler implementation (i.e. new browserify() or new TsBrowserify())
+  3. call `BundleBuilder.compileBundle()` with the options, paths, and bundler you created (for the `bundleSourceCreator` parameter use `BundleBuilder.createDefaultBundler()` or `BrowserMultiPack.createPacker().multiBundleSourceCreator`)
+
+#### Removed
+* `BundleBuilder.buildBundler()` in favor of createOptions() and compileBundle() - see 'Changes' above and README.md for new usage pattern
+* `BundleBuilder` interfaces removed: `CompileFunc`, `Builder`, `BuilderListenersStep`, `BuilderListenersStep`, and `BuilderCompileStep` - see 'Changes' above and README.md for new usage pattern
+* `BrowserifyHelper.createStreamTransformer()` (and private runFuncResultToBuffer()) because they were unused
+
+
+--------
+### [0.24.1](https://github.com/TeamworkGuy2/ts-bundlify/commit/08fe38301ab455259a5e2f8e1adb28e3a5c256ab) - 2021-10-04
 #### Changed
 * `InlineSourceMap.addSourceContent()` `sourcesContent` parameter now optional
 * `ConcatWithSourceMaps.contentParts` now strongly typed as `Buffer[]` instead of `any[]`

@@ -22,7 +22,13 @@ suite("BundleBuilder", function MemoryStoreTest() {
         TsBrowserify.builtins = {
             fs: require.resolve("fs"),
         };
-        var bundleBldr = BundleBuilder.buildBundler(function (opts) { return new TsBrowserify(opts); }, /*watchify*/ null, {
+        var bundlePaths = {
+            entryFile: "./test/test-proj/App.js",
+            dstDir: "./test/tmp/",
+            srcPaths: ["./test-proj", "node_modules"],
+            projectRoot: process.cwd() + "/test"
+        };
+        var bundleOpts = BundleBuilder.createOptions({
             debug: true,
             rebuild: false,
             verbose: true,
@@ -30,8 +36,9 @@ suite("BundleBuilder", function MemoryStoreTest() {
             depsSort: depsSort,
             moduleDeps: moduleDeps,
             insertModuleGlobals: insertModuleGlobals,
-        }, BundleBuilder.compileBundle)
-            .setBundleListeners({
+        }, bundlePaths, null);
+        var bundler = new TsBrowserify(bundleOpts);
+        BundleBuilder.compileBundle(bundler, bundleOpts, bundlePaths.dstDir, function (br) { return BundleBuilder.createDefaultBundler(br, { dstFileName: "bundle.js" }); }, [], {
             finishAll: function () {
                 var bundleMap;
                 asr.doesNotThrow(function () {
@@ -54,14 +61,6 @@ suite("BundleBuilder", function MemoryStoreTest() {
                 ]);
                 done();
             },
-        })
-            .compileBundle({
-            entryFile: "./test/test-proj/App.js",
-            dstDir: "./test/tmp/",
-            srcPaths: ["./test-proj", "node_modules"],
-            projectRoot: process.cwd() + "/test"
-        }, {
-            dstFileName: "bundle.js"
         });
     });
     test("buildMultiBundle", function buildMultiBundleTest(done) {
@@ -75,11 +74,11 @@ suite("BundleBuilder", function MemoryStoreTest() {
                 bundles: [{
                         dstFileName: "bundle.js",
                         dstMapFile: "bundle.js.map",
-                        prelude: "// main bundle prelude test\n" + bOpts.prelude,
+                        prelude: "// main bundle prelude test\n" + bundleOpts.prelude,
                     }, {
                         dstFileName: "bundle-data-access.js",
                         dstMapFile: "bundle-data-access.js.map",
-                        prelude: "// data access bundle prelude test\n" + bOpts.typescriptHelpers + "var require = " + bOpts.prelude,
+                        prelude: "// data access bundle prelude test\n" + bundleOpts.typescriptHelpers + "var require = " + bundleOpts.prelude,
                         preludePath: "./_prelude-with-typescript-helpers.js",
                     }],
                 destinationPicker: function (path) {
@@ -87,19 +86,20 @@ suite("BundleBuilder", function MemoryStoreTest() {
                 },
             });
         });
-        var allDeps;
-        var bOpts;
-        var savedDeps = [];
-        var bundleBldr = BundleBuilder.buildBundler(function (opts) {
-            var bundler = new TsBrowserify(bOpts = opts);
-            allDeps = BrowserifyHelper.addDependencyTracker(process.cwd() + "\\test\\", bundler).allDeps;
-            return bundler;
-        }, null /*(b, opts) => TsWatchify(b, { delay: 500 })*/, {
+        var bundlePaths = {
+            entryFile: "./test/test-proj/App.js",
+            dstDir: "./test/tmp/",
+            srcPaths: ["./test-proj", "node_modules"],
+            projectRoot: process.cwd() + "/test"
+        };
+        var bundleOpts = BundleBuilder.createOptions({
             debug: true,
             rebuild: false,
             verbose: true,
             typescript: { includeHelpers: true },
-            browserPack: function (opts) { return packer.createPackStreams().baseStream; },
+            browserPack: function (opts) {
+                return packer.createPackStreams().baseStream;
+            },
             depsSort: depsSort,
             moduleDeps: function (opts) {
                 opts.detect = function (src) {
@@ -109,12 +109,10 @@ suite("BundleBuilder", function MemoryStoreTest() {
                 return moduleDeps(opts);
             },
             insertModuleGlobals: insertModuleGlobals,
-        }, BundleBuilder.compileBundle)
-            .setBundleSourceCreator(packer.multiBundleSourceCreator)
-            .transforms(function (browserify) {
-            return [];
-        })
-            .setBundleListeners({
+        }, bundlePaths, null /*(b, opts) => TsWatchify(b, { delay: 500 })*/);
+        var bundler = new TsBrowserify(bundleOpts);
+        var allDeps = BrowserifyHelper.addDependencyTracker(process.cwd() + "\\test\\", bundler).allDeps;
+        BundleBuilder.compileBundle(bundler, bundleOpts, bundlePaths.dstDir, packer.multiBundleSourceCreator, [], {
             finishAll: function () {
                 //console.log("deps", JSON.stringify(allDeps, undefined, "  "));
                 var bundleDataSourceMap;
@@ -127,12 +125,12 @@ suite("BundleBuilder", function MemoryStoreTest() {
                         asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle.js.map"));
                         asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle-data-access.js"));
                         asr.isTrue(FileUtil.existsFileSync("./test/tmp/bundle-data-access.js.map"));
-                        //fs.unlinkSync("./test/tmp/bundle.js");
-                        //fs.unlinkSync("./test/tmp/bundle.js.map");
-                        //fs.unlinkSync("./test/tmp/bundle-data-access.js");
-                        //fs.unlinkSync("./test/tmp/bundle-data-access.js.map");
-                        //fs.rmdirSync("./test/tmp");
-                        //asr.isNotTrue(FileUtil.existsDirSync("./test/tmp"));
+                        fs.unlinkSync("./test/tmp/bundle.js");
+                        fs.unlinkSync("./test/tmp/bundle.js.map");
+                        fs.unlinkSync("./test/tmp/bundle-data-access.js");
+                        fs.unlinkSync("./test/tmp/bundle-data-access.js.map");
+                        fs.rmdirSync("./test/tmp");
+                        asr.isNotTrue(FileUtil.existsDirSync("./test/tmp"));
                     }
                 });
                 asr.deepEqual(bundleDataSourceMap.sources, [
@@ -153,13 +151,7 @@ suite("BundleBuilder", function MemoryStoreTest() {
                 asr.deepEqual(sortedDeps["test-proj\\helpers\\HelperUtil"], []);
                 done();
             }
-        })
-            .compileBundle({
-            entryFile: "./test/test-proj/App.js",
-            dstDir: "./test/tmp/",
-            srcPaths: ["./test-proj", "node_modules"],
-            projectRoot: process.cwd() + "/test"
-        }, null);
+        });
     });
     test("detectCircularDependencies", function detectCircularDependenciesTest() {
         var allDeps = {

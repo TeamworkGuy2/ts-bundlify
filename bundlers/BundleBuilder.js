@@ -5,19 +5,18 @@ var BrowserifyHelper = require("./BrowserifyHelper");
 var TypeScriptHelper = require("./TypeScriptHelper");
 var VinylSourceStream = require("../streams/VinylSourceStream");
 /** Browserify bundle stream builder
- * requires package.json:
- *   "browserify": "~14.3.0",
  */
 var BundleBuilder;
 (function (BundleBuilder) {
-    /** The advanced version of '.buildBundler().compileBundle()'. Builds/compiles source files into a single output bundle JS file using the provided 'bundler'.
-     * @param transforms an array of options and functions to pass to browserify.transform()
+    /** Setup a Browserify bundler which builds/compiles source files into a single output bundle JS file using the provided 'bundler'.
      * @param bundler the browser-bundler instance to use for bundling
      * @param bundleOpts options for building the bundles
      * @param dstDir the directory to write output bundle files to
      * @param bundleSourceCreator function which creates a MultiBundleStreams object containing Node 'ReadableStream' objects for the source and bundles
+     * @param transforms array of functions and options to pass to browserify.transform()
+     * @param listeners optional functions that are called when compilation events occur, including startBundle(), finishBundle(), finishAll(), error(), and others
      */
-    function compileBundle(transforms, bundler, bundleOpts, dstDir, bundleSourceCreator, listeners) {
+    function compileBundle(bundler, bundleOpts, dstDir, bundleSourceCreator, transforms, listeners) {
         for (var i = 0, size = transforms.length; i < size; i++) {
             var transform = transforms[i];
             bundler = bundler.transform(transform.transform, transform.options);
@@ -32,68 +31,34 @@ var BundleBuilder;
     function getMapFilePath(dstDir, fileName, mapFile) {
         return mapFile != null ? (dstDir + mapFile) : (dstDir + fileName + ".map");
     }
-    /** Create a browser bundle builder using the provided options, paths, and bundle stream compiler.
-     * Handles waiting for a promise, then creating options, creating an instance of 'browserBundler', running a bundle compiler, and waiting for the result.
-     * @param browserBundler function which creates the browser-bundler to use (normally browserify)
-     * @param rebuilder optional, plugin to pass to 'browserBundler' if 'bundleOpts.rebuild' is true (normally watchify)
-     * @param bundleOpts options for how to compile the bundle, these are also passed along to 'compileBundle()'
-     * @param compileBundle a function which takes a bundler, options, paths, and a bundle stream creator and compiles the bundle
-     * @param optsModifier optional, function which can modify the browserBundler and browserPack options before they are passed to 'browserBundler' at the beginning of each 'compileBundle()' call
+    /** Create default constructor options for a TypeScript browserify instance
+     * @param opts options for how to compile the bundle, these are also passed along to 'compileBundle()'
+     * @param paths code paths for the bundle inputs and outputs
+     * @param rebuilder optional, 'plugin' to include if 'opts.rebuild' is true (normally this argument is 'watchify' or equivalent)
      */
-    function buildBundler(browserBundler, rebuilder, bundleOpts, compileBundle) {
-        var _createTransforms = function (bundler) { return []; };
-        var _bundleSourceCreator;
-        var _listeners;
-        var inst = {
-            setBundleSourceCreator: function (bundleSourceCreator) {
-                _bundleSourceCreator = bundleSourceCreator;
-                return inst;
-            },
-            transforms: function (createTransforms) {
-                _createTransforms = createTransforms;
-                return inst;
-            },
-            setBundleListeners: function (listeners) {
-                _listeners = listeners;
-                return inst;
-            },
-            compileBundle: function (paths, defaultBundleOpts) {
-                if (_bundleSourceCreator == null) {
-                    if (defaultBundleOpts == null) {
-                        throw new Error("null argument 'defaultBundleOpts' and setBundleSourceCreator() has not been called, cannot create a bundle without bundle options");
-                    }
-                    // create a default single bundle stream
-                    _bundleSourceCreator = function (bundler, updateEvent) {
-                        var baseStream = bundler.bundle();
-                        return {
-                            baseStream: baseStream,
-                            bundleStreams: [{
-                                    stream: baseStream,
-                                    dstFileName: defaultBundleOpts.dstFileName,
-                                    dstMapFile: defaultBundleOpts.dstMapFile || (defaultBundleOpts.dstFileName + ".map")
-                                }]
-                        };
-                    };
-                }
-                var bundlerOpts = inst.createOptions(bundleOpts, paths);
-                var bundler = browserBundler(bundlerOpts);
-                var transforms = _createTransforms(bundler);
-                compileBundle(transforms, bundler, bundleOpts, paths.dstDir, _bundleSourceCreator, _listeners);
-            },
-            createOptions: function (opts, paths) {
-                var plugins = opts.rebuild ? [rebuilder] : [];
-                var resOpts = BrowserifyHelper.createOptions(opts, paths, plugins);
-                // if requested and not already defined, load typescript helpers
-                if (resOpts.typescript != null && resOpts.typescript.includeHelpers && resOpts.prelude == null && resOpts.typescriptHelpers == null) {
-                    var res = TypeScriptHelper.createPreludeStringWithTypeScriptHelpers(resOpts.typescript.includeHelpersComment != false);
-                    resOpts.prelude = res.preludeSrc;
-                    resOpts.typescriptHelpers = res.typeScriptHelpers;
-                }
-                return resOpts;
-            },
-        };
-        return inst;
+    function createOptions(opts, paths, rebuilder) {
+        var plugins = opts.rebuild ? [rebuilder] : [];
+        var resOpts = BrowserifyHelper.createOptions(opts, paths, plugins);
+        // if requested and not already defined, load typescript helpers
+        if (resOpts.typescript != null && resOpts.typescript.includeHelpers && resOpts.prelude == null && resOpts.typescriptHelpers == null) {
+            var res = TypeScriptHelper.createPreludeStringWithTypeScriptHelpers(resOpts.typescript.includeHelpersComment != false);
+            resOpts.prelude = res.preludeSrc;
+            resOpts.typescriptHelpers = res.typeScriptHelpers;
+        }
+        return resOpts;
     }
-    BundleBuilder.buildBundler = buildBundler;
+    BundleBuilder.createOptions = createOptions;
+    function createDefaultBundler(bundler, bundleOpts) {
+        var baseStream = bundler.bundle();
+        return {
+            baseStream: baseStream,
+            bundleStreams: [{
+                    stream: baseStream,
+                    dstFileName: bundleOpts.dstFileName,
+                    dstMapFile: bundleOpts.dstMapFile || (bundleOpts.dstFileName + ".map")
+                }]
+        };
+    }
+    BundleBuilder.createDefaultBundler = createDefaultBundler;
 })(BundleBuilder || (BundleBuilder = {}));
 module.exports = BundleBuilder;

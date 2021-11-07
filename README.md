@@ -36,33 +36,39 @@ Build a single bundle with `browserify` and rebuild with `watchify`:
 // gulpfile.js
 // [...]
 
-// create the bundle builder with build options
-BundleBuilder.buildBundler((opts) => new browserify(opts), watchify, {
-  rebuild: true,
-  debug: false,
-  verbose: true,
-  typescript: { includeHelpers: true }
-}, BundleBuilder.compileBundle)
+// define the bundle file paths and options
+var bundlePaths: CodePaths = {
+    entryFile: "./src/[...]/myApp.js",
+    dstDir: "./build/",
+    srcPaths: ["node_modules", "./src/[...]"],
+    projectRoot: process.cwd()
+};
+
+var bundleOpts = BundleBuilder.createOptions<TsBrowserify.Options>({
+    rebuild: true,
+    debug: false,
+    verbose: true,
+    typescript: { includeHelpers: true },
+    browserPack: browserPack,
+    depsSort: depsSort,
+    moduleDeps: moduleDeps,
+}, bundlePaths, watchify);
+
+// create the bundler implementation
+var bundler = new browserify(bundleOpts);
+
 // add a babelify transform step, you can add multiple transforms which are passed to browserify.transform()
-.transforms((browserify) => [
-  BabelBundler.createTransformer(babelify)
-])
-// events
-.setBundleListeners({
-  error: (srcName, dstFileName, err) => { ... },
-  finishAll: (res) => { ... },
-  finishBundle: (fileName) => { ... },
-  skipBundle: (fileName) => { ... },
-  startBundle: (fileName) => { ... }
-})
-// start the build with options about the source files to compile and the bundle destination file path
-.compileBundle({
-  entryFile: "./src/[...]/myApp.js",
-  dstDir: "./build/",
-  srcPaths: ["node_modules", "./src/[...]"],
-  projectRoot: process.cwd()
-}, {
-  dstFileName: "app-compiled.js"
+var transforms = [
+    BabelBundler.createTransformer(babelify)
+];
+
+// run the build with options about the source files to compile and the bundle destination file path
+BundleBuilder.compileBundle(bundler, bundleOpts, bundlePaths.dstDir, (br) => BundleBuilder.createDefaultBundler(br, { dstFileName: "app-compiled.js" }), transforms, {
+    error: (srcName, dstFileName, err) => { ... },
+    finishAll: (res) => { ... },
+    finishBundle: (fileName) => { ... },
+    skipBundle: (fileName) => { ... },
+    startBundle: (fileName) => { ... }
 });
 ```
 
@@ -77,49 +83,59 @@ Bundle 2 contains all the required `node_modules` files.
 // gulpfile.js
 // [...]
 
-var BrowserMultiPack = require("ts-bundlify/bundlers/browser/BrowserMultiPack");
+// create the bundle file paths and options
+var bundlePaths: CodePaths = {
+    entryFile: "./src/[...]/myApp.js",
+    dstDir: "./build/",
+    srcPaths: ["node_modules", "./src/[...]"],
+    projectRoot: process.cwd()
+};
 
-// create the bundle builder with build options (difference - save the browserify options via the buildBundle() callback)
-var browserifyOpts;
-var bundleBldr = BundleBuilder.buildBundle((opts) => new browserify(browserifyOpts = opts), watchify, {
-  rebuild: true,
-  debug: false,
-  verbose: true,
-  typescript: { includeHelpers: true }
-}, BundleBuilder.compileBundle);
+var bundleOpts = BundleBuilder.createOptions<TsBrowserify.Options>({
+    rebuild: true,
+    debug: false,
+    verbose: true,
+    typescript: { includeHelpers: true },
+    browserPack: browserPack,
+    depsSort: depsSort,
+    moduleDeps: moduleDeps,
+}, bundlePaths, watchify);
+
+// create the bundler implementation
+var bundler = new browserify(bundleOpts);
 
 // the magic, insert a custom 'browser-pack' implementation into browserify's pipeline
-BrowserMultiPack.overrideBrowserifyPack(bundleBldr, browserify, () => ({
-  bundles: [{
-    // bundle 1 (destinationPicker() => 0)
-    dstFileName: "app-compiled.js",
-    prelude: browserifyOpts.prelude
-  }, {
-    // bundle 2 (destinationPicker() => 1)
-    dstFileName: "app-modules.js",
-    // example of customizing the generated bundle code, in this case to insert typescript
-    // helper functions like __extends and __awaiter
-    prelude: browserifyOpts.typescriptHelpers + "var require = " + browserifyOpts.prelude,
-    preludePath: "./_prelude-with-typescript-helpers.js"
-  }],
-  destinationPicker: (path) => {
-    // this is where the magic happens, pick each file's destination bundle based on file path
-    return path.indexOf("node_modules") > -1 ? 1 /* app-modules.js */ : 0 /* app-compiled.js */;
-  }
+var packer = BrowserMultiPack.overrideBrowserifyPack(bundler, () => ({
+    bundles: [{
+        // bundle 1 (destinationPicker() => 0)
+        dstFileName: "app-compiled.js",
+        prelude: bundleOpts.prelude
+    }, {
+        // bundle 2 (destinationPicker() => 1)
+        dstFileName: "app-modules.js",
+        // example of customizing the generated bundle code, in this case to insert typescript
+        // helper functions like '__extends' and '__awaiter'
+        prelude: bundleOpts.typescriptHelpers + "var require = " + bundleOpts.prelude,
+        preludePath: "./_prelude-with-typescript-helpers.js"
+    }],
+    destinationPicker: (path) => {
+        // this is where we pick each file's destination bundle based on file path
+        return path.indexOf("node_modules") > -1 ? 1 /* app-modules.js */ : 0 /* app-compiled.js */;
+    }
 }));
 
-// add a babelify transform step, you can add multiple transforms which are passed to
-// browserify.transform() (same as before)
-bundleBldr.transforms((browserify) => [
-  BabelBundler.createTransformer(babelify)
-])
+// add a babelify transform step, you can add multiple transforms which are passed to browserify.transform()
+var transforms = [
+    BabelBundler.createTransformer(babelify)
+];
+
 // start the build process with options about the source files to compile
-// notice, the 'dstFileName' destination is left out since the destination(s) were configured by the
-// previous call to BrowserMultiPack.overrideBrowserifyPack()
-.compileBundle({
-  entryFile: "./src/[...]/myApp.js",
-  dstDir: "./build/",
-  srcPaths: ["node_modules", "./src/[...]"],
-  projectRoot: process.cwd()
-}, null);
+// the 'dstFileName' was configured by the previous call to BrowserMultiPack.overrideBrowserifyPack()
+BundleBuilder.compileBundle(bundler, bundleOpts, bundlePaths.dstDir, packer.multiBundleSourceCreator, transforms, {
+    error: (srcName, dstFileName, err) => { ... },
+    finishAll: (res) => { ... },
+    finishBundle: (fileName) => { ... },
+    skipBundle: (fileName) => { ... },
+    startBundle: (fileName) => { ... }
+});
 ```
