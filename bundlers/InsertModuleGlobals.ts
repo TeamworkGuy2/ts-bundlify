@@ -115,7 +115,7 @@ function insertModuleGlobals(file: string, opts: { basedir?: string; always?: bo
                 ;
         }
         catch (err) {
-            var e = new SyntaxError((err.message || err) + " while parsing " + file);
+            var e = new SyntaxError(((<any>err).message || err) + " while parsing " + file);
             (<any>e).type = "syntax";
             (<any>e).filename = file;
             return this.emit("error", e);

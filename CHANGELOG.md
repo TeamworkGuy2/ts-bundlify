@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.25.0](N/A) - 2021-11-07
+### [0.26.0](N/A) - 2022-01-02
+#### Changed
+* Update to TypeScript 4.4
+
+
+--------
+### [0.25.0](https://github.com/TeamworkGuy2/ts-bundlify/commit/a62340fe837e89ff9b9a1d1056f5f80314c1274e) - 2021-11-07
 #### Added
 * `BundleBuilder.createOptions()`
 * `BundleBuilder.createDefaultBundler()`

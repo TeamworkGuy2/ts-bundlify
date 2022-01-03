@@ -28,7 +28,7 @@ module FileUtil {
             var info = fs.statSync(path);
             return (orFile ? info.isFile() : false) || (orDir ? info.isDirectory() : false);
         } catch (err) {
-            return err.code === "ENOENT" ? false : null;
+            return (<any>err).code === "ENOENT" ? false : null;
         }
     }
 

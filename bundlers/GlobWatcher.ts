@@ -352,7 +352,7 @@ module GlobWatcher {
             try {
                 return fn.apply(null, <any[]>args);
             } catch (err) {
-                rethrowAsync(err);
+                rethrowAsync(<any>err);
             }
         }
 
